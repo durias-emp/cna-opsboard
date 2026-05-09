@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { seedAircraft } from '../lib/seed'
+import { seedAircraft, seedMaintenanceItems } from '../lib/seed'
 
 const AircraftContext = createContext(null)
 
@@ -30,9 +30,13 @@ export function AircraftProvider({ children }) {
     } else if (data && data.length > 0) {
       setAircraft(data)
       // Keep selected aircraft in sync after refresh
-      setSelectedAircraftState(prev =>
-        prev ? (data.find(a => a.id === prev.id) ?? data[0]) : data[0]
-      )
+      const current = prev => prev ? (data.find(a => a.id === prev.id) ?? data[0]) : data[0]
+      setSelectedAircraftState(prev => {
+        const next = current(prev)
+        // Seed maintenance items once we have the aircraft id
+        if (next?.id) seedMaintenanceItems(next.id)
+        return next
+      })
     }
 
     setLoading(false)
