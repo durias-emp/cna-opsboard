@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { seedAircraft, seedMaintenanceItems } from '../lib/seed'
 
@@ -8,6 +8,7 @@ export function AircraftProvider({ children }) {
   const [aircraft, setAircraft] = useState([])
   const [selectedAircraft, setSelectedAircraftState] = useState(null)
   const [loading, setLoading] = useState(true)
+  const maintenanceSeeded = useRef(false)
 
   const loadAircraft = useCallback(async () => {
     await seedAircraft()
@@ -29,18 +30,18 @@ export function AircraftProvider({ children }) {
       setSelectedAircraftState(fallback)
     } else if (data && data.length > 0) {
       setAircraft(data)
-      // Keep selected aircraft in sync after refresh
-      const current = prev => prev ? (data.find(a => a.id === prev.id) ?? data[0]) : data[0]
-      setSelectedAircraftState(prev => {
-        const next = current(prev)
-        // Seed maintenance items once we have the aircraft id
-        if (next?.id) seedMaintenanceItems(next.id)
-        return next
-      })
+      const next = data.find(a => a.id === selectedAircraft?.id) ?? data[0]
+      setSelectedAircraftState(next)
+
+      // Seed maintenance items exactly once per session
+      if (next?.id && !maintenanceSeeded.current) {
+        maintenanceSeeded.current = true
+        seedMaintenanceItems(next.id)
+      }
     }
 
     setLoading(false)
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { loadAircraft() }, [loadAircraft])
 
