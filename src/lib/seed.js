@@ -11,7 +11,7 @@ export async function seedAircraft() {
       {
         tail_number: 'C-GOPF',
         make_model: 'Bell 206B3 JetRanger',
-        hobbs_current: 17502.8,
+        hobbs_current: 17563.6,
       },
       { onConflict: 'tail_number', ignoreDuplicates: true }
     )
