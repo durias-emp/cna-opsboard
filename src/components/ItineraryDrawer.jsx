@@ -63,24 +63,22 @@ const IconClose = () => (
 export default function ItineraryDrawer({ open, onClose, onSaved }) {
   const { handleProps, panelStyle } = useDrawerSwipe(onClose)
   const [form,    setForm]    = useState(EMPTY())
-  const [pilots,  setPilots]  = useState([])
   const [saving,  setSaving]  = useState(false)
   const [success, setSuccess] = useState(false)
   const [errors,  setErrors]  = useState({})
 
-  // Reset & load pilots whenever drawer opens
+  const pilots = [
+    { id: 1, name: 'James McBride' },
+    { id: 2, name: 'Jay McMackin' },
+  ]
+
+  // Reset form whenever drawer opens
   useEffect(() => {
     if (!open) return
     setForm(EMPTY())
     setErrors({})
     setSuccess(false)
     setSaving(false)
-    supabase
-      .from('pilots')
-      .select('*')
-      .eq('active', true)
-      .order('name')
-      .then(({ data }) => { if (data) setPilots(data) })
   }, [open])
 
   function set(field, val) {
