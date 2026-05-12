@@ -99,7 +99,7 @@ function TankGauge({ currentLevel, fillPercent, last, onAdd, onWithdraw }) {
             </p>
           </div>
           <div>
-            <p className="label mb-1">Capacity left</p>
+            <p className="label mb-1">Fuel used</p>
             <p className="text-sm font-semibold text-white">
               {currentLevel != null
                 ? `${(TANK_MAX_GAL - currentLevel).toFixed(1)} gal`
