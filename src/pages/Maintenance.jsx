@@ -415,15 +415,18 @@ export default function Maintenance() {
           </p>
         </div>
 
-        {/* Helicopter blueprint — blend mode on the img so it merges seamlessly */}
-        <div className="w-4/5 mx-auto mt-4 mb-6">
+        {/* Helicopter blueprint
+            Wrapper bg matches page (#0A0A0A) so screen blend composites
+            against the exact same color regardless of scroll container. */}
+        <div className="w-4/5 mx-auto mt-4 mb-6"
+          style={{ backgroundColor: '#0A0A0A', isolation: 'isolate' }}>
           <img
             src="/Bell-Long-Ranger-206L-copper-line.png"
             alt="Bell 206 blueprint"
             className="w-full object-contain select-none pointer-events-none"
             style={{
-              filter: 'grayscale(1) contrast(4) invert(1) brightness(1.4)',
-              opacity: 0.25,
+              filter: 'grayscale(1) contrast(100) invert(1)',
+              opacity: 0.28,
               mixBlendMode: 'screen',
             }}
           />
@@ -489,8 +492,8 @@ export default function Maintenance() {
           )}
         </div>
 
-        {/* Filter chips */}
-        <div className="flex justify-center gap-2 mt-3 flex-wrap">
+        {/* Filter chips — single row, horizontal scroll */}
+        <div className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-hide">
           {FILTERS.map(f => (
             <button
               key={f.id}

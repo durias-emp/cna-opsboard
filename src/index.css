@@ -28,8 +28,8 @@
            border border-white/[0.08]
            rounded-full px-3 py-2
            shadow-[0_8px_32px_rgba(0,0,0,0.6)];
-    /* Browser mode: fixed distance from bottom, no env() so browser chrome doesn't inflate it */
-    bottom: 0.5rem;
+    /* Always account for the home indicator safe area */
+    bottom: calc(0.5rem + env(safe-area-inset-bottom));
   }
 
   .nav-btn {
@@ -49,8 +49,8 @@
   /* ── Layout shell ── */
   .page-shell {
     @apply flex flex-col h-full overflow-hidden;
-    /* Browser mode: fixed padding to clear the floating nav (~52px) */
-    padding-bottom: 4rem;
+    /* Always clear the floating nav + home indicator */
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
   }
 
   /* ── Cards ── */
@@ -175,6 +175,10 @@
     max-height: 92dvh;
   }
 }
+
+/* ── Hide scrollbar utility ── */
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
 
 /* ── Standalone PWA mode (home screen — no browser bar to clear) ── */
 @media (display-mode: standalone) {
