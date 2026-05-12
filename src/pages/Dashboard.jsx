@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAircraft } from '../context/AircraftContext'
 import { useFlights } from '../hooks/useFlights'
 import { useMaintenance, FLUID_TYPES } from '../hooks/useMaintenance'
+import { useMaintenanceItems } from '../hooks/useMaintenanceItems'
 import { useInvoices } from '../hooks/useInvoices'
 import StatCard from '../components/StatCard'
 import SectionHeader from '../components/SectionHeader'
@@ -186,10 +187,64 @@ function hobbsLastUpdated(flights) {
 
 
 
+// ── Maintenance status mini-card ───────────────────────────────────────────────
+
+function MaintStatusCard({ maintItems, onClick }) {
+  const overdue  = maintItems.overdue.length
+  const dueSoon  = maintItems.dueSoon.length
+  const ok       = maintItems.ok.length
+
+  // Most urgent item to surface
+  const topItem = maintItems.overdue[0] ?? maintItems.dueSoon[0] ?? null
+
+  return (
+    <div
+      className="stat-card cursor-pointer active:opacity-80 transition-opacity select-none"
+      onClick={onClick}
+    >
+      <p className="label">Maintenance</p>
+
+      {/* Traffic-light counts */}
+      <div className="flex items-center gap-3">
+        <div className="flex flex-col items-center">
+          <p className={`text-xl font-bold leading-none ${overdue > 0 ? 'text-red-400' : 'text-white/20'}`}>
+            {overdue}
+          </p>
+          <p className="text-[9px] text-white/30 uppercase tracking-wide mt-0.5">Over</p>
+        </div>
+        <div className="w-px h-6 bg-white/[0.06]" />
+        <div className="flex flex-col items-center">
+          <p className={`text-xl font-bold leading-none ${dueSoon > 0 ? 'text-amber-400' : 'text-white/20'}`}>
+            {dueSoon}
+          </p>
+          <p className="text-[9px] text-white/30 uppercase tracking-wide mt-0.5">Soon</p>
+        </div>
+        <div className="w-px h-6 bg-white/[0.06]" />
+        <div className="flex flex-col items-center">
+          <p className={`text-xl font-bold leading-none ${ok > 0 ? 'text-emerald-400' : 'text-white/20'}`}>
+            {ok}
+          </p>
+          <p className="text-[9px] text-white/30 uppercase tracking-wide mt-0.5">OK</p>
+        </div>
+      </div>
+
+      {/* Most urgent item */}
+      {topItem ? (
+        <p className="text-[10px] text-white/35 leading-snug truncate mt-auto">
+          ↑ {topItem.name}
+        </p>
+      ) : (
+        <p className="text-[10px] text-white/20 mt-auto">All clear</p>
+      )}
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const { selectedAircraft } = useAircraft()
   const { flights, stats, fuelStats, refresh } = useFlights(selectedAircraft?.id)
-  const maint = useMaintenance(selectedAircraft?.id, selectedAircraft?.hobbs_current)
+  const maint      = useMaintenance(selectedAircraft?.id, selectedAircraft?.hobbs_current)
+  const maintItems = useMaintenanceItems(selectedAircraft?.id, selectedAircraft?.hobbs_current, selectedAircraft?.cycles_current)
   const { stats: invoiceStats, refresh: invoiceRefresh } = useInvoices(selectedAircraft?.id)
   const navigate = useNavigate()
   const [flightDrawerOpen,    setFlightDrawerOpen]    = useState(false)
@@ -250,7 +305,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 gap-3">
             <StatCard icon={<IconFlight />} label="Flights"         value={stats.allHours ?? stats.monthHours} sub={stats.total ? `${stats.total} flight${stats.total > 1 ? 's' : ''}` : 'No flights yet'} />
             <StatCard icon={<img src="/dollar-symbol.png" alt="dollar" className="w-5 h-5 object-contain" style={{ filter: 'brightness(0) invert(1)', opacity: 0.55 }} />} label="Month generated" value={`$${invoiceStats.monthBilled.toLocaleString()}`} sub={invoiceStats.monthCount ? `${invoiceStats.monthCount} invoice${invoiceStats.monthCount > 1 ? 's' : ''}` : 'No invoices yet'} />
-            <FluidStatusCard maint={maint} />
+            <MaintStatusCard maintItems={maintItems} onClick={() => navigate('/maintenance')} />
             <TankMiniCard tank={tank} onClick={() => navigate('/fuel')} />
           </div>
         </div>
