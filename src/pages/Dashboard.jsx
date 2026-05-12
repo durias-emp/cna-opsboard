@@ -206,7 +206,7 @@ function MaintStatusCard({ maintItems, onClick }) {
 
       {/* Copper-line image: grayscale→invert turns white bg to black,
           screen blend makes black transparent → clean white lines on card */}
-      <div className="flex-1" style={{ backgroundColor: '#1A1A1A', isolation: 'isolate' }}>
+      <div className="flex-1" style={{ backgroundColor: '#1A1A1A', isolation: 'isolate', paddingTop: '0.75rem' }}>
         <img
           src="/Bell-Long-Ranger-206L-copper-line.png"
           alt="helicopter"
