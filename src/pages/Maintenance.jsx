@@ -405,18 +405,18 @@ export default function Maintenance() {
     <div ref={pageRef} className="flex-1 overflow-y-auto">
 
       {/* ── Hero: blueprint + summary cards ── */}
-      <div className="relative overflow-hidden">
+      <div className="relative">
 
-        {/* Page title (sits above the image) */}
-        <div className="px-4 pt-6 pb-2 relative z-10">
+        {/* Page title */}
+        <div className="px-4 pt-6 pb-2">
           <h1 className="text-2xl font-bold text-white">Maintenance</h1>
           <p className="text-xs text-white/35 mt-0.5">
             {selectedAircraft?.tail_number} · {hobbs.toLocaleString()}h · {cycles.toLocaleString()} cyc
           </p>
         </div>
 
-        {/* Helicopter blueprint */}
-        <div className="relative w-4/5 mx-auto -mt-1" style={{ mixBlendMode: 'screen' }}>
+        {/* Helicopter blueprint — blend mode on the img so it merges seamlessly */}
+        <div className="w-4/5 mx-auto -mt-1">
           <img
             src="/Bell-Long-Ranger-206L-copper-line.png"
             alt="Bell 206 blueprint"
@@ -424,12 +424,10 @@ export default function Maintenance() {
             style={{
               filter: 'grayscale(1) contrast(4) invert(1) brightness(1.4)',
               opacity: 0.25,
+              mixBlendMode: 'screen',
             }}
           />
         </div>
-
-        {/* Gradient overlay at bottom of image so cards sit cleanly */}
-        <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[#0e0e0e] to-transparent pointer-events-none" />
       </div>
 
       {/* ── 3 Summary cards ── */}
