@@ -203,13 +203,14 @@ export default function Dashboard() {
   const [fabOpen,             setFabOpen]             = useState(false)
   const tank = useTank()
 
-  const hobbs = selectedAircraft?.hobbs_current
+  const hobbs   = selectedAircraft?.hobbs_current
+  const cycles  = selectedAircraft?.cycles_current
   const recentFlights = flights.slice(0, 4)
 
   const QUICK_ACTIONS = [
     { label: 'Log Flight', color: 'bg-white/10 text-white', icon: <IconFlight />, onClick: () => setFlightDrawerOpen(true) },
     { label: 'Fuel Tank',  color: 'bg-white/10 text-white', icon: <IconFuel />,   onClick: () => setTankDrawerOpen(true) },
-    { label: 'Fluids',     color: 'bg-white/10 text-white', icon: <IconWrench />, onClick: () => setMaintDrawerOpen(true) },
+    { label: 'Maint.',     color: 'bg-white/10 text-white', icon: <IconWrench />, onClick: () => setMaintDrawerOpen(true) },
     { label: 'Invoice',    color: 'bg-white/10 text-white', icon: <IconDoc />,    onClick: () => setInvoiceDrawerOpen(true) },
   ]
 
@@ -234,6 +235,12 @@ export default function Dashboard() {
                 {hobbs.toLocaleString()}
                 <span className="text-base text-white/40 font-normal ml-1.5">h</span>
               </p>
+              {cycles != null && (
+                <p className="text-sm text-white/35 mt-1 font-medium">
+                  {cycles.toLocaleString()}
+                  <span className="text-xs font-normal text-white/25 ml-1">cycles</span>
+                </p>
+              )}
             </div>
             <div className="flex flex-col items-end gap-1">
               <span className="badge badge-green">Active</span>

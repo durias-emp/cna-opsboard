@@ -79,7 +79,7 @@ function buildMaintenanceItems(aircraftId) {
     },
     {
       aircraft_id: a, item_number: '13', category: 'periodic', event_type: 'Inspection',
-      limit_type: 'DATE_OR_HOURS', description: '24 Mth / 1200 HR Cyclic Stick Inspection',
+      limit_type: 'DATE_OR_HOURS', description: '1200 HR/24 Mth. Cyclic Stick',
       reference: 'Bell 206 MM 5-30 / ASB 206-23-142',
       calendar_interval_months: 24, hours_interval: 1200,
       last_complied_date: '2025-05-30', last_complied_hours: 17410.8,
@@ -258,6 +258,13 @@ function buildMaintenanceItems(aircraftId) {
       source_ref: 'Maint.2/3',
     },
     {
+      aircraft_id: a, item_number: '41c', category: 'periodic', event_type: 'Inspection',
+      limit_type: 'ON_CONDITION', description: 'Free Wheel Oil Check',
+      reference: 'AD CF-2016-13R1 / Bell 206 MM 5-50A',
+      notes: 'Only applies anytime the freewheel oil supply is opened upstream of the restrictor or the disconnection, replacement or reconnection of fitting, hose or comp. between restrictor and filter',
+      source_ref: 'Maint.2/3',
+    },
+    {
       aircraft_id: a, item_number: '48', category: 'periodic', event_type: 'Inspection',
       limit_type: 'HOURS', description: '600 HR Scavenge Oil Filter Test',
       reference: 'Bell 206 MM', hours_interval: 600,
@@ -347,14 +354,14 @@ function buildMaintenanceItems(aircraftId) {
       limit_type: 'HOURS', description: 'M/R Blade #1',
       part_number: '206-010-200-149', serial_number: 'BH483961', hours_interval: 5000,
       last_complied_date: '2021-03-23', last_complied_hours: 16397.4,
-      due_at_hours: dueHours(16397.4, 5000), source_ref: 'AF Comp.1/2',
+      due_at_hours: 20628.6, source_ref: 'AF Comp.1/2', // 768.8h already on blade at install
     },
     {
       aircraft_id: a, item_number: 'AF-2', category: 'airframe', event_type: 'Retire',
       limit_type: 'HOURS', description: 'M/R Blade #2',
       part_number: '206-010-200-149', serial_number: 'BH481812', hours_interval: 5000,
       last_complied_date: '2021-03-23', last_complied_hours: 16397.4,
-      due_at_hours: dueHours(16397.4, 5000), source_ref: 'AF Comp.1/2',
+      due_at_hours: 20628.6, source_ref: 'AF Comp.1/2', // 768.8h already on blade at install
     },
     {
       aircraft_id: a, item_number: 'AF-3', category: 'airframe', event_type: 'Retire',
@@ -365,10 +372,10 @@ function buildMaintenanceItems(aircraftId) {
     },
     {
       aircraft_id: a, item_number: 'AF-4', category: 'airframe', event_type: 'Overhaul',
-      limit_type: 'HOURS', description: 'Swash Plate Assembly',
+      limit_type: 'HOURS', description: 'Swash Plate Assy',
       part_number: '206-010-450-113', serial_number: 'GDJG10134', hours_interval: 4800,
       last_complied_date: '2021-03-23', last_complied_hours: 16397.4,
-      due_at_hours: dueHours(16397.4, 4800), source_ref: 'AF Comp.1/2',
+      due_at_hours: 20874.6, source_ref: 'AF Comp.1/2', // 322.8h already on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-5', category: 'airframe', event_type: 'Retire',
@@ -382,21 +389,21 @@ function buildMaintenanceItems(aircraftId) {
       limit_type: 'HOURS', description: 'Swash Plate Sleeve',
       part_number: '206-010-454-109', serial_number: 'RE-7267', hours_interval: 14400,
       last_complied_date: '2021-03-23', last_complied_hours: 16397.4,
-      due_at_hours: dueHours(16397.4, 14400), source_ref: 'AF Comp.1/2',
+      due_at_hours: 25830.5, source_ref: 'AF Comp.1/2', // 4966.9h already on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-7', category: 'airframe', event_type: 'Overhaul',
-      limit_type: 'HOURS', description: 'Main Rotor Head / Hub',
+      limit_type: 'HOURS', description: 'Main Rotor Head/ Hub',
       part_number: '206-011-100-137', serial_number: 'JILM02322', hours_interval: 2400,
       last_complied_date: '2022-03-21', last_complied_hours: 16730.1,
-      due_at_hours: dueHours(16730.1, 2400), source_ref: 'AF Comp.1/2',
+      due_at_hours: 18315.2, source_ref: 'AF Comp.1/2', // 814.9h already on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-8', category: 'airframe', event_type: 'Retire',
       limit_type: 'HOURS', description: 'M/R Trunnion',
       part_number: '206-011-113-105', serial_number: 'HB3901', hours_interval: 4800,
       last_complied_date: '2022-03-21', last_complied_hours: 16730.1,
-      due_at_hours: dueHours(16730.1, 4800), source_ref: 'AF Comp.1/2',
+      due_at_hours: 18886.8, source_ref: 'AF Comp.1/2', // 2643.3h already on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-9', category: 'airframe', event_type: 'Overhaul',
@@ -438,56 +445,56 @@ function buildMaintenanceItems(aircraftId) {
       limit_type: 'HOURS', description: 'Retention Fitting #1',
       part_number: '206-011-150-105', serial_number: 'HB16609', hours_interval: 2400,
       last_complied_date: '2022-03-21', last_complied_hours: 16730.1,
-      due_at_hours: dueHours(16730.1, 2400), source_ref: 'AF Comp.1/2',
+      due_at_hours: 18315.2, source_ref: 'AF Comp.1/2', // 814.9h on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-15', category: 'airframe', event_type: 'Retire',
       limit_type: 'HOURS', description: 'Retention Fitting #2',
       part_number: '206-011-150-105', serial_number: 'HB14463', hours_interval: 2400,
       last_complied_date: '2022-03-21', last_complied_hours: 16730.1,
-      due_at_hours: dueHours(16730.1, 2400), source_ref: 'AF Comp.1/2',
+      due_at_hours: 18315.2, source_ref: 'AF Comp.1/2', // 814.9h on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-16', category: 'airframe', event_type: 'Retire',
       limit_type: 'HOURS', description: 'Retention Pin #1',
       part_number: '206-011-125-105', serial_number: 'DI41296', hours_interval: 2500,
       last_complied_date: '2022-09-28', last_complied_hours: 16874.3,
-      due_at_hours: dueHours(16874.3, 2500), source_ref: 'AF Comp.1/2',
+      due_at_hours: 19281.1, source_ref: 'AF Comp.1/2', // 93.2h on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-17', category: 'airframe', event_type: 'Retire',
       limit_type: 'HOURS', description: 'Retention Pin #2',
       part_number: '206-011-125-105', serial_number: 'DI34061', hours_interval: 2500,
       last_complied_date: '2022-09-28', last_complied_hours: 16874.3,
-      due_at_hours: dueHours(16874.3, 2500), source_ref: 'AF Comp.1/2',
+      due_at_hours: 19281.1, source_ref: 'AF Comp.1/2', // 93.2h on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-18', category: 'airframe', event_type: 'Retire',
       limit_type: 'HOURS', description: 'M/R Grip Assembly #1',
       part_number: '206-011-132-113A', serial_number: 'HB6617', hours_interval: 4800,
       last_complied_date: '2022-03-21', last_complied_hours: 16730.1,
-      due_at_hours: dueHours(16730.1, 4800), source_ref: 'AF Comp.1/2',
+      due_at_hours: 20526.2, source_ref: 'AF Comp.1/2', // 1003.9h on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-19', category: 'airframe', event_type: 'Retire',
       limit_type: 'HOURS', description: 'M/R Grip Assembly #2',
       part_number: '206-011-132-113A', serial_number: 'HB6564', hours_interval: 4800,
       last_complied_date: '2022-03-21', last_complied_hours: 16730.1,
-      due_at_hours: dueHours(16730.1, 4800), source_ref: 'AF Comp.1/2',
+      due_at_hours: 20526.2, source_ref: 'AF Comp.1/2', // 1003.9h on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-20', category: 'airframe', event_type: 'Retire',
       limit_type: 'HOURS', description: 'Swash Plate Lever',
       part_number: '206-010-467-105', serial_number: 'REFS5849', hours_interval: 4800,
       last_complied_date: '2021-03-23', last_complied_hours: 16397.4,
-      due_at_hours: dueHours(16397.4, 4800), source_ref: 'AF Comp.1/2',
+      due_at_hours: 20874.6, source_ref: 'AF Comp.1/2', // 322.8h on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-21', category: 'airframe', event_type: 'Retire',
-      limit_type: 'HOURS', description: 'Link Collective Assembly',
+      limit_type: 'HOURS', description: 'Link Collective Assy',
       part_number: '206-010-407-001', serial_number: 'REFS7440', hours_interval: 4800,
       last_complied_date: '2021-03-23', last_complied_hours: 16397.4,
-      due_at_hours: dueHours(16397.4, 4800), source_ref: 'AF Comp.1/2',
+      due_at_hours: 20874.6, source_ref: 'AF Comp.1/2', // 322.8h on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-22', category: 'airframe', event_type: 'Overhaul',
@@ -498,7 +505,7 @@ function buildMaintenanceItems(aircraftId) {
     },
     {
       aircraft_id: a, item_number: 'AF-23', category: 'airframe', event_type: 'Retire',
-      limit_type: 'HOURS', description: 'Lower Collective Tube',
+      limit_type: 'HOURS', description: 'Lower CollectiveTube',
       part_number: '206-001-194-001', serial_number: 'USFS5083', hours_interval: 4800,
       last_complied_date: '2021-04-20', last_complied_hours: 16403.6,
       due_at_hours: dueHours(16403.6, 4800), source_ref: 'AF Comp.1/2',
@@ -518,11 +525,19 @@ function buildMaintenanceItems(aircraftId) {
       due_at_hours: dueHours(16397.4, 4500), source_ref: 'AF Comp.1/2',
     },
     {
+      aircraft_id: a, item_number: 'AF-25b', category: 'airframe', event_type: 'Retire',
+      limit_type: 'ON_CONDITION', description: 'Gearbox',
+      part_number: '6894171', serial_number: 'CAG-36508',
+      last_complied_date: '2022-02-14', last_complied_hours: 16730.1,
+      notes: 'TRACK:9486.1:3331.3', // AC hours at ref : Since OH hours at ref (live computed)
+      is_active: true, source_ref: 'AF Comp.1/2',
+    },
+    {
       aircraft_id: a, item_number: 'AF-26', category: 'airframe', event_type: 'Overhaul',
       limit_type: 'HOURS', description: 'Free Wheel Assembly',
       part_number: '206-040-270-003', serial_number: 'BMB 12191', hours_interval: 3000,
       last_complied_date: '2022-03-21', last_complied_hours: 16730.1,
-      due_at_hours: dueHours(16730.1, 3000), source_ref: 'AF Comp.1/2',
+      due_at_hours: 18522.4, source_ref: 'AF Comp.1/2', // 1207.7h on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-27', category: 'airframe', event_type: 'Overhaul',
@@ -536,70 +551,70 @@ function buildMaintenanceItems(aircraftId) {
       limit_type: 'HOURS', description: 'T/R Blade #1',
       part_number: '2062200-301', serial_number: 'D152', hours_interval: 5000,
       last_complied_date: '2021-03-23', last_complied_hours: 16397.4,
-      due_at_hours: dueHours(16397.4, 5000), source_ref: 'AF Comp.2/2',
+      due_at_hours: 20522.4, source_ref: 'AF Comp.2/2', // 875h on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-29', category: 'airframe', event_type: 'Retire',
       limit_type: 'HOURS', description: 'T/R Blade #2',
       part_number: '2062200-301', serial_number: 'D148', hours_interval: 5000,
       last_complied_date: '2021-03-23', last_complied_hours: 16397.4,
-      due_at_hours: dueHours(16397.4, 5000), source_ref: 'AF Comp.2/2',
+      due_at_hours: 20522.4, source_ref: 'AF Comp.2/2', // 875h on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-30', category: 'airframe', event_type: 'Overhaul',
       limit_type: 'HOURS', description: 'T/R Gear Box',
       part_number: '206-040-400-107', serial_number: 'ALO12036', hours_interval: 6000,
       last_complied_date: '2021-03-23', last_complied_hours: 16397.4,
-      due_at_hours: dueHours(16397.4, 6000), source_ref: 'AF Comp.2/2',
+      due_at_hours: 21522.4, source_ref: 'AF Comp.2/2', // 875h on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-31', category: 'airframe', event_type: 'Retire',
       limit_type: 'HOURS', description: 'T/R Yoke',
       part_number: '206-011-819-109', serial_number: 'HBFS6758', hours_interval: 5000,
       last_complied_date: '2021-03-23', last_complied_hours: 16397.4,
-      due_at_hours: dueHours(16397.4, 5000), source_ref: 'AF Comp.2/2',
+      due_at_hours: 20522.4, source_ref: 'AF Comp.2/2', // 875h on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-32', category: 'airframe', event_type: 'Overhaul',
       limit_type: 'HOURS', description: 'T/R Hub Assembly',
       part_number: '206-011-810-115', serial_number: 'AAG50370', hours_interval: 2400,
       last_complied_date: '2021-03-23', last_complied_hours: 16397.4,
-      due_at_hours: dueHours(16397.4, 2400), source_ref: 'AF Comp.2/2',
+      due_at_hours: 17922.4, source_ref: 'AF Comp.2/2', // 875h on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-33', category: 'airframe', event_type: 'Overhaul',
       limit_type: 'HOURS', description: 'Hydraulic Servo #1',
       part_number: '206-076-031-013', serial_number: '3951', hours_interval: 3600,
       last_complied_date: '2021-03-23', last_complied_hours: 16397.4,
-      due_at_hours: dueHours(16397.4, 3600), source_ref: 'AF Comp.2/2',
+      due_at_hours: 18754.6, source_ref: 'AF Comp.2/2', // 1242.8h on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-34', category: 'airframe', event_type: 'Overhaul',
       limit_type: 'HOURS', description: 'Hydraulic Servo #2',
       part_number: '206-076-031-013', serial_number: '471', hours_interval: 3600,
       last_complied_date: '2021-03-23', last_complied_hours: 16397.4,
-      due_at_hours: dueHours(16397.4, 3600), source_ref: 'AF Comp.2/2',
+      due_at_hours: 18159.0, source_ref: 'AF Comp.2/2', // 1838.4h on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-35', category: 'airframe', event_type: 'Overhaul',
       limit_type: 'HOURS', description: 'Hydraulic Servo #3',
       part_number: '206-076-031-023', serial_number: 'RH-0880', hours_interval: 3600,
       last_complied_date: '2021-03-23', last_complied_hours: 16397.4,
-      due_at_hours: dueHours(16397.4, 3600), source_ref: 'AF Comp.2/2',
+      due_at_hours: 18967.3, source_ref: 'AF Comp.2/2', // 1030.1h on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-36', category: 'airframe', event_type: 'Overhaul',
-      limit_type: 'HOURS', description: 'Hydraulic Pump & Reservoir',
+      limit_type: 'HOURS', description: 'Hyd. Pump & Reservoir',
       part_number: '206-076-022-101', serial_number: 'FB02084', hours_interval: 3600,
       last_complied_date: '2021-07-12', last_complied_hours: 16560.4,
-      due_at_hours: dueHours(16560.4, 3600), source_ref: 'AF Comp.2/2',
+      due_at_hours: 20160.4, source_ref: 'AF Comp.2/2', // Time=0, new at install
     },
     {
       aircraft_id: a, item_number: 'AF-37', category: 'airframe', event_type: 'Retire',
       limit_type: 'HOURS', description: 'Servo Support',
       part_number: '206-001-566-101', serial_number: 'TI105', hours_interval: 10000,
       last_complied_date: '2021-03-23', last_complied_hours: 16397.4,
-      due_at_hours: dueHours(16397.4, 10000), source_ref: 'AF Comp.2/2',
+      due_at_hours: 19995.4, source_ref: 'AF Comp.2/2', // 6402h on part at install
     },
     {
       aircraft_id: a, item_number: 'AF-38', category: 'airframe', event_type: 'Replace',
@@ -654,40 +669,27 @@ function buildMaintenanceItems(aircraftId) {
       last_complied_date: '2022-04-19', last_complied_hours: 16730.1,
       due_at_hours: dueHours(16730.1, 1750), source_ref: 'Engine Comp.',
     },
-    {
-      aircraft_id: a, item_number: 'ENG-9', category: 'engine', event_type: 'Retire',
-      limit_type: 'ON_CONDITION', description: 'Gearbox (Total AC Hours)',
-      part_number: '6894171', serial_number: 'CAG-36508',
-      last_complied_date: '2022-02-14', last_complied_hours: 16730.1,
-      notes: 'On Condition — total AC hours basis', source_ref: 'Engine Comp.',
-    },
-    {
-      aircraft_id: a, item_number: 'ENG-10', category: 'engine', event_type: 'Retire',
-      limit_type: 'ON_CONDITION', description: 'Gearbox (Since Overhaul)',
-      part_number: '6894171', serial_number: 'CAG-36508',
-      last_complied_date: '2022-02-14', last_complied_hours: 16730.1,
-      notes: 'On Condition — since overhaul basis', source_ref: 'Engine Comp.',
-    },
+    // ENG-9 and ENG-10 replaced by AF-25b (single Gearbox card with TRACK format)
     {
       aircraft_id: a, item_number: 'ENG-11', category: 'engine', event_type: 'Overhaul',
       limit_type: 'HOURS', description: 'Turbine Assembly',
       part_number: '23069745', serial_number: 'CAT-80143', hours_interval: 3500,
       last_complied_date: '2024-07-05', last_complied_hours: 17271,
-      due_at_hours: dueHours(17271, 3500), source_ref: 'Engine Comp.',
+      due_at_hours: 17958.4, source_ref: 'Engine Comp.', // 2812.6h on part at last overhaul → 17271 − 2812.6 + 3500 = 17958.4
     },
     {
       aircraft_id: a, item_number: 'ENG-17', category: 'engine', event_type: 'Overhaul',
       limit_type: 'HOURS', description: 'Governor Assembly',
       part_number: 'M250-10844', serial_number: '23334', hours_interval: 2000,
       last_complied_date: '2024-08-02', last_complied_hours: 17320.8,
-      due_at_hours: dueHours(17320.8, 2000), source_ref: 'Engine Comp.',
+      due_at_hours: 19021.7, source_ref: 'Engine Comp.', // 299.1h on part at last overhaul → 17320.8 − 299.1 + 2000 = 19021.7
     },
     {
       aircraft_id: a, item_number: 'ENG-18', category: 'engine', event_type: 'Overhaul',
       limit_type: 'HOURS', description: 'Fuel Control',
       part_number: 'M250-10816', serial_number: '307686', hours_interval: 2500,
       last_complied_date: '2022-04-19', last_complied_hours: 16731.3,
-      due_at_hours: dueHours(16731.3, 2500), source_ref: 'Engine Comp.',
+      due_at_hours: 19226.3, source_ref: 'Engine Comp.', // 5h on part at last overhaul → 16731.3 − 5 + 2500 = 19226.3
     },
     {
       aircraft_id: a, item_number: 'ENG-19', category: 'engine', event_type: 'Overhaul',
@@ -701,7 +703,7 @@ function buildMaintenanceItems(aircraftId) {
       limit_type: 'HOURS', description: 'Fuel Pump',
       part_number: '6899253', serial_number: 'SERT110712', hours_interval: 4000,
       last_complied_date: '2021-03-23', last_complied_hours: 16397.4,
-      due_at_hours: dueHours(16397.4, 4000), source_ref: 'Engine Comp.',
+      due_at_hours: 20322.0, source_ref: 'Engine Comp.', // 75.4h on part at install → 16397.4 − 75.4 + 4000 = 20322.0
     },
     {
       aircraft_id: a, item_number: 'ENG-21', category: 'engine', event_type: 'Overhaul',
@@ -717,7 +719,7 @@ function buildMaintenanceItems(aircraftId) {
     // ─────────────────────────────────────────────────────────────
     {
       aircraft_id: a, item_number: 'B-1', category: 'periodic', event_type: 'Inspection',
-      limit_type: 'DATE_OR_HOURS', description: '12 Mth / 50 HR Lubrication',
+      limit_type: 'DATE_OR_HOURS', description: '50 Hour / 12 Mth. Lube',
       reference: 'Bell 206 MM Table 12-6', calendar_interval_months: 12, hours_interval: 50,
       last_complied_date: '2025-11-11', last_complied_hours: 17468.7,
       due_date: dueDate('2025-11-11', 12), due_at_hours: dueHours(17468.7, 50),
@@ -757,7 +759,7 @@ function buildMaintenanceItems(aircraftId) {
     },
     {
       aircraft_id: a, item_number: 'B-10', category: 'periodic', event_type: 'Inspection',
-      limit_type: 'DATE_OR_HOURS', description: '12 Mth / 100 HR Engine Inspection (RR)',
+      limit_type: 'DATE_OR_HOURS', description: '100 Hour / 12 Mth. Engine',
       reference: 'Rolls Royce MM Table 603', calendar_interval_months: 12, hours_interval: 100,
       last_complied_date: '2025-05-30', last_complied_hours: 17433.9,
       due_date: dueDate('2025-05-30', 12), due_at_hours: dueHours(17433.9, 100),
@@ -765,16 +767,44 @@ function buildMaintenanceItems(aircraftId) {
     },
     {
       aircraft_id: a, item_number: 'B-11', category: 'periodic', event_type: 'Inspection',
-      limit_type: 'DATE_OR_HOURS', description: '12 Mth / 200 HR Engine Inspection',
+      limit_type: 'DATE_OR_HOURS', description: '200 Hour / 12 Mth. Engine',
       reference: 'Bell 206 MM', calendar_interval_months: 12, hours_interval: 200,
       last_complied_date: '2025-05-30', last_complied_hours: 17410.8,
       due_date: dueDate('2025-05-30', 12), due_at_hours: dueHours(17410.8, 200),
       source_ref: 'Maint.1/3+2/3',
     },
     {
+      aircraft_id: a, item_number: 'B-11b', category: 'periodic', event_type: 'Inspection',
+      limit_type: 'ON_CONDITION', description: '200 Hour Engine Inspection',
+      reference: 'RR MM Table 602 Item 32',
+      notes: 'N/A by Part Number — Refer to CEB 1051',
+      is_active: true, source_ref: 'Maint.1/3',
+    },
+    {
+      aircraft_id: a, item_number: 'B-13', category: 'periodic', event_type: 'Inspection',
+      limit_type: 'ON_CONDITION', description: '500 Hour/1Year',
+      reference: 'RR MM Table 602 Item 42',
+      notes: 'N/A by Serial Number — Refer to CEB 1120/1158',
+      is_active: true, source_ref: 'Maint.1/3',
+    },
+    {
+      aircraft_id: a, item_number: 'B-14', category: 'periodic', event_type: 'Inspection',
+      limit_type: 'ON_CONDITION', description: '1000 Hour Engine Inspection',
+      reference: 'RR MM Table 602 Item 46',
+      notes: 'N/A — CEB 1330 Complied with',
+      is_active: true, source_ref: 'Maint.1/3',
+    },
+    {
+      aircraft_id: a, item_number: 'B-15', category: 'periodic', event_type: 'Inspection',
+      limit_type: 'ON_CONDITION', description: '1500 Hour Engine Inspection',
+      reference: 'RR MM Table 602 Item 47',
+      notes: 'N/A — CEB 1330 Complied with',
+      is_active: true, source_ref: 'Maint.1/3',
+    },
+    {
       aircraft_id: a, item_number: 'B-12', category: 'periodic', event_type: 'Inspection',
-      limit_type: 'DATE_OR_HOURS', description: '12 Mth / 300 HR Engine Inspection',
-      reference: 'Bell 206 MM', calendar_interval_months: 12, hours_interval: 300,
+      limit_type: 'DATE_OR_HOURS', description: '300 Hour / 12 Mth. Engine',
+      reference: 'Rolls Royce MM', calendar_interval_months: 12, hours_interval: 300,
       last_complied_date: '2025-05-30', last_complied_hours: 17433.9,
       due_date: dueDate('2025-05-30', 12), due_at_hours: dueHours(17433.9, 300),
       source_ref: 'Maint.1/3+2/3',
@@ -805,52 +835,52 @@ function buildMaintenanceItems(aircraftId) {
       part_number: '23079638', serial_number: 'KR122194',
       hours_interval: 12500, cycles_interval: 25000,
       last_complied_date: '2022-04-22', last_complied_hours: 6210.1, last_complied_cycles: 6303,
-      due_at_hours: dueHours(6210.1, 12500), due_at_cycles: 6303 + 25000,
+      due_at_hours: 18710.1, due_at_cycles: 31303,
       source_ref: 'Engine Comp.',
     },
     {
       aircraft_id: a, item_number: 'EC-4', category: 'engine', event_type: 'Retire',
-      limit_type: 'HOURS_AND_CYCLES', description: 'Compressor 1st Stage Wheel',
+      limit_type: 'HOURS_AND_CYCLES', description: 'Compr. 1st Stg Wheel',
       part_number: 'E23057111', serial_number: 'TB2-1470',
       hours_interval: 15000, cycles_interval: 30000,
       last_complied_date: '2022-03-31', last_complied_hours: 15711.1, last_complied_cycles: 19535,
-      due_at_hours: dueHours(15711.1, 15000), due_at_cycles: 19535 + 30000,
+      due_at_hours: dueHours(15711.1, 15000), due_at_cycles: 49535,
       source_ref: 'Engine Comp.',
     },
     {
       aircraft_id: a, item_number: 'EC-5', category: 'engine', event_type: 'Retire',
-      limit_type: 'HOURS_AND_CYCLES', description: 'Compressor 2nd/3rd Stage Wheel',
+      limit_type: 'HOURS_AND_CYCLES', description: 'Compr. 2/3 Stg Wheel',
       part_number: 'E23057112', serial_number: 'TB3-1164',
       hours_interval: 15000, cycles_interval: 30000,
       last_complied_date: '2022-03-31', last_complied_hours: 15711.1, last_complied_cycles: 19535,
-      due_at_hours: dueHours(15711.1, 15000), due_at_cycles: 19535 + 30000,
+      due_at_hours: dueHours(15711.1, 15000), due_at_cycles: 49535,
       source_ref: 'Engine Comp.',
     },
     {
       aircraft_id: a, item_number: 'EC-6', category: 'engine', event_type: 'Retire',
-      limit_type: 'HOURS_AND_CYCLES', description: 'Compressor 4th Stage Wheel',
+      limit_type: 'HOURS_AND_CYCLES', description: 'Compr. 4th Stg Wheel',
       part_number: '23079058', serial_number: 'QC18229',
       hours_interval: 15000, cycles_interval: 30000,
       last_complied_date: '2007-11-14', last_complied_hours: 12225.1, last_complied_cycles: 13659,
-      due_at_hours: dueHours(12225.1, 15000), due_at_cycles: 13659 + 30000,
+      due_at_hours: dueHours(12225.1, 15000), due_at_cycles: 43659,
       source_ref: 'Engine Comp.',
     },
     {
       aircraft_id: a, item_number: 'EC-7', category: 'engine', event_type: 'Retire',
-      limit_type: 'HOURS_AND_CYCLES', description: 'Compressor 5th Stage Wheel',
+      limit_type: 'HOURS_AND_CYCLES', description: 'Compr. 5th Stg Wheel',
       part_number: 'E23057115', serial_number: 'TB5-1201',
       hours_interval: 15000, cycles_interval: 30000,
       last_complied_date: '2022-03-31', last_complied_hours: 15711.1, last_complied_cycles: 19535,
-      due_at_hours: dueHours(15711.1, 15000), due_at_cycles: 19535 + 30000,
+      due_at_hours: dueHours(15711.1, 15000), due_at_cycles: 49535,
       source_ref: 'Engine Comp.',
     },
     {
       aircraft_id: a, item_number: 'EC-8', category: 'engine', event_type: 'Retire',
-      limit_type: 'HOURS_AND_CYCLES', description: 'Compressor 6th Stage Wheel',
+      limit_type: 'HOURS_AND_CYCLES', description: 'Compr. 6th Stg Wheel',
       part_number: 'E23057116', serial_number: 'TB6-1158',
       hours_interval: 15000, cycles_interval: 30000,
       last_complied_date: '2022-03-31', last_complied_hours: 15711.1, last_complied_cycles: 19535,
-      due_at_hours: dueHours(15711.1, 15000), due_at_cycles: 19535 + 30000,
+      due_at_hours: dueHours(15711.1, 15000), due_at_cycles: 49535,
       source_ref: 'Engine Comp.',
     },
     {

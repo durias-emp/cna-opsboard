@@ -161,6 +161,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
   const [date,          setDate]          = useState(today)
   const [pilot,         setPilot]         = useState('James McBride')
   const [legs,          setLegs]          = useState([emptyLeg()])
+  const [cycles,        setCycles]        = useState('1')
   const [passengers,    setPassengers]    = useState([emptyPassenger(), emptyPassenger()])
   const [fuelStart,     setFuelStart]     = useState('')
   const [fuelEnd,       setFuelEnd]       = useState('')
@@ -202,15 +203,17 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
             }))
           : []
       )
+      setCycles(editFlight.cycles != null ? String(editFlight.cycles) : '1')
       setFuelStart(editFlight.fuel_start_gal != null ? String(editFlight.fuel_start_gal) : '')
       setFuelEnd(editFlight.fuel_end_gal     != null ? String(editFlight.fuel_end_gal)   : '')
       setNotes(editFlight.notes ?? '')
-      setPreflightDone(true) // already logged, treat as confirmed
+      setPreflightDone(true)
     } else {
       setDate(today)
       setPilot('James McBride')
       setLegs([emptyLeg()])
       setPassengers([emptyPassenger()])
+      setCycles('1')
       setFuelStart('')
       setFuelEnd('')
       setNotes('')
@@ -252,11 +255,14 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
     setError(null)
     setSaving(true)
 
+    const cyclesNum = parseInt(cycles) || 0
+
     const sharedPayload = {
       date,
       pilot:             pilot || null,
       legs,
       total_minutes:     totalMinutes,
+      cycles:            cyclesNum || null,
       fuel_start_gal:    isNaN(fuelStartNum) ? null : fuelStartNum,
       fuel_end_gal:      isNaN(fuelEndNum)   ? null : fuelEndNum,
       fuel_consumed_gal: fuelConsumed ?? null,
@@ -271,10 +277,13 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       // Adjust Hobbs by the delta (both floored to nearest 0.1)
       const oldMins = editFlight.total_minutes ?? 0
       const delta   = toHobbs(totalMinutes) - toHobbs(oldMins)
-      if (Math.abs(delta) > 0.001) {
-        const newHobbs = ROUND((selectedAircraft.hobbs_current ?? 0) + delta)
-        await supabase.from('aircraft').update({ hobbs_current: newHobbs }).eq('id', selectedAircraft.id)
-      }
+      const cyclesDelta = cyclesNum - (editFlight.cycles ?? 0)
+
+      const aircraftUpdates = {}
+      if (Math.abs(delta) > 0.001)    aircraftUpdates.hobbs_current   = ROUND((selectedAircraft.hobbs_current  ?? 0) + delta)
+      if (cyclesDelta !== 0)          aircraftUpdates.cycles_current  = (selectedAircraft.cycles_current ?? 0) + cyclesDelta
+      if (Object.keys(aircraftUpdates).length)
+        await supabase.from('aircraft').update(aircraftUpdates).eq('id', selectedAircraft.id)
     } else {
       const { error: err } = await supabase.from('flights').insert({
         aircraft_id: selectedAircraft.id,
@@ -282,10 +291,11 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       })
       if (err) { setSaving(false); setError(err.message); return }
 
-      if (totalMinutes > 0) {
-        const newHobbs = ROUND((selectedAircraft.hobbs_current ?? 0) + toHobbs(totalMinutes))
-        await supabase.from('aircraft').update({ hobbs_current: newHobbs }).eq('id', selectedAircraft.id)
-      }
+      const aircraftUpdates = {}
+      if (totalMinutes > 0) aircraftUpdates.hobbs_current  = ROUND((selectedAircraft.hobbs_current  ?? 0) + toHobbs(totalMinutes))
+      if (cyclesNum > 0)    aircraftUpdates.cycles_current = (selectedAircraft.cycles_current ?? 0) + cyclesNum
+      if (Object.keys(aircraftUpdates).length)
+        await supabase.from('aircraft').update(aircraftUpdates).eq('id', selectedAircraft.id)
     }
 
     setSaving(false)
@@ -301,11 +311,13 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
     const { error: err } = await supabase.from('flights').delete().eq('id', editFlight.id)
     if (err) { setSaving(false); setError(err.message); return }
 
-    const oldMins = editFlight.total_minutes ?? 0
-    if (oldMins > 0) {
-      const newHobbs = ROUND((selectedAircraft.hobbs_current ?? 0) - toHobbs(oldMins))
-      await supabase.from('aircraft').update({ hobbs_current: newHobbs }).eq('id', selectedAircraft.id)
-    }
+    const oldMins   = editFlight.total_minutes ?? 0
+    const oldCycles = editFlight.cycles ?? 0
+    const aircraftUpdates = {}
+    if (oldMins > 0)   aircraftUpdates.hobbs_current  = ROUND((selectedAircraft.hobbs_current  ?? 0) - toHobbs(oldMins))
+    if (oldCycles > 0) aircraftUpdates.cycles_current = (selectedAircraft.cycles_current ?? 0) - oldCycles
+    if (Object.keys(aircraftUpdates).length)
+      await supabase.from('aircraft').update(aircraftUpdates).eq('id', selectedAircraft.id)
 
     setSaving(false)
     await refreshAircraft()
@@ -399,6 +411,25 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
               hasTimeError={legTimeError(leg)}
             />
           ))}
+
+          {/* Cycles */}
+          <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/[0.06]">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">Engine Cycles</p>
+              <span className="text-[11px] text-white/25">Engine starts this flight</span>
+            </div>
+            <div className="relative">
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="1"
+                value={cycles}
+                onChange={e => setCycles(e.target.value.replace(/[^0-9]/g, ''))}
+                className="input-field w-full pr-14 text-lg font-bold"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-white/25 pointer-events-none">cyc</span>
+            </div>
+          </div>
 
           {/* Passenger Manifest */}
           <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/[0.06] space-y-3">

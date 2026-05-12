@@ -17,6 +17,15 @@ function formatDate(iso) {
   })
 }
 
+function daysRemaining(dueDateStr) {
+  if (!dueDateStr) return null
+  const due = new Date(dueDateStr + 'T12:00:00')
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  due.setHours(0, 0, 0, 0)
+  return Math.round((due - now) / (1000 * 60 * 60 * 24))
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Icons
 // ─────────────────────────────────────────────────────────────────────────────
@@ -50,7 +59,8 @@ const STATUS = {
   overdue:      { label: 'OVERDUE',     dot: 'bg-red-400',     text: 'text-red-400',     bg: 'bg-white/[0.04]', border: 'border-white/[0.06]' },
   due_soon:     { label: 'DUE SOON',    dot: 'bg-amber-400',   text: 'text-amber-400',   bg: 'bg-white/[0.04]', border: 'border-white/[0.06]' },
   ok:           { label: 'OK',          dot: 'bg-emerald-400', text: 'text-emerald-400', bg: 'bg-white/[0.04]', border: 'border-white/[0.06]' },
-  on_condition: { label: 'ON CONDITION',dot: 'bg-white/30',    text: 'text-white/40',    bg: 'bg-white/[0.04]', border: 'border-white/[0.06]' },
+  on_condition:   { label: 'ON CONDITION', dot: 'bg-white/30',   text: 'text-white/40',   bg: 'bg-white/[0.04]', border: 'border-white/[0.06]' },
+  not_applicable: { label: 'N/A',          dot: 'bg-white/15',   text: 'text-white/30',   bg: 'bg-white/[0.02]', border: 'border-white/[0.04]' },
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -63,7 +73,7 @@ function ItemCard({ item, onLogCompliance }) {
 
   // Primary remaining value to show on the card (most urgent clock)
   function primaryRemaining() {
-    if (item.status === 'on_condition') return null
+    if (item.status === 'on_condition' || item.status === 'not_applicable') return null
 
     // Pick the most urgent clock to surface
     const clocks = []
@@ -86,9 +96,14 @@ function ItemCard({ item, onLogCompliance }) {
     if (clock.type === 'hrs') return isOverdue
       ? `${abs.toFixed(1)} hrs overdue`
       : `${abs.toFixed(1)} hrs left`
-    if (clock.type === 'mth') return isOverdue
-      ? `${Math.abs(clock.val)} mo overdue`
-      : `${abs} mo left`
+    if (clock.type === 'mth') {
+      if (isOverdue) return `${abs} mo overdue`
+      if (clock.val === 0) {
+        const days = daysRemaining(item.due_date)
+        return days != null ? `${days} days left` : '< 1 mo left'
+      }
+      return `${abs} mo left`
+    }
     if (clock.type === 'cyc') return isOverdue
       ? `${abs} cycles overdue`
       : `${abs} cycles left`
@@ -107,6 +122,10 @@ function ItemCard({ item, onLogCompliance }) {
             <p className="text-sm font-semibold text-white leading-snug">{item.description}</p>
             {primary ? (
               <p className={`text-[11px] mt-0.5 font-medium ${s.text}`}>{remainingLabel(primary)}</p>
+            ) : item.status === 'not_applicable' ? (
+              <p className="text-[11px] mt-0.5 text-white/25">Not applicable to this aircraft</p>
+            ) : item.trackAcHours != null ? (
+              <p className="text-[11px] mt-0.5 text-white/30">{item.trackAcHours.toLocaleString()}h total · {item.trackOhHours.toLocaleString()}h since OH</p>
             ) : (
               <p className="text-[11px] mt-0.5 text-white/30">No numeric limit</p>
             )}
@@ -136,16 +155,28 @@ function ItemCard({ item, onLogCompliance }) {
                 <p className="text-[10px] text-white/25">Due @ {item.due_at_hours?.toLocaleString()}h</p>
               </div>
             )}
-            {item.due_date != null && (
-              <div>
-                <p className="text-[10px] text-white/30 mb-0.5">Months remaining</p>
-                <p className={`text-sm font-bold ${item.mthsRemaining <= 0 ? s.text : 'text-white'}`}>
-                  {item.mthsRemaining > 0 ? item.mthsRemaining : `−${Math.abs(item.mthsRemaining)}`}
-                  <span className="text-[10px] font-normal text-white/30 ml-0.5">mo</span>
-                </p>
-                <p className="text-[10px] text-white/25">{formatDate(item.due_date)}</p>
-              </div>
-            )}
+            {item.due_date != null && (() => {
+              const days = daysRemaining(item.due_date)
+              const showDays = item.mthsRemaining === 0 && days != null && days >= 0
+              return (
+                <div>
+                  <p className="text-[10px] text-white/30 mb-0.5">
+                    {showDays ? 'Days remaining' : 'Months remaining'}
+                  </p>
+                  <p className={`text-sm font-bold ${item.mthsRemaining <= 0 ? s.text : 'text-white'}`}>
+                    {showDays
+                      ? days
+                      : item.mthsRemaining > 0
+                        ? item.mthsRemaining
+                        : `−${Math.abs(item.mthsRemaining)}`}
+                    <span className="text-[10px] font-normal text-white/30 ml-0.5">
+                      {showDays ? 'd' : 'mo'}
+                    </span>
+                  </p>
+                  <p className="text-[10px] text-white/25">{formatDate(item.due_date)}</p>
+                </div>
+              )
+            })()}
             {item.due_at_cycles != null && (
               <div>
                 <p className="text-[10px] text-white/30 mb-0.5">Cycles remaining</p>
@@ -156,15 +187,51 @@ function ItemCard({ item, onLogCompliance }) {
                 <p className="text-[10px] text-white/25">Due @ {item.due_at_cycles?.toLocaleString()}</p>
               </div>
             )}
-            {item.status === 'on_condition' && (
+            {item.status === 'on_condition' && !item.trackAcHours && (
               <div className="col-span-3">
                 <p className="text-xs text-white/30">Monitored on condition — no numeric retirement limit.</p>
+              </div>
+            )}
+            {item.trackAcHours != null && (
+              <div className="col-span-3 flex items-center justify-between bg-white/[0.03] rounded-xl px-3 py-2.5">
+                <div className="text-center">
+                  <p className="text-[10px] text-white/30 mb-0.5">Total AC Hours</p>
+                  <p className="text-sm font-bold text-white">
+                    {item.trackAcHours.toLocaleString()}
+                    <span className="text-[10px] font-normal text-white/30 ml-0.5">h</span>
+                  </p>
+                </div>
+                <div className="w-px h-8 bg-white/[0.08]" />
+                <div className="text-center">
+                  <p className="text-[10px] text-white/30 mb-0.5">Since Overhaul</p>
+                  <p className="text-sm font-bold text-white">
+                    {item.trackOhHours.toLocaleString()}
+                    <span className="text-[10px] font-normal text-white/30 ml-0.5">h</span>
+                  </p>
+                </div>
+                <div className="w-px h-8 bg-white/[0.08]" />
+                <div className="text-center">
+                  <p className="text-[10px] text-white/30 mb-0.5">Limit</p>
+                  <p className="text-sm font-bold text-white/40">O.C</p>
+                </div>
               </div>
             )}
           </div>
 
           {/* Meta */}
           <div className="space-y-1.5 pt-1 border-t border-white/[0.05]">
+            {/* Interval */}
+            {(item.hours_interval || item.calendar_interval_months || item.cycles_interval) && (() => {
+              const parts = []
+              if (item.hours_interval)            parts.push(`${item.hours_interval} hrs`)
+              if (item.calendar_interval_months)  parts.push(`${item.calendar_interval_months} months`)
+              if (item.cycles_interval)           parts.push(`${item.cycles_interval} cycles`)
+              return (
+                <p className="text-[11px] text-white/30">
+                  Interval: <span className="text-white/50">Every {parts.join(' / ')}</span>
+                </p>
+              )
+            })()}
             {item.reference    && <p className="text-[11px] text-white/30">Ref: <span className="text-white/50">{item.reference}</span></p>}
             {item.part_number  && <p className="text-[11px] text-white/30">P/N: <span className="text-white/50 font-mono">{item.part_number}</span></p>}
             {item.serial_number&& <p className="text-[11px] text-white/30">S/N: <span className="text-white/50 font-mono">{item.serial_number}</span></p>}
@@ -176,7 +243,7 @@ function ItemCard({ item, onLogCompliance }) {
           </div>
 
           {/* Log compliance button */}
-          {item.status !== 'on_condition' && (
+          {item.status !== 'on_condition' && item.status !== 'not_applicable' && (
             <button
               onClick={() => onLogCompliance(item)}
               className="w-full py-2.5 rounded-xl bg-white/[0.06] border border-white/10
@@ -195,10 +262,11 @@ function ItemCard({ item, onLogCompliance }) {
 // Status group
 // ─────────────────────────────────────────────────────────────────────────────
 
-function StatusGroup({ status, items, onLogCompliance, defaultOpen = false }) {
+function StatusGroup({ status, items, onLogCompliance, defaultOpen = false, forceOpen = false }) {
   const [open, setOpen] = useState(defaultOpen)
   const s = STATUS[status]
   if (!items.length) return null
+  const isOpen = forceOpen || open
 
   return (
     <div className="space-y-2">
@@ -214,7 +282,7 @@ function StatusGroup({ status, items, onLogCompliance, defaultOpen = false }) {
         <span className="text-white/20"><IconChevron open={open} /></span>
       </button>
 
-      {open && (
+      {isOpen && (
         <div className="space-y-2">
           {items.map(item => (
             <ItemCard key={item.id} item={item} onLogCompliance={onLogCompliance} />
@@ -281,6 +349,7 @@ export default function Maintenance() {
   const maintItems = useMaintenanceItems(selectedAircraft?.id, hobbs, cycles)
 
   const [filter,        setFilter]        = useState('all')
+  const [search,        setSearch]        = useState('')
   const [complianceItem,setComplianceItem]= useState(null)
   const [compOpen,      setCompOpen]      = useState(false)
   const [fluidDrawer,   setFluidDrawer]   = useState(false)
@@ -296,15 +365,19 @@ export default function Maintenance() {
     setFluidDrawer(true)
   }
 
-  // Filter items by category
+  // Filter items by category + search
   function filteredGroups() {
-    if (filter === 'fluids') return null // handled separately
-    const source = filter === 'all' ? maintItems.items : maintItems.byCategory(filter)
+    if (filter === 'fluids') return null
+    const byCategory = filter === 'all' ? maintItems.items : maintItems.byCategory(filter)
+    const source = search.trim()
+      ? byCategory.filter(i => i.description.toLowerCase().includes(search.trim().toLowerCase()))
+      : byCategory
     return {
       overdue:     source.filter(i => i.status === 'overdue'),
       dueSoon:     source.filter(i => i.status === 'due_soon'),
       ok:          source.filter(i => i.status === 'ok'),
-      onCondition: source.filter(i => i.status === 'on_condition'),
+      onCondition:   source.filter(i => i.status === 'on_condition'),
+      notApplicable: source.filter(i => i.status === 'not_applicable'),
     }
   }
 
@@ -345,13 +418,39 @@ export default function Maintenance() {
           )}
         </div>
 
+        {/* Search bar */}
+        <div className="relative mt-4">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}
+            strokeLinecap="round" className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none">
+            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search maintenance items…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full bg-white/[0.06] border border-white/[0.08] rounded-2xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:border-white/20"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/25 active:text-white/50"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+                strokeLinecap="round" className="w-3.5 h-3.5">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          )}
+        </div>
+
         {/* Filter chips */}
-        <div className="flex gap-2 mt-4 overflow-x-auto pb-1 no-scrollbar">
+        <div className="flex justify-center gap-2 mt-3 flex-wrap">
           {FILTERS.map(f => (
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className={`flex-shrink-0 text-xs font-semibold px-3.5 py-1.5 rounded-full border transition-colors select-none
+              className={`text-xs font-semibold px-3.5 py-1.5 rounded-full border transition-colors select-none
                 ${filter === f.id
                   ? 'bg-white text-black border-white'
                   : 'bg-white/[0.05] text-white/50 border-white/10 active:bg-white/10'}`}
@@ -371,10 +470,11 @@ export default function Maintenance() {
               [1,2,3].map(i => <div key={i} className="rounded-2xl bg-white/[0.04] animate-pulse h-14" />)
             ) : (
               <>
-                <StatusGroup status="overdue"      items={groups.overdue}      onLogCompliance={openCompliance} defaultOpen={true}  />
-                <StatusGroup status="due_soon"     items={groups.dueSoon}      onLogCompliance={openCompliance} defaultOpen={true}  />
-                <StatusGroup status="ok"           items={groups.ok}           onLogCompliance={openCompliance} defaultOpen={false} />
-                <StatusGroup status="on_condition" items={groups.onCondition}  onLogCompliance={openCompliance} defaultOpen={false} />
+                <StatusGroup status="overdue"      items={groups.overdue}      onLogCompliance={openCompliance} defaultOpen={true} forceOpen={!!search.trim()} />
+                <StatusGroup status="due_soon"     items={groups.dueSoon}      onLogCompliance={openCompliance} defaultOpen={true} forceOpen={!!search.trim()} />
+                <StatusGroup status="ok"           items={groups.ok}           onLogCompliance={openCompliance} defaultOpen={false} forceOpen={!!search.trim()} />
+                <StatusGroup status="on_condition"   items={groups.onCondition}    onLogCompliance={openCompliance} defaultOpen={false} forceOpen={!!search.trim()} />
+                <StatusGroup status="not_applicable" items={groups.notApplicable}  onLogCompliance={openCompliance} defaultOpen={false} forceOpen={!!search.trim()} />
 
                 {groups.overdue.length === 0 && groups.dueSoon.length === 0 &&
                  groups.ok.length === 0 && groups.onCondition.length === 0 && (
