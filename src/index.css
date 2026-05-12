@@ -20,20 +20,20 @@
 }
 
 @layer components {
-  /* ── Bottom pill nav — in document flow, not fixed ── */
-  .pill-nav-wrap {
-    @apply flex justify-center bg-transparent flex-shrink-0;
-    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
-    padding-top: 0.5rem;
-  }
-
+  /* ── Bottom pill nav — fixed to viewport bottom ── */
   .pill-nav {
     @apply flex items-center gap-0.5
            bg-navy-800/95 backdrop-blur-xl
            border border-white/[0.08]
            rounded-full px-2 py-2
            shadow-[0_8px_32px_rgba(0,0,0,0.6)];
+    position: fixed;
+    bottom: env(safe-area-inset-bottom);
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
     max-width: calc(100vw - 2rem);
+    z-index: 50;
   }
 
   .nav-btn {

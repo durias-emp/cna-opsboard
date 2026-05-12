@@ -513,7 +513,7 @@ export default function Flights() {
   })
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto nav-clearance">
       <PageHeader
         title="Flights"
         sub={selectedAircraft?.tail_number}

@@ -6,7 +6,7 @@ export default function AircraftBar() {
   return (
     <div
       className="sticky top-0 z-40 flex items-center justify-between
-                 bg-navy-950/95 backdrop-blur-xl border-b border-white/[0.06]
+                 bg-navy-950 border-b border-white/[0.06]
                  px-4 py-3"
       style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
     >
