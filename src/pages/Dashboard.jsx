@@ -204,9 +204,8 @@ function MaintStatusCard({ maintItems, onClick }) {
     >
       <p className="label">Maintenance</p>
 
-      {/* Helicopter image */}
-      <div className="flex-1 flex items-center justify-center"
-        style={{ backgroundColor: 'transparent', isolation: 'isolate' }}>
+      {/* Helicopter image — screen blend makes black bg transparent */}
+      <div className="flex-1" style={{ isolation: 'isolate' }}>
         <img
           src="/Bell206 Jetranger.png"
           alt="helicopter"
@@ -215,26 +214,18 @@ function MaintStatusCard({ maintItems, onClick }) {
         />
       </div>
 
-      {/* Traffic-light counts — bottom */}
-      <div className="flex items-center justify-between mt-auto pt-1 border-t border-white/[0.05]">
+      {/* Counts — monochromatic, no dividers */}
+      <div className="flex items-center justify-between mt-auto">
         <div className="flex flex-col items-center flex-1">
-          <p className={`text-base font-bold leading-none ${overdue > 0 ? 'text-red-400' : 'text-white/20'}`}>
-            {overdue}
-          </p>
+          <p className="text-base font-bold leading-none text-white">{overdue}</p>
           <p className="text-[9px] text-white/30 uppercase tracking-wide mt-0.5">Over</p>
         </div>
-        <div className="w-px h-5 bg-white/[0.06]" />
         <div className="flex flex-col items-center flex-1">
-          <p className={`text-base font-bold leading-none ${dueSoon > 0 ? 'text-amber-400' : 'text-white/20'}`}>
-            {dueSoon}
-          </p>
+          <p className="text-base font-bold leading-none text-white">{dueSoon}</p>
           <p className="text-[9px] text-white/30 uppercase tracking-wide mt-0.5">Soon</p>
         </div>
-        <div className="w-px h-5 bg-white/[0.06]" />
         <div className="flex flex-col items-center flex-1">
-          <p className={`text-base font-bold leading-none ${ok > 0 ? 'text-emerald-400' : 'text-white/20'}`}>
-            {ok}
-          </p>
+          <p className="text-base font-bold leading-none text-white">{ok}</p>
           <p className="text-[9px] text-white/30 uppercase tracking-wide mt-0.5">OK</p>
         </div>
       </div>
