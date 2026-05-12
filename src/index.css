@@ -23,18 +23,20 @@
   /* ── Bottom pill nav ── */
   .pill-nav {
     @apply fixed left-1/2 -translate-x-1/2 z-50
-           flex items-center gap-1
+           flex items-center gap-0.5
            bg-navy-800/95 backdrop-blur-xl
            border border-white/[0.08]
-           rounded-full px-3 py-2
+           rounded-full px-2 py-2
            shadow-[0_8px_32px_rgba(0,0,0,0.6)];
-    /* Always account for the home indicator safe area */
-    bottom: calc(0.5rem + env(safe-area-inset-bottom));
+    /* Browser mode: sit just above the system chrome */
+    bottom: 0.75rem;
+    /* Ensure it never overflows narrow screens */
+    max-width: calc(100vw - 2rem);
   }
 
   .nav-btn {
     @apply flex flex-col items-center justify-center gap-0.5
-           rounded-full px-4 py-2
+           rounded-full px-2.5 py-2
            text-[10px] font-medium text-white/30
            transition-all duration-200 select-none;
   }
@@ -48,11 +50,10 @@
 
   /* ── Layout shell ── */
   .page-shell {
-    @apply flex flex-col h-full;
-    /* No overflow-hidden here — that would clip the fixed BottomNav on iOS Safari */
+    @apply flex flex-col h-full overflow-hidden;
   }
 
-  /* Padding utility applied to each page's scroll container to clear the floating nav */
+  /* Applied to each page's scroll container so content clears the floating nav */
   .nav-clearance {
     padding-bottom: calc(5rem + env(safe-area-inset-bottom));
   }
@@ -184,9 +185,10 @@
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 
-/* ── Standalone PWA mode: sit flush against the home indicator, no extra gap ── */
+/* ── Standalone PWA / added-to-home-screen: clear the home indicator ── */
 @media (display-mode: standalone) {
   .pill-nav {
-    bottom: env(safe-area-inset-bottom);
+    /* In standalone there's no browser chrome — just clear the home indicator */
+    bottom: calc(0.5rem + env(safe-area-inset-bottom));
   }
 }

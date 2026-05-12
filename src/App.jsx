@@ -11,7 +11,6 @@ import Invoices from './pages/Invoices'
 export default function App() {
   return (
     <AircraftProvider>
-      {/* page-shell: full-height column, no overflow-hidden so fixed nav isn't clipped */}
       <div className="page-shell bg-navy-950">
         <AircraftBar />
 
@@ -24,10 +23,9 @@ export default function App() {
             <Route path="/invoices" element={<Invoices />} />
           </Routes>
         </main>
-      </div>
 
-      {/* BottomNav lives OUTSIDE overflow:hidden so iOS Safari can't clip it */}
-      <BottomNav />
+        <BottomNav />
+      </div>
     </AircraftProvider>
   )
 }
