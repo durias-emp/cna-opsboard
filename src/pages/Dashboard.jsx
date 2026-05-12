@@ -199,43 +199,45 @@ function MaintStatusCard({ maintItems, onClick }) {
 
   return (
     <div
-      className="stat-card cursor-pointer active:opacity-80 transition-opacity select-none"
+      className="stat-card cursor-pointer active:opacity-80 transition-opacity select-none overflow-hidden"
       onClick={onClick}
     >
       <p className="label">Maintenance</p>
 
-      {/* Traffic-light counts */}
-      <div className="flex items-center gap-3">
-        <div className="flex flex-col items-center">
-          <p className={`text-xl font-bold leading-none ${overdue > 0 ? 'text-red-400' : 'text-white/20'}`}>
+      {/* Helicopter image */}
+      <div className="flex-1 flex items-center justify-center"
+        style={{ backgroundColor: 'transparent', isolation: 'isolate' }}>
+        <img
+          src="/Bell206 Jetranger.png"
+          alt="helicopter"
+          className="w-full object-contain select-none pointer-events-none"
+          style={{ opacity: 0.25, mixBlendMode: 'screen', clipPath: 'inset(0 0 10% 0)' }}
+        />
+      </div>
+
+      {/* Traffic-light counts — bottom */}
+      <div className="flex items-center justify-between mt-auto pt-1 border-t border-white/[0.05]">
+        <div className="flex flex-col items-center flex-1">
+          <p className={`text-base font-bold leading-none ${overdue > 0 ? 'text-red-400' : 'text-white/20'}`}>
             {overdue}
           </p>
           <p className="text-[9px] text-white/30 uppercase tracking-wide mt-0.5">Over</p>
         </div>
-        <div className="w-px h-6 bg-white/[0.06]" />
-        <div className="flex flex-col items-center">
-          <p className={`text-xl font-bold leading-none ${dueSoon > 0 ? 'text-amber-400' : 'text-white/20'}`}>
+        <div className="w-px h-5 bg-white/[0.06]" />
+        <div className="flex flex-col items-center flex-1">
+          <p className={`text-base font-bold leading-none ${dueSoon > 0 ? 'text-amber-400' : 'text-white/20'}`}>
             {dueSoon}
           </p>
           <p className="text-[9px] text-white/30 uppercase tracking-wide mt-0.5">Soon</p>
         </div>
-        <div className="w-px h-6 bg-white/[0.06]" />
-        <div className="flex flex-col items-center">
-          <p className={`text-xl font-bold leading-none ${ok > 0 ? 'text-emerald-400' : 'text-white/20'}`}>
+        <div className="w-px h-5 bg-white/[0.06]" />
+        <div className="flex flex-col items-center flex-1">
+          <p className={`text-base font-bold leading-none ${ok > 0 ? 'text-emerald-400' : 'text-white/20'}`}>
             {ok}
           </p>
           <p className="text-[9px] text-white/30 uppercase tracking-wide mt-0.5">OK</p>
         </div>
       </div>
-
-      {/* Most urgent item */}
-      {topItem ? (
-        <p className="text-[10px] text-white/35 leading-snug truncate mt-auto">
-          ↑ {topItem.name}
-        </p>
-      ) : (
-        <p className="text-[10px] text-white/20 mt-auto">All clear</p>
-      )}
     </div>
   )
 }
