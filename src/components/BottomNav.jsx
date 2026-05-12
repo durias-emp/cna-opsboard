@@ -34,18 +34,8 @@ const TABS = [
     to: '/fuel',
     label: 'Fuel',
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-        {/* Pump body with rounded top */}
-        <path d="M4 22V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v17" />
-        {/* Base */}
-        <line x1="3" y1="22" x2="16" y2="22" />
-        {/* Screen/display */}
-        <rect x="6" y="6" width="7" height="5" rx="1" />
-        {/* Nozzle arm: horizontal then curves down */}
-        <path d="M15 7h2a2 2 0 0 1 2 2v8a2 2 0 0 0 2 2" />
-        {/* Grip handle at top */}
-        <line x1="15" y1="5" x2="18" y2="3" />
-      </svg>
+      <img src="/gasoline-pump.png" alt="fuel" className="w-5 h-5 object-contain"
+        style={{ filter: 'brightness(0) invert(1)' }} />
     ),
   },
   {
