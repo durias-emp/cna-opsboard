@@ -18,14 +18,8 @@ const IconDrop = () => (
   </svg>
 )
 const IconFillup = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}
-    strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-    <rect x="3" y="3" width="11" height="18" rx="2" />
-    <rect x="5" y="5" width="7" height="5" rx="1" />
-    <line x1="2" y1="21" x2="15" y2="21" />
-    <path d="M14 8h2a2 2 0 0 1 2 2v7a2 2 0 0 0 2 2" />
-    <line x1="14" y1="5" x2="17" y2="3" />
-  </svg>
+  <img src="/gasoline-pump.png" alt="fuel" className="w-4 h-4 object-contain"
+    style={{ filter: 'brightness(0) invert(1)', opacity: 0.3 }} />
 )
 const IconDollar = () => (
   <img src="/dollar-symbol.png" alt="dollar" className="w-4 h-4 object-contain"
