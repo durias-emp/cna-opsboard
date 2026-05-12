@@ -206,7 +206,7 @@ export default function Dashboard() {
     { label: 'Log Flight', color: 'bg-white/10 text-white', icon: <IconFlight />, onClick: () => setFlightDrawerOpen(true) },
     { label: 'Fuel Tank',  color: 'bg-white/10 text-white', icon: <IconFuel />,   onClick: () => setTankDrawerOpen(true) },
     { label: 'Maint.',     color: 'bg-white/10 text-white', icon: <IconWrench />, onClick: () => setMaintDrawerOpen(true) },
-    { label: 'Invoice',    color: 'bg-white/10 text-white', icon: <IconDoc />,    onClick: () => setInvoiceDrawerOpen(true) },
+    { label: 'Invoice',    color: 'bg-white/10 text-white', icon: <img src="/receipt (1).png" alt="invoice" className="w-5 h-5 object-contain" style={{ filter: 'brightness(0) invert(1)', opacity: 0.7 }} />, onClick: () => setInvoiceDrawerOpen(true) },
   ]
 
   return (
