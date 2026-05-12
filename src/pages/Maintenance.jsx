@@ -416,7 +416,7 @@ export default function Maintenance() {
         </div>
 
         {/* Helicopter blueprint — blend mode on the img so it merges seamlessly */}
-        <div className="w-4/5 mx-auto -mt-1">
+        <div className="w-4/5 mx-auto mt-4 mb-6">
           <img
             src="/Bell-Long-Ranger-206L-copper-line.png"
             alt="Bell 206 blueprint"
