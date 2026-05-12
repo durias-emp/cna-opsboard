@@ -204,13 +204,14 @@ function MaintStatusCard({ maintItems, onClick }) {
     >
       <p className="label">Maintenance</p>
 
-      {/* Helicopter image — screen blend makes black bg transparent */}
-      <div className="flex-1" style={{ isolation: 'isolate' }}>
+      {/* Helicopter image — contrast pushes near-black bg to pure black,
+          screen blend then makes it fully transparent against the card */}
+      <div className="flex-1" style={{ backgroundColor: '#1A1A1A', isolation: 'isolate' }}>
         <img
           src="/Bell206 Jetranger.png"
           alt="helicopter"
           className="w-full object-contain select-none pointer-events-none"
-          style={{ opacity: 0.25, mixBlendMode: 'screen', clipPath: 'inset(0 0 10% 0)' }}
+          style={{ opacity: 0.28, mixBlendMode: 'screen', clipPath: 'inset(0 0 10% 0)', filter: 'contrast(8)' }}
         />
       </div>
 
