@@ -10,8 +10,6 @@ import FlightDrawer from '../components/FlightDrawer'
 import TankFillupDrawer from '../components/TankFillupDrawer'
 import MaintenanceDrawer from '../components/MaintenanceDrawer'
 import InvoiceDrawer from '../components/InvoiceDrawer'
-import ItineraryDrawer from '../components/ItineraryDrawer'
-import ItineraryRecordsDrawer from '../components/ItineraryRecordsDrawer'
 import { useTank } from '../hooks/useTank'
 
 const IconFlight = () => (
@@ -198,9 +196,6 @@ export default function Dashboard() {
   const [tankDrawerOpen,      setTankDrawerOpen]      = useState(false)
   const [maintDrawerOpen,     setMaintDrawerOpen]     = useState(false)
   const [invoiceDrawerOpen,   setInvoiceDrawerOpen]   = useState(false)
-  const [itineraryOpen,       setItineraryOpen]       = useState(false)
-  const [recordsOpen,         setRecordsOpen]         = useState(false)
-  const [fabOpen,             setFabOpen]             = useState(false)
   const tank = useTank()
 
   const hobbs   = selectedAircraft?.hobbs_current
@@ -393,106 +388,6 @@ export default function Dashboard() {
         onClose={() => setInvoiceDrawerOpen(false)}
         onSaved={invoiceRefresh}
       />
-      <ItineraryDrawer
-        open={itineraryOpen}
-        onClose={() => setItineraryOpen(false)}
-        onSaved={() => {}}
-      />
-      <ItineraryRecordsDrawer
-        open={recordsOpen}
-        onClose={() => setRecordsOpen(false)}
-      />
-
-      {/* ── FAB action menu backdrop ── */}
-      {fabOpen && (
-        <div
-          className="fixed inset-0 z-[52]"
-          onClick={() => setFabOpen(false)}
-        />
-      )}
-
-      {/* ── FAB action buttons (separate floating pills) ── */}
-      {/*
-          Layout from bottom up:
-          FAB:     bottom = 6rem          (raised well above nav)
-          FAB top: 6rem + 3.5rem = 9.5rem
-          Submit:  bottom = 10.75rem      (1.25rem gap above FAB top)
-          Sub top: 10.75rem + 3rem = 13.75rem
-          Records: bottom = 15rem         (1.25rem gap above Submit top)
-      */}
-
-      {/* Records button — top */}
-      <button
-        onClick={() => { setFabOpen(false); setRecordsOpen(true) }}
-        className={`fixed right-4 z-[53] flex items-center gap-2.5
-                    bg-[#1C1C1E] border border-white/[0.09] rounded-2xl
-                    px-4 py-3 select-none w-52
-                    shadow-[0_4px_20px_rgba(0,0,0,0.6)]
-                    active:scale-95 transition-all duration-200 origin-bottom-right
-                    ${fabOpen
-                      ? 'opacity-100 scale-100 pointer-events-auto'
-                      : 'opacity-0 scale-90 pointer-events-none'}`}
-        style={{
-          bottom: 'calc(14.25rem + env(safe-area-inset-bottom))',
-          transitionDelay: fabOpen ? '60ms' : '0ms',
-        }}
-      >
-        <div className="w-7 h-7 rounded-xl bg-white/[0.07] flex items-center justify-center flex-shrink-0">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}
-            strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-white/50">
-            <path d="M9 11l3 3L22 4" />
-            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-          </svg>
-        </div>
-        <span className="text-sm font-medium text-white/80 whitespace-nowrap">Itinerary Records</span>
-      </button>
-
-      {/* Submit button — middle */}
-      <button
-        onClick={() => { setFabOpen(false); setItineraryOpen(true) }}
-        className={`fixed right-4 z-[53] flex items-center gap-2.5
-                    bg-[#1C1C1E] border border-white/[0.09] rounded-2xl
-                    px-4 py-3 select-none w-52
-                    shadow-[0_4px_20px_rgba(0,0,0,0.6)]
-                    active:scale-95 transition-all duration-200 origin-bottom-right
-                    ${fabOpen
-                      ? 'opacity-100 scale-100 pointer-events-auto'
-                      : 'opacity-0 scale-90 pointer-events-none'}`}
-        style={{
-          bottom: 'calc(10.75rem + env(safe-area-inset-bottom))',
-          transitionDelay: fabOpen ? '0ms' : '60ms',
-        }}
-      >
-        <div className="w-7 h-7 rounded-xl bg-white/[0.07] flex items-center justify-center flex-shrink-0">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}
-            strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-white/50">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="12" y1="18" x2="12" y2="12" />
-            <line x1="9" y1="15" x2="15" y2="15" />
-          </svg>
-        </div>
-        <span className="text-sm font-medium text-white/80 whitespace-nowrap">Submit Itinerary</span>
-      </button>
-
-      {/* ── FAB button ── */}
-      <button
-        onClick={() => setFabOpen(v => !v)}
-        className="fixed z-[54] w-14 h-14 rounded-full bg-white right-4
-                   flex items-center justify-center
-                   shadow-[0_4px_24px_rgba(255,255,255,0.18)]
-                   active:scale-90 transition-all duration-200 select-none"
-        style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
-      >
-        <svg
-          viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth={2.5}
-          strokeLinecap="round"
-          className={`w-6 h-6 transition-transform duration-200 ${fabOpen ? 'rotate-45' : 'rotate-0'}`}
-        >
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5"  y1="12" x2="19" y2="12" />
-        </svg>
-      </button>
     </div>
   )
 }
