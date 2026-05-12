@@ -416,7 +416,7 @@ export default function Maintenance() {
         </div>
 
         {/* Helicopter blueprint */}
-        <div className="relative w-full px-0 -mt-2" style={{ mixBlendMode: 'screen' }}>
+        <div className="relative w-4/5 mx-auto -mt-1" style={{ mixBlendMode: 'screen' }}>
           <img
             src="/Bell-Long-Ranger-206L-copper-line.png"
             alt="Bell 206 blueprint"
@@ -429,11 +429,11 @@ export default function Maintenance() {
         </div>
 
         {/* Gradient overlay at bottom of image so cards sit cleanly */}
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0e0e0e] to-transparent pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[#0e0e0e] to-transparent pointer-events-none" />
       </div>
 
       {/* ── 3 Summary cards ── */}
-      <div className="px-4 -mt-4 grid grid-cols-3 gap-2.5 relative z-10">
+      <div className="px-4 mt-3 grid grid-cols-3 gap-2.5 relative z-10">
 
         {/* Overdue */}
         <button
