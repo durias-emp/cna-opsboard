@@ -204,14 +204,18 @@ function MaintStatusCard({ maintItems, onClick }) {
     >
       <p className="label">Maintenance</p>
 
-      {/* Helicopter image — contrast pushes near-black bg to pure black,
-          screen blend then makes it fully transparent against the card */}
+      {/* Copper-line image: grayscale→invert turns white bg to black,
+          screen blend makes black transparent → clean white lines on card */}
       <div className="flex-1" style={{ backgroundColor: '#1A1A1A', isolation: 'isolate' }}>
         <img
-          src="/Bell206 Jetranger.png"
+          src="/Bell-Long-Ranger-206L-copper-line.png"
           alt="helicopter"
           className="w-full object-contain select-none pointer-events-none"
-          style={{ opacity: 0.28, mixBlendMode: 'screen', clipPath: 'inset(0 0 10% 0)', filter: 'contrast(8)' }}
+          style={{
+            filter: 'grayscale(1) invert(1) brightness(1.8)',
+            opacity: 0.35,
+            mixBlendMode: 'screen',
+          }}
         />
       </div>
 
