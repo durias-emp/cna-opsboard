@@ -445,7 +445,7 @@ function TotalFacilityCard({ tankLevel, canTotal }) {
           <p className="text-[10px] text-white/30 mb-0.5">Available</p>
           <p className="text-sm font-semibold text-white">
             {tankLevel != null
-              ? `${(TOTAL_FACILITY_CAPACITY - total).toFixed(1)} gal`
+              ? `${total.toFixed(1)} gal`
               : '—'}
           </p>
         </div>
