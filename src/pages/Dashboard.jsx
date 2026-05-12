@@ -220,7 +220,7 @@ function MaintStatusCard({ maintItems, onClick }) {
       </div>
 
       {/* Counts — monochromatic, no dividers */}
-      <div className="flex items-center justify-between mt-auto">
+      <div className="flex items-center justify-between">
         <div className="flex flex-col items-center flex-1">
           <p className="text-base font-bold leading-none text-white">{overdue}</p>
           <p className="text-[9px] text-white/30 uppercase tracking-wide mt-0.5">Over</p>
