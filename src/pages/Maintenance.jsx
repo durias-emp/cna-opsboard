@@ -402,7 +402,7 @@ export default function Maintenance() {
   const totalDueSoon  = maintItems.dueSoon.length
 
   return (
-    <div ref={pageRef} className="flex-1 overflow-y-auto nav-clearance">
+    <div ref={pageRef} className="flex-1 overflow-y-auto">
 
       {/* ── Hero: blueprint + summary cards ── */}
       <div className="relative">

@@ -474,7 +474,7 @@ export default function Fuel() {
   const [drawerMode,    setDrawerMode]    = useState('fillup')
 
   return (
-    <div className="flex-1 overflow-y-auto nav-clearance">
+    <div className="flex-1 overflow-y-auto">
       <PageHeader
         title="Fuel"
         sub="Facility tank + flight consumption"

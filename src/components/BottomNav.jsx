@@ -64,18 +64,20 @@ const TABS = [
 
 export default function BottomNav() {
   return (
-    <nav className="pill-nav">
-      {TABS.map(({ to, label, icon }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={to === '/'}
-          className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}
-        >
-          {icon}
-          <span>{label}</span>
-        </NavLink>
-      ))}
-    </nav>
+    <div className="pill-nav-wrap">
+      <nav className="pill-nav">
+        {TABS.map(({ to, label, icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}
+          >
+            {icon}
+            <span>{label}</span>
+          </NavLink>
+        ))}
+      </nav>
+    </div>
   )
 }

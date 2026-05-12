@@ -215,7 +215,7 @@ export default function Dashboard() {
   ]
 
   return (
-    <div className="flex-1 overflow-y-auto nav-clearance">
+    <div className="flex-1 overflow-y-auto">
       <div className="px-4 pt-5 pb-2">
         <h1 className="page-title">Dashboard</h1>
         <p className="text-xs text-white/40 mt-0.5">

@@ -20,17 +20,19 @@
 }
 
 @layer components {
-  /* ── Bottom pill nav ── */
+  /* ── Bottom pill nav — in document flow, not fixed ── */
+  .pill-nav-wrap {
+    @apply flex justify-center bg-transparent flex-shrink-0;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    padding-top: 0.5rem;
+  }
+
   .pill-nav {
-    @apply fixed left-1/2 -translate-x-1/2 z-50
-           flex items-center gap-0.5
+    @apply flex items-center gap-0.5
            bg-navy-800/95 backdrop-blur-xl
            border border-white/[0.08]
            rounded-full px-2 py-2
            shadow-[0_8px_32px_rgba(0,0,0,0.6)];
-    /* Browser mode: sit just above the system chrome */
-    bottom: 0.75rem;
-    /* Ensure it never overflows narrow screens */
     max-width: calc(100vw - 2rem);
   }
 
@@ -185,10 +187,4 @@
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 
-/* ── Standalone PWA / added-to-home-screen: clear the home indicator ── */
-@media (display-mode: standalone) {
-  .pill-nav {
-    /* In standalone there's no browser chrome — just clear the home indicator */
-    bottom: calc(0.5rem + env(safe-area-inset-bottom));
-  }
-}
+/* ── Standalone PWA: env() already handled in pill-nav-wrap padding ── */
