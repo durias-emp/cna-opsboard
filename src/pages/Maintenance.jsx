@@ -415,19 +415,18 @@ export default function Maintenance() {
           </p>
         </div>
 
-        {/* Helicopter blueprint
-            Wrapper bg matches page (#0A0A0A) so screen blend composites
-            against the exact same color regardless of scroll container. */}
+        {/* Helicopter blueprint — screen blend makes black bg transparent.
+            clip-path trims the bottom-right Gemini watermark. */}
         <div className="w-4/5 mx-auto mt-4 mb-6"
           style={{ backgroundColor: '#0A0A0A', isolation: 'isolate' }}>
           <img
-            src="/Bell-Long-Ranger-206L-copper-line.png"
+            src="/Bell206 Jetranger.png"
             alt="Bell 206 blueprint"
             className="w-full object-contain select-none pointer-events-none"
             style={{
-              filter: 'grayscale(1) contrast(100) invert(1)',
-              opacity: 0.28,
+              opacity: 0.32,
               mixBlendMode: 'screen',
+              clipPath: 'inset(0 0 10% 0)',
             }}
           />
         </div>
