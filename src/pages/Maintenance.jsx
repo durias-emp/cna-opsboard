@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useAircraft } from '../context/AircraftContext'
 import { useMaintenance, FLUID_TYPES } from '../hooks/useMaintenance'
 import { useMaintenanceItems } from '../hooks/useMaintenanceItems'
@@ -262,14 +262,14 @@ function ItemCard({ item, onLogCompliance }) {
 // Status group
 // ─────────────────────────────────────────────────────────────────────────────
 
-function StatusGroup({ status, items, onLogCompliance, defaultOpen = false, forceOpen = false }) {
+function StatusGroup({ status, items, onLogCompliance, defaultOpen = false, forceOpen = false, scrollRef }) {
   const [open, setOpen] = useState(defaultOpen)
   const s = STATUS[status]
   if (!items.length) return null
   const isOpen = forceOpen || open
 
   return (
-    <div className="space-y-2">
+    <div ref={scrollRef} className="space-y-2">
       <button
         className="w-full flex items-center justify-between py-1 select-none"
         onClick={() => setOpen(o => !o)}
@@ -354,6 +354,12 @@ export default function Maintenance() {
   const [compOpen,      setCompOpen]      = useState(false)
   const [fluidDrawer,   setFluidDrawer]   = useState(false)
   const [fluidType,     setFluidType]     = useState('engine_oil')
+  const [forcedOpen,    setForcedOpen]    = useState({})
+
+  const overdueRef  = useRef(null)
+  const dueSoonRef  = useRef(null)
+  const okRef       = useRef(null)
+  const pageRef     = useRef(null)
 
   function openCompliance(item) {
     setComplianceItem(item)
@@ -363,6 +369,14 @@ export default function Maintenance() {
   function openFluid(type) {
     setFluidType(type)
     setFluidDrawer(true)
+  }
+
+  function handleSummaryTap(status) {
+    setForcedOpen(prev => ({ ...prev, [status]: true }))
+    const ref = status === 'overdue' ? overdueRef : status === 'due_soon' ? dueSoonRef : okRef
+    setTimeout(() => {
+      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
   }
 
   // Filter items by category + search
@@ -388,38 +402,71 @@ export default function Maintenance() {
   const totalDueSoon  = maintItems.dueSoon.length
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div ref={pageRef} className="flex-1 overflow-y-auto">
 
-      {/* Header */}
-      <div className="px-4 pt-6 pb-2">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Maintenance</h1>
-            <p className="text-xs text-white/35 mt-0.5">
-              {selectedAircraft?.tail_number} · {hobbs.toLocaleString()}h · {cycles.toLocaleString()} cyc
-            </p>
-          </div>
-          {/* Alert summary */}
-          {(totalOverdue > 0 || totalDueSoon > 0) && (
-            <div className="flex gap-2 mt-1">
-              {totalOverdue > 0 && (
-                <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/10 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
-                  <span className="text-white/60">{totalOverdue} Overdue</span>
-                </span>
-              )}
-              {totalDueSoon > 0 && (
-                <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/10 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-                  <span className="text-white/60">{totalDueSoon} Due Soon</span>
-                </span>
-              )}
-            </div>
-          )}
+      {/* ── Hero: blueprint + summary cards ── */}
+      <div className="relative overflow-hidden">
+
+        {/* Page title (sits above the image) */}
+        <div className="px-4 pt-6 pb-2 relative z-10">
+          <h1 className="text-2xl font-bold text-white">Maintenance</h1>
+          <p className="text-xs text-white/35 mt-0.5">
+            {selectedAircraft?.tail_number} · {hobbs.toLocaleString()}h · {cycles.toLocaleString()} cyc
+          </p>
         </div>
 
+        {/* Helicopter blueprint */}
+        <div className="relative w-full px-0 -mt-2" style={{ mixBlendMode: 'screen' }}>
+          <img
+            src="/Bell-Long-Ranger-206L-copper-line.png"
+            alt="Bell 206 blueprint"
+            className="w-full object-contain select-none pointer-events-none"
+            style={{
+              filter: 'grayscale(1) contrast(4) invert(1) brightness(1.4)',
+              opacity: 0.25,
+            }}
+          />
+        </div>
+
+        {/* Gradient overlay at bottom of image so cards sit cleanly */}
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0e0e0e] to-transparent pointer-events-none" />
+      </div>
+
+      {/* ── 3 Summary cards ── */}
+      <div className="px-4 -mt-4 grid grid-cols-3 gap-2.5 relative z-10">
+
+        {/* Overdue */}
+        <button
+          onClick={() => handleSummaryTap('overdue')}
+          className="rounded-2xl bg-white/[0.05] border border-red-400/20 p-3.5 text-left active:scale-95 transition-transform select-none"
+        >
+          <p className="text-2xl font-bold text-red-400 leading-none">{maintItems.overdue.length}</p>
+          <p className="text-[11px] font-semibold text-red-400/70 mt-1.5 uppercase tracking-wide">Overdue</p>
+        </button>
+
+        {/* Due Soon */}
+        <button
+          onClick={() => handleSummaryTap('due_soon')}
+          className="rounded-2xl bg-white/[0.05] border border-amber-400/20 p-3.5 text-left active:scale-95 transition-transform select-none"
+        >
+          <p className="text-2xl font-bold text-amber-400 leading-none">{maintItems.dueSoon.length}</p>
+          <p className="text-[11px] font-semibold text-amber-400/70 mt-1.5 uppercase tracking-wide">Due Soon</p>
+        </button>
+
+        {/* OK */}
+        <button
+          onClick={() => handleSummaryTap('ok')}
+          className="rounded-2xl bg-white/[0.05] border border-emerald-400/20 p-3.5 text-left active:scale-95 transition-transform select-none"
+        >
+          <p className="text-2xl font-bold text-emerald-400 leading-none">{maintItems.ok.length}</p>
+          <p className="text-[11px] font-semibold text-emerald-400/70 mt-1.5 uppercase tracking-wide">OK</p>
+        </button>
+      </div>
+
+      {/* ── Search + filters ── */}
+      <div className="px-4 pt-4 pb-2">
         {/* Search bar */}
-        <div className="relative mt-4">
+        <div className="relative">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}
             strokeLinecap="round" className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none">
             <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
@@ -470,9 +517,9 @@ export default function Maintenance() {
               [1,2,3].map(i => <div key={i} className="rounded-2xl bg-white/[0.04] animate-pulse h-14" />)
             ) : (
               <>
-                <StatusGroup status="overdue"      items={groups.overdue}      onLogCompliance={openCompliance} defaultOpen={true} forceOpen={!!search.trim()} />
-                <StatusGroup status="due_soon"     items={groups.dueSoon}      onLogCompliance={openCompliance} defaultOpen={true} forceOpen={!!search.trim()} />
-                <StatusGroup status="ok"           items={groups.ok}           onLogCompliance={openCompliance} defaultOpen={false} forceOpen={!!search.trim()} />
+                <StatusGroup status="overdue"        items={groups.overdue}        onLogCompliance={openCompliance} defaultOpen={true}  forceOpen={!!search.trim() || !!forcedOpen.overdue}   scrollRef={overdueRef} />
+                <StatusGroup status="due_soon"       items={groups.dueSoon}        onLogCompliance={openCompliance} defaultOpen={true}  forceOpen={!!search.trim() || !!forcedOpen.due_soon}  scrollRef={dueSoonRef} />
+                <StatusGroup status="ok"             items={groups.ok}             onLogCompliance={openCompliance} defaultOpen={false} forceOpen={!!search.trim() || !!forcedOpen.ok}        scrollRef={okRef} />
                 <StatusGroup status="on_condition"   items={groups.onCondition}    onLogCompliance={openCompliance} defaultOpen={false} forceOpen={!!search.trim()} />
                 <StatusGroup status="not_applicable" items={groups.notApplicable}  onLogCompliance={openCompliance} defaultOpen={false} forceOpen={!!search.trim()} />
 
