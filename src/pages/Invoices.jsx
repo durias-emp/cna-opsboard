@@ -90,7 +90,7 @@ export default function Invoices() {
   })
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto nav-clearance">
       <PageHeader
         title="Invoices"
         sub={selectedAircraft?.tail_number}

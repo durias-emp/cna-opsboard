@@ -48,9 +48,13 @@
 
   /* ── Layout shell ── */
   .page-shell {
-    @apply flex flex-col h-full overflow-hidden;
-    /* Always clear the floating nav + home indicator */
-    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+    @apply flex flex-col h-full;
+    /* No overflow-hidden here — that would clip the fixed BottomNav on iOS Safari */
+  }
+
+  /* Padding utility applied to each page's scroll container to clear the floating nav */
+  .nav-clearance {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
   }
 
   /* ── Cards ── */
@@ -180,12 +184,9 @@
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 
-/* ── Standalone PWA mode (home screen — no browser bar to clear) ── */
+/* ── Standalone PWA mode: sit flush against the home indicator, no extra gap ── */
 @media (display-mode: standalone) {
   .pill-nav {
     bottom: env(safe-area-inset-bottom);
-  }
-  .page-shell {
-    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
   }
 }
