@@ -479,6 +479,7 @@ export default function Flights() {
   const [detailOpen,       setDetailOpen]       = useState(false)
   const [itineraryOpen,    setItineraryOpen]    = useState(false)
   const [recordsOpen,      setRecordsOpen]      = useState(false)
+  const [editingItinerary, setEditingItinerary] = useState(null)
 
   function openEditFlight(flight) {
     setEditingFlight(flight)
@@ -675,13 +676,19 @@ export default function Flights() {
 
       <ItineraryDrawer
         open={itineraryOpen}
-        onClose={() => setItineraryOpen(false)}
+        onClose={() => { setItineraryOpen(false); setEditingItinerary(null) }}
         onSaved={() => {}}
+        editRecord={editingItinerary}
       />
 
       <ItineraryRecordsDrawer
         open={recordsOpen}
         onClose={() => setRecordsOpen(false)}
+        onEdit={record => {
+          setEditingItinerary(record)
+          setRecordsOpen(false)
+          setItineraryOpen(true)
+        }}
       />
     </div>
   )

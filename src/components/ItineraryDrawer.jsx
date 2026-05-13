@@ -1,7 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import DatePicker from './DatePicker'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
+
+const FREQUENT_PAX = [
+  { name: 'Francisco Cordova', weight: 150 },
+  { name: 'Westley Cordova',   weight: 180 },
+]
 
 const AIRCRAFT_TYPE = 'Bell 206B3 JetRanger'
 const REGISTRATION  = 'C-GOPF'
@@ -60,26 +65,59 @@ const IconClose = () => (
 )
 
 // ── Main drawer ────────────────────────────────────────────────────────────────
-export default function ItineraryDrawer({ open, onClose, onSaved }) {
+export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = null }) {
   const { handleProps, panelStyle } = useDrawerSwipe(onClose)
-  const [form,    setForm]    = useState(EMPTY())
-  const [saving,  setSaving]  = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [errors,  setErrors]  = useState({})
+  const [form,          setForm]         = useState(EMPTY())
+  const [saving,        setSaving]       = useState(false)
+  const [success,       setSuccess]      = useState(false)
+  const [errors,        setErrors]       = useState({})
+  const [paxDropdown,   setPaxDropdown]  = useState(null) // index of open dropdown
+  const dropdownRef = useRef(null)
 
   const pilots = [
     { id: 1, name: 'James McBride' },
     { id: 2, name: 'Jay McMackin' },
   ]
 
-  // Reset form whenever drawer opens
+  // Reset / pre-fill form whenever drawer opens
   useEffect(() => {
     if (!open) return
-    setForm(EMPTY())
+    if (editRecord) {
+      const srcPax = editRecord.pax ?? []
+      const filled = srcPax.map(p => ({ name: p.name ?? '', weight: p.weight != null ? String(p.weight) : '' }))
+      while (filled.length < 4) filled.push({ name: '', weight: '' })
+      setForm({
+        pilot_in_command:   editRecord.pilot_in_command   ?? '',
+        date:               editRecord.date               ?? todayLocal(),
+        daily_inspection:   editRecord.daily_inspection   ?? false,
+        weight_and_balance: editRecord.weight_and_balance ?? false,
+        route:              editRecord.departure_icao     ?? '',
+        notes:              editRecord.additional_comments ?? '',
+        departure_time:     editRecord.departure_time     ?? '',
+        ete:                editRecord.ete                ?? '',
+        fuel_on_board:      editRecord.fuel_on_board != null ? String(editRecord.fuel_on_board) : '',
+        pax:                filled.slice(0, 4),
+      })
+    } else {
+      setForm(EMPTY())
+    }
     setErrors({})
     setSuccess(false)
     setSaving(false)
-  }, [open])
+    setPaxDropdown(null)
+  }, [open, editRecord])
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (paxDropdown === null) return
+    function handleOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setPaxDropdown(null)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [paxDropdown])
 
   function set(field, val) {
     setForm(f => ({ ...f, [field]: val }))
@@ -122,10 +160,21 @@ export default function ItineraryDrawer({ open, onClose, onSaved }) {
       additional_comments: form.notes.trim()   || null,
     }
 
-    const { error } = await supabase.from('flight_itineraries').insert([payload])
+    const { error } = editRecord
+      ? await supabase.from('flight_itineraries').update(payload).eq('id', editRecord.id)
+      : await supabase.from('flight_itineraries').insert([payload])
     setSaving(false)
 
     if (error) { setErrors({ _: error.message }); return }
+
+    // Email notification on new submit only — fire and forget
+    if (!editRecord) {
+      fetch('/api/send-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'itinerary', data: payload }),
+      }).catch(() => {})
+    }
 
     setSuccess(true)
     onSaved?.()
@@ -151,7 +200,7 @@ export default function ItineraryDrawer({ open, onClose, onSaved }) {
         {/* Header */}
         <div className="flex items-center justify-between px-4 pt-1 pb-3 border-b border-white/[0.06] flex-shrink-0">
           <div>
-            <p className="text-base font-bold text-white">Flight Itinerary</p>
+            <p className="text-base font-bold text-white">{editRecord ? 'Edit Itinerary' : 'Flight Itinerary'}</p>
             <p className="text-[11px] text-white/35 mt-0.5">{REGISTRATION} · {AIRCRAFT_TYPE}</p>
           </div>
           <button
@@ -311,20 +360,79 @@ export default function ItineraryDrawer({ open, onClose, onSaved }) {
           {/* ── Passengers ── */}
           <div className="card">
             <p className="label mb-3">Passengers</p>
-            <div className="space-y-2.5">
+            <div className="space-y-2.5" ref={dropdownRef}>
               {form.pax.map((p, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-white/[0.06] flex items-center justify-center flex-shrink-0">
                     <span className="text-[10px] font-bold text-white/30">{i + 1}</span>
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 relative">
                     <input
                       type="text"
                       placeholder={`PAX ${i + 1} name`}
                       value={p.name}
                       onChange={e => setPax(i, 'name', e.target.value)}
-                      className="input-field w-full py-2.5"
+                      className="input-field w-full py-2.5 pr-8"
                     />
+                    {/* Frequent passengers trigger / clear */}
+                    <button
+                      type="button"
+                      onMouseDown={e => {
+                        e.preventDefault()
+                        if (p.name) {
+                          setPax(i, 'name', '')
+                          setPax(i, 'weight', '')
+                          setPaxDropdown(null)
+                        } else {
+                          setPaxDropdown(paxDropdown === i ? null : i)
+                        }
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                      style={{ transition: 'color 0.2s' }}
+                    >
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), opacity 0.2s',
+                          transform: p.name ? 'rotate(90deg) scale(1.15)' : 'rotate(0deg) scale(1)',
+                        }}
+                      >
+                        {p.name ? (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
+                            strokeLinecap="round" className="w-3.5 h-3.5">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                          </svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
+                            strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                          </svg>
+                        )}
+                      </span>
+                    </button>
+                    {/* Dropdown */}
+                    {paxDropdown === i && (
+                      <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl overflow-hidden border border-white/[0.08] bg-[#1c1c1e] shadow-xl">
+                        {FREQUENT_PAX.map(fp => (
+                          <button
+                            key={fp.name}
+                            type="button"
+                            onMouseDown={e => {
+                              e.preventDefault()
+                              setPax(i, 'name', fp.name)
+                              setPax(i, 'weight', fp.weight)
+                              setPaxDropdown(null)
+                            }}
+                            className="w-full px-3.5 py-2.5 text-left text-sm text-white/80 hover:bg-white/[0.07] transition-colors flex items-center justify-between"
+                          >
+                            <span>{fp.name}</span>
+                            <span className="text-xs text-white/30">{fp.weight} lbs</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="w-[88px] relative flex-shrink-0">
                     <input
@@ -360,7 +468,11 @@ export default function ItineraryDrawer({ open, onClose, onSaved }) {
                 ? 'bg-white/15 text-white/50'
                 : 'bg-white text-black active:scale-[0.98]'}`}
           >
-            {success ? '✓ Itinerary Submitted' : saving ? 'Submitting…' : 'Submit Itinerary'}
+            {success
+              ? (editRecord ? '✓ Changes Saved' : '✓ Itinerary Submitted')
+              : saving
+                ? (editRecord ? 'Saving…' : 'Submitting…')
+                : (editRecord ? 'Save Changes' : 'Submit Itinerary')}
           </button>
         </div>
       </div>

@@ -296,6 +296,13 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       if (cyclesNum > 0)    aircraftUpdates.cycles_current = (selectedAircraft.cycles_current ?? 0) + cyclesNum
       if (Object.keys(aircraftUpdates).length)
         await supabase.from('aircraft').update(aircraftUpdates).eq('id', selectedAircraft.id)
+
+      // Email notification — fire and forget
+      fetch('/api/send-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'flight_log', data: sharedPayload }),
+      }).catch(() => {})
     }
 
     setSaving(false)
