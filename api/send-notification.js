@@ -30,8 +30,8 @@ function check(label, passed) {
 
 function header(subtitle) {
   return `
-    <tr><td style="background:#0a0a0a;border-radius:12px 12px 0 0;padding:24px 32px 20px">
-      <img src="https://cna-opsboard.vercel.app/cna-logo.png" alt="CNA" width="160" style="display:block;filter:invert(1);opacity:0.95;margin-bottom:14px" />
+    <tr><td style="background:#0a0a0a;border-radius:12px 12px 0 0;padding:28px 32px 24px;text-align:center">
+      <img src="https://cna-opsboard.vercel.app/cna-logo.png" alt="CNA" width="160" style="display:inline-block;background:#fff;padding:8px 12px;border-radius:6px;margin-bottom:16px" />
       <p style="margin:0;color:#555;font-size:11px;letter-spacing:2.5px;text-transform:uppercase">${subtitle}</p>
     </td></tr>`
 }
@@ -138,8 +138,8 @@ export default async function handler(req, res) {
 
   const isItinerary = type === 'itinerary'
   const subject = isItinerary
-    ? `✈ Flight Itinerary — ${data.pilot_in_command ?? ''} · ${data.date ?? ''}`
-    : `✈ Flight Log — ${data.pilot ?? ''} · ${data.date ?? ''}`
+    ? `Flight Itinerary — ${data.pilot_in_command ?? ''} · ${data.date ?? ''}`
+    : `Flight Log — ${data.pilot ?? ''} · ${data.date ?? ''}`
 
   const html = isItinerary ? buildItineraryEmail(data) : buildFlightEmail(data)
 
