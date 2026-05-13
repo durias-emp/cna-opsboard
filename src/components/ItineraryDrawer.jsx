@@ -167,6 +167,15 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
 
     if (error) { setErrors({ _: error.message }); return }
 
+    // Email notification on new submit only — fire and forget
+    if (!editRecord) {
+      fetch('/api/send-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'itinerary', data: payload }),
+      }).catch(() => {})
+    }
+
     setSuccess(true)
     onSaved?.()
     setTimeout(() => { setSuccess(false); onClose() }, 1400)
