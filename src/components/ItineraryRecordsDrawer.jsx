@@ -51,9 +51,10 @@ function DetailItem({ label, value }) {
 
 // ── Itinerary record card ──────────────────────────────────────────────────────
 
-function ItineraryCard({ record: r, isExpanded, onToggle }) {
+function ItineraryCard({ record: r, isExpanded, onToggle, onEdit, onDelete }) {
   const pax = r.pax ?? []
   const totalWeight = pax.reduce((s, p) => s + (parseFloat(p.weight) || 0), 0)
+  const [deleting, setDeleting] = useState(false)
 
   return (
     <div className="card p-0 overflow-hidden">
@@ -162,6 +163,35 @@ function ItineraryCard({ record: r, isExpanded, onToggle }) {
           <p className="text-[10px] text-white/20">
             Submitted {formatDateTime(r.submitted_at)}
           </p>
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={() => onEdit(r)}
+              className="flex-1 py-2.5 rounded-xl text-xs font-semibold select-none
+                bg-white/[0.07] text-white/35
+                transition-all duration-200
+                hover:bg-white hover:text-black
+                active:bg-white active:text-black active:scale-[0.97]"
+            >
+              Edit
+            </button>
+            <button
+              disabled={deleting}
+              onClick={async () => {
+                setDeleting(true)
+                await onDelete(r.id)
+              }}
+              className="flex-1 py-2.5 rounded-xl text-xs font-semibold select-none
+                bg-white/[0.07] text-white/35
+                transition-all duration-200
+                hover:bg-red-500 hover:text-white
+                active:bg-red-500 active:text-white active:scale-[0.97]
+                disabled:opacity-40"
+            >
+              {deleting ? 'Deleting…' : 'Delete'}
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -170,7 +200,7 @@ function ItineraryCard({ record: r, isExpanded, onToggle }) {
 
 // ── Main drawer ────────────────────────────────────────────────────────────────
 
-export default function ItineraryRecordsDrawer({ open, onClose }) {
+export default function ItineraryRecordsDrawer({ open, onClose, onEdit }) {
   const { handleProps, panelStyle } = useDrawerSwipe(onClose)
   const [records,      setRecords]      = useState([])
   const [loading,      setLoading]      = useState(true)
@@ -317,6 +347,12 @@ export default function ItineraryRecordsDrawer({ open, onClose }) {
                 record={r}
                 isExpanded={expanded === r.id}
                 onToggle={() => setExpanded(prev => prev === r.id ? null : r.id)}
+                onEdit={onEdit}
+                onDelete={async (id) => {
+                  await supabase.from('flight_itineraries').delete().eq('id', id)
+                  setRecords(prev => prev.filter(x => x.id !== id))
+                  setExpanded(null)
+                }}
               />
             ))
           )}
