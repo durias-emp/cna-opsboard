@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAircraft } from '../context/AircraftContext'
 import { supabase } from '../lib/supabase'
 import DatePicker from './DatePicker'
@@ -19,6 +19,11 @@ const emptyLeg = () => ({
 })
 
 const emptyPassenger = () => ({ name: '', weight: '' })
+
+const FREQUENT_PAX = [
+  { name: 'Francisco Cordova', weight: 150 },
+  { name: 'Westley Cordova',   weight: 180 },
+]
 
 function toMinutes(t) {
   if (!t) return 0
@@ -44,16 +49,69 @@ function formatDuration(mins) {
 
 // ── Passenger row ──────────────────────────────────────────────────────────────
 
-function PassengerRow({ passenger, onChange, onRemove, showRemove }) {
+function PassengerRow({ passenger, onChange, onRemove, showRemove, dropdownOpen, onToggleDropdown, onSelectFrequent }) {
   return (
     <div className="flex items-center gap-2">
-      <input
-        type="text"
-        placeholder="Full name"
-        value={passenger.name}
-        onChange={e => onChange('name', e.target.value)}
-        className="input-field flex-1 min-w-0"
-      />
+      {/* Name field with frequent-pax trigger */}
+      <div className="flex-1 min-w-0 relative">
+        <input
+          type="text"
+          placeholder="Full name"
+          value={passenger.name}
+          onChange={e => onChange('name', e.target.value)}
+          className="input-field w-full pr-8"
+        />
+        <button
+          type="button"
+          onMouseDown={e => {
+            e.preventDefault()
+            if (passenger.name) {
+              onChange('name', '')
+              onChange('weight', '')
+            } else {
+              onToggleDropdown()
+            }
+          }}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+        >
+          <span style={{
+            display: 'inline-block',
+            transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+            transform: passenger.name ? 'rotate(90deg) scale(1.15)' : 'rotate(0deg) scale(1)',
+          }}>
+            {passenger.name ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
+                strokeLinecap="round" className="w-3.5 h-3.5">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
+                strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            )}
+          </span>
+        </button>
+        {/* Frequent passengers dropdown */}
+        {dropdownOpen && (
+          <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl overflow-hidden border border-white/[0.08] bg-[#1c1c1e] shadow-xl">
+            {FREQUENT_PAX.map(fp => (
+              <button
+                key={fp.name}
+                type="button"
+                onMouseDown={e => { e.preventDefault(); onSelectFrequent(fp) }}
+                className="w-full px-3.5 py-2.5 text-left text-sm text-white/80 hover:bg-white/[0.07] transition-colors flex items-center justify-between"
+              >
+                <span>{fp.name}</span>
+                <span className="text-xs text-white/30">{fp.weight} lbs</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Weight */}
       <div className="relative w-20 flex-shrink-0">
         <input
           type="number"
@@ -66,6 +124,7 @@ function PassengerRow({ passenger, onChange, onRemove, showRemove }) {
         />
         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-white/30 pointer-events-none">lb</span>
       </div>
+
       {showRemove ? (
         <button onClick={onRemove}
           className="w-7 h-7 rounded-full bg-white/[0.07] flex items-center justify-center
@@ -163,6 +222,8 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
   const [legs,          setLegs]          = useState([emptyLeg()])
   const [cycles,        setCycles]        = useState('1')
   const [passengers,    setPassengers]    = useState([emptyPassenger(), emptyPassenger()])
+  const [paxDropdown,   setPaxDropdown]   = useState(null)
+  const paxDropdownRef = useRef(null)
   const [fuelStart,     setFuelStart]     = useState('')
   const [fuelEnd,       setFuelEnd]       = useState('')
   const [notes,         setNotes]         = useState('')
@@ -218,8 +279,21 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       setFuelEnd('')
       setNotes('')
       setPreflightDone(false)
+      setPaxDropdown(null)
     }
   }, [open])
+
+  // Close pax dropdown on outside click
+  useEffect(() => {
+    if (paxDropdown === null) return
+    function handleOutside(e) {
+      if (paxDropdownRef.current && !paxDropdownRef.current.contains(e.target)) {
+        setPaxDropdown(null)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [paxDropdown])
 
   const updateLeg       = (i, field, val) =>
     setLegs(prev => prev.map((l, idx) => idx === i ? { ...l, [field]: val } : l))
@@ -451,23 +525,20 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
                 ) : null
               })()}</div>
 
-            {passengers.length > 0 && (
-              <div className="flex items-center gap-2">
-                <p className="label flex-1">Name</p>
-                <p className="label w-20 text-center">Weight</p>
-                <div className="w-7" />
-              </div>
-            )}
-
-            {passengers.map((p, i) => (
-              <PassengerRow
-                key={i}
-                passenger={p}
-                showRemove={true}
-                onRemove={() => removePassenger(i)}
-                onChange={(field, val) => updatePassenger(i, field, val)}
-              />
-            ))}
+            <div ref={paxDropdownRef} className="space-y-2">
+              {passengers.map((p, i) => (
+                <PassengerRow
+                  key={i}
+                  passenger={p}
+                  showRemove={true}
+                  onRemove={() => removePassenger(i)}
+                  onChange={(field, val) => updatePassenger(i, field, val)}
+                  dropdownOpen={paxDropdown === i}
+                  onToggleDropdown={() => setPaxDropdown(paxDropdown === i ? null : i)}
+                  onSelectFrequent={fp => { updatePassenger(i, 'name', fp.name); updatePassenger(i, 'weight', fp.weight); setPaxDropdown(null) }}
+                />
+              ))}
+            </div>
 
             {passengers.reduce((s, p) => s + (parseFloat(p.weight) || 0), 0) > 650 && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
