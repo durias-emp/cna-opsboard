@@ -301,8 +301,8 @@ export default function Dashboard() {
         <div>
           <SectionHeader title="This month" />
           <div className="grid grid-cols-2 gap-3">
-            <StatCard icon={<IconFlight />} label="Flights"         value={stats.allHours ?? stats.monthHours} sub={stats.total ? `${stats.total} flight${stats.total > 1 ? 's' : ''}` : 'No flights yet'} />
-            <StatCard icon={<img src="/dollar-symbol.png" alt="dollar" className="w-5 h-5 object-contain" style={{ filter: 'brightness(0) invert(1)', opacity: 0.55 }} />} label="Month generated" value={`$${invoiceStats.monthBilled.toLocaleString()}`} sub={invoiceStats.monthCount ? `${invoiceStats.monthCount} invoice${invoiceStats.monthCount > 1 ? 's' : ''}` : 'No invoices yet'} />
+            <StatCard icon={<IconFlight />} label="Flights"         value={stats.allHours ?? stats.monthHours} sub={stats.total ? `${stats.total} flight${stats.total > 1 ? 's' : ''}` : 'No flights yet'} onClick={() => navigate('/flights')} />
+            <StatCard icon={<img src="/dollar-symbol.png" alt="dollar" className="w-5 h-5 object-contain" style={{ filter: 'brightness(0) invert(1)', opacity: 0.55 }} />} label="Month generated" value={`$${invoiceStats.monthBilled.toLocaleString()}`} sub={invoiceStats.monthCount ? `${invoiceStats.monthCount} invoice${invoiceStats.monthCount > 1 ? 's' : ''}` : 'No invoices yet'} onClick={() => navigate('/invoices')} />
             <MaintStatusCard maintItems={maintItems} onClick={() => navigate('/maintenance')} />
             <TankMiniCard tank={tank} onClick={() => navigate('/fuel')} />
           </div>
