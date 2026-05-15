@@ -6,7 +6,7 @@ import Dashboard from './pages/Dashboard'
 import Flights from './pages/Flights'
 import Maintenance from './pages/Maintenance'
 import Fuel from './pages/Fuel'
-import Invoices from './pages/Invoices'
+import Employees from './pages/Employees'
 
 export default function App() {
   return (
@@ -20,7 +20,7 @@ export default function App() {
             <Route path="/flights" element={<Flights />} />
             <Route path="/maintenance" element={<Maintenance />} />
             <Route path="/fuel" element={<Fuel />} />
-            <Route path="/invoices" element={<Invoices />} />
+            <Route path="/employees" element={<Employees />} />
           </Routes>
         </main>
 

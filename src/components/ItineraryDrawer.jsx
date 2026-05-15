@@ -77,6 +77,7 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
   const pilots = [
     { id: 1, name: 'James McBride' },
     { id: 2, name: 'Jay McMackin' },
+    { id: 3, name: 'Daniel Sandoval' },
   ]
 
   // Reset / pre-fill form whenever drawer opens

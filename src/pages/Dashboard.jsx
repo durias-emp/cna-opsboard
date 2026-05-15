@@ -4,13 +4,11 @@ import { useAircraft } from '../context/AircraftContext'
 import { useFlights } from '../hooks/useFlights'
 import { useMaintenance, FLUID_TYPES } from '../hooks/useMaintenance'
 import { useMaintenanceItems } from '../hooks/useMaintenanceItems'
-import { useInvoices } from '../hooks/useInvoices'
 import StatCard from '../components/StatCard'
 import SectionHeader from '../components/SectionHeader'
 import FlightDrawer from '../components/FlightDrawer'
 import TankFillupDrawer from '../components/TankFillupDrawer'
 import MaintenanceDrawer from '../components/MaintenanceDrawer'
-import InvoiceDrawer from '../components/InvoiceDrawer'
 import { useTank } from '../hooks/useTank'
 
 const IconFlight = () => (
@@ -27,12 +25,6 @@ const IconWrench = () => (
     <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
   </svg>
 )
-const IconDoc = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8" />
-  </svg>
-)
-
 // ── Fluid status mini-card ─────────────────────────────────────────────────────
 
 const FLUID_SHORT = {
@@ -243,12 +235,10 @@ export default function Dashboard() {
   const { flights, stats, fuelStats, refresh } = useFlights(selectedAircraft?.id)
   const maint      = useMaintenance(selectedAircraft?.id, selectedAircraft?.hobbs_current)
   const maintItems = useMaintenanceItems(selectedAircraft?.id, selectedAircraft?.hobbs_current, selectedAircraft?.cycles_current)
-  const { stats: invoiceStats, refresh: invoiceRefresh } = useInvoices(selectedAircraft?.id)
   const navigate = useNavigate()
   const [flightDrawerOpen,    setFlightDrawerOpen]    = useState(false)
   const [tankDrawerOpen,      setTankDrawerOpen]      = useState(false)
   const [maintDrawerOpen,     setMaintDrawerOpen]     = useState(false)
-  const [invoiceDrawerOpen,   setInvoiceDrawerOpen]   = useState(false)
   const tank = useTank()
 
   const hobbs   = selectedAircraft?.hobbs_current
@@ -259,7 +249,6 @@ export default function Dashboard() {
     { label: 'Log Flight', color: 'bg-white/10 text-white', icon: <IconFlight />, onClick: () => setFlightDrawerOpen(true) },
     { label: 'Fuel Tank',  color: 'bg-white/10 text-white', icon: <IconFuel />,   onClick: () => setTankDrawerOpen(true) },
     { label: 'Maint.',     color: 'bg-white/10 text-white', icon: <IconWrench />, onClick: () => setMaintDrawerOpen(true) },
-    { label: 'Invoice',    color: 'bg-white/10 text-white', icon: <img src="/receipt (1).png" alt="invoice" className="w-5 h-5 object-contain" style={{ filter: 'brightness(0) invert(1)', opacity: 0.7 }} />, onClick: () => setInvoiceDrawerOpen(true) },
   ]
 
   return (
@@ -302,7 +291,26 @@ export default function Dashboard() {
           <SectionHeader title="This month" />
           <div className="grid grid-cols-2 gap-3">
             <StatCard icon={<IconFlight />} label="Flights"         value={stats.allHours ?? stats.monthHours} sub={stats.total ? `${stats.total} flight${stats.total > 1 ? 's' : ''}` : 'No flights yet'} onClick={() => navigate('/flights')} />
-            <StatCard icon={<img src="/dollar-symbol.png" alt="dollar" className="w-5 h-5 object-contain" style={{ filter: 'brightness(0) invert(1)', opacity: 0.55 }} />} label="Month generated" value={`$${invoiceStats.monthBilled.toLocaleString()}`} sub={invoiceStats.monthCount ? `${invoiceStats.monthCount} invoice${invoiceStats.monthCount > 1 ? 's' : ''}` : 'No invoices yet'} onClick={() => navigate('/invoices')} />
+            <div
+              className="stat-card cursor-pointer active:opacity-80 transition-opacity select-none"
+              onClick={() => navigate('/employees')}
+            >
+              <div className="icon-box w-9 h-9 bg-navy-700">
+                <span className="text-slate-400">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                </span>
+              </div>
+              <div>
+                <p className="label mb-1">Team</p>
+                <p className="text-xl font-bold text-white leading-none">6</p>
+                <p className="text-[11px] text-slate-500 mt-1">3 pilots · 3 mechanics</p>
+              </div>
+            </div>
             <MaintStatusCard maintItems={maintItems} onClick={() => navigate('/maintenance')} />
             <TankMiniCard tank={tank} onClick={() => navigate('/fuel')} />
           </div>
@@ -311,7 +319,7 @@ export default function Dashboard() {
         {/* Quick actions */}
         <div>
           <SectionHeader title="Quick actions" />
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {QUICK_ACTIONS.map(({ label, color, icon, onClick }) => (
               <button
                 key={label}
@@ -435,11 +443,6 @@ export default function Dashboard() {
         onClose={() => setMaintDrawerOpen(false)}
         onSaved={maint.refresh}
         defaultType="engine_oil"
-      />
-      <InvoiceDrawer
-        open={invoiceDrawerOpen}
-        onClose={() => setInvoiceDrawerOpen(false)}
-        onSaved={invoiceRefresh}
       />
     </div>
   )

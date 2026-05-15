@@ -9,7 +9,7 @@ const ROUND = (n, decimals = 2) => Math.round(n * 10 ** decimals) / 10 ** decima
 // Hobbs meters tick every 6 minutes → floor to nearest 0.1
 const toHobbs = (minutes) => Math.floor(minutes / 6) / 10
 
-const PILOTS = ['James McBride', 'Jay McMackin']
+const PILOTS = ['James McBride', 'Jay McMackin', 'Daniel Sandoval']
 
 const emptyLeg = () => ({
   takeoff_time:     '',
