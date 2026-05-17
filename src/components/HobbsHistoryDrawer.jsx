@@ -95,22 +95,6 @@ export default function HobbsHistoryDrawer({ open, onClose, flights, currentHobb
           </button>
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center gap-4 px-5 pb-3 flex-shrink-0">
-          <span className="flex items-center gap-1.5 text-[11px] text-white/40">
-            <span className="w-2 h-2 rounded-full bg-white/20 inline-block" />
-            Before
-          </span>
-          <span className="flex items-center gap-1.5 text-[11px] text-accent">
-            <span className="w-2 h-2 rounded-full bg-accent inline-block" />
-            Added
-          </span>
-          <span className="flex items-center gap-1.5 text-[11px] text-white/60">
-            <span className="w-2 h-2 rounded-full bg-white/50 inline-block" />
-            After
-          </span>
-        </div>
-
         <div className="border-t border-white/[0.06] flex-shrink-0" />
 
         {/* Ledger */}
