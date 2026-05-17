@@ -45,8 +45,8 @@ function buildLedger(flights, currentHobbs) {
     running = hobbsBefore
   }
 
-  // Reverse so oldest is at top
-  return rows.reverse()
+  // Keep newest→oldest (flights array is already newest first)
+  return rows
 }
 
 export default function HobbsHistoryDrawer({ open, onClose, flights, currentHobbs, tailNumber }) {
@@ -60,7 +60,7 @@ export default function HobbsHistoryDrawer({ open, onClose, flights, currentHobb
   const ledger = buildLedger(flights, currentHobbs)
 
   return (
-    <div className={`fixed inset-0 z-50 transition-all duration-300 ${open ? '' : 'pointer-events-none'}`}>
+    <>
       {/* Backdrop */}
       <div
         className={`drawer-overlay ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
@@ -116,7 +116,7 @@ export default function HobbsHistoryDrawer({ open, onClose, flights, currentHobb
         {/* Ledger */}
         <div
           className="flex-1 overflow-y-auto px-5 py-4 space-y-2"
-          style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+          style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}
         >
           {ledger.length === 0 ? (
             <p className="text-sm text-white/30 text-center py-10">No flights logged yet.</p>
@@ -166,6 +166,6 @@ export default function HobbsHistoryDrawer({ open, onClose, flights, currentHobb
           )}
         </div>
       </div>
-    </div>
+    </>
   )
 }
