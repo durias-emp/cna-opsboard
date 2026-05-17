@@ -9,6 +9,7 @@ import SectionHeader from '../components/SectionHeader'
 import FlightDrawer from '../components/FlightDrawer'
 import TankFillupDrawer from '../components/TankFillupDrawer'
 import MaintenanceDrawer from '../components/MaintenanceDrawer'
+import HobbsHistoryDrawer from '../components/HobbsHistoryDrawer'
 import { useTank } from '../hooks/useTank'
 
 const IconFlight = () => (
@@ -239,6 +240,7 @@ export default function Dashboard() {
   const [flightDrawerOpen,    setFlightDrawerOpen]    = useState(false)
   const [tankDrawerOpen,      setTankDrawerOpen]      = useState(false)
   const [maintDrawerOpen,     setMaintDrawerOpen]     = useState(false)
+  const [hobbsHistoryOpen,    setHobbsHistoryOpen]    = useState(false)
   const tank = useTank()
 
   const hobbs   = selectedAircraft?.hobbs_current
@@ -265,7 +267,10 @@ export default function Dashboard() {
       <div className="px-4 pb-6 space-y-5">
         {/* Hobbs banner */}
         {hobbs != null && (
-          <div className="card border-white/[0.08] flex items-center justify-between">
+          <div
+            className="card border-white/[0.08] flex items-center justify-between cursor-pointer active:opacity-75 transition-opacity select-none"
+            onClick={() => setHobbsHistoryOpen(true)}
+          >
             <div>
               <p className="label mb-1">Current Hobbs</p>
               <p className="text-4xl font-bold text-white tracking-tight">
@@ -282,6 +287,7 @@ export default function Dashboard() {
             <div className="flex flex-col items-end gap-1">
               <span className="badge badge-green">Active</span>
               <p className="text-[11px] text-white/25 mt-1">{hobbsLastUpdated(flights)}</p>
+              <p className="text-[10px] text-white/20 mt-0.5">Tap for history ›</p>
             </div>
           </div>
         )}
@@ -443,6 +449,13 @@ export default function Dashboard() {
         onClose={() => setMaintDrawerOpen(false)}
         onSaved={maint.refresh}
         defaultType="engine_oil"
+      />
+      <HobbsHistoryDrawer
+        open={hobbsHistoryOpen}
+        onClose={() => setHobbsHistoryOpen(false)}
+        flights={flights}
+        currentHobbs={hobbs}
+        tailNumber={selectedAircraft?.tail_number}
       />
     </div>
   )
