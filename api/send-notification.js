@@ -1,6 +1,8 @@
 const RECIPIENTS = ['info@cielonorteaviacion.com', 'james@cielonorteaviacion.com']
 const FROM = 'CNA OpsBoard <ops@cielonorteaviacion.com>'
 
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
 function formatDate(iso) {
   if (!iso) return '—'
   return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', {
@@ -45,19 +47,23 @@ function footer() {
 
 function paxTable(list) {
   if (!list || list.length === 0) return ''
-  const nameKey   = list[0].name       !== undefined ? 'name'       : 'name'
-  const weightKey = list[0].weight_lbs !== undefined ? 'weight_lbs' : 'weight'
-  const rows = list.map(p => `
+  // Handle both {weight_lbs} and {weight} key names
+  const rows = list.map(p => {
+    const w = p.weight_lbs ?? p.weight ?? null
+    return `
     <tr>
       <td style="padding:5px 0;color:#111;font-size:12px">${p.name || '—'}</td>
-      <td style="padding:5px 0;color:#888;font-size:12px;text-align:right">${p[weightKey] ? p[weightKey] + ' lbs' : '—'}</td>
-    </tr>`).join('')
+      <td style="padding:5px 0;color:#888;font-size:12px;text-align:right">${w ? w + ' lbs' : '—'}</td>
+    </tr>`
+  }).join('')
   return `
     <div style="margin-top:24px;border-top:1px solid #f0f0f0;padding-top:20px">
       <p style="margin:0 0 10px;color:#aaa;font-size:10px;letter-spacing:2.5px;text-transform:uppercase">Passengers</p>
       <table width="100%" cellpadding="0" cellspacing="0">${rows}</table>
     </div>`
 }
+
+// ── Email builders ─────────────────────────────────────────────────────────────
 
 function buildFlightEmail(d) {
   const legs  = d.legs ?? []
@@ -130,10 +136,65 @@ function buildItineraryEmail(d) {
 </body></html>`
 }
 
+// ── Send via Resend ────────────────────────────────────────────────────────────
+
+async function sendEmail(subject, html) {
+  const resp = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ from: FROM, to: RECIPIENTS, subject, html }),
+  })
+  if (!resp.ok) {
+    const text = await resp.text()
+    throw new Error(`Resend error: ${text}`)
+  }
+  return resp.json()
+}
+
+// ── Handler ────────────────────────────────────────────────────────────────────
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
 
-  const { type, data } = req.body ?? {}
+  const body = req.body ?? {}
+
+  // ── Detect call source ──────────────────────────────────────────────────────
+  // Supabase DB webhook: body has { type, table, record, schema }
+  // Legacy client call:  body has { type, data }
+  const isWebhook = !!body.record
+
+  if (isWebhook) {
+    // Validate secret so only Supabase can call this path
+    const secret = req.headers['x-webhook-secret']
+    if (!process.env.WEBHOOK_SECRET || secret !== process.env.WEBHOOK_SECRET) {
+      console.error('[webhook] Unauthorized — secret mismatch')
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+  }
+
+  let type, data
+  if (isWebhook) {
+    // Map Supabase table name → notification type
+    const tableMap = { flights: 'flight_log', flight_itineraries: 'itinerary' }
+    type = tableMap[body.table]
+    data = body.record
+    if (!type) {
+      console.error('[webhook] Unknown table:', body.table)
+      return res.status(400).json({ error: 'Unknown table' })
+    }
+    // Only fire on INSERT (not UPDATE/DELETE)
+    if (body.type !== 'INSERT') {
+      return res.status(200).json({ ok: true, skipped: 'not an insert' })
+    }
+  } else {
+    // Legacy client call
+    type = body.type
+    data = body.data
+  }
+
   if (!type || !data) return res.status(400).json({ error: 'Missing type or data' })
 
   const isItinerary = type === 'itinerary'
@@ -144,24 +205,11 @@ export default async function handler(req, res) {
   const html = isItinerary ? buildItineraryEmail(data) : buildFlightEmail(data)
 
   try {
-    const resp = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ from: FROM, to: RECIPIENTS, subject, html }),
-    })
-
-    if (!resp.ok) {
-      const text = await resp.text()
-      console.error('Resend error:', text)
-      return res.status(502).json({ error: text })
-    }
-
+    await sendEmail(subject, html)
+    console.log(`[notify] Sent ${type} email for ${data.date}`)
     return res.status(200).json({ ok: true })
   } catch (err) {
-    console.error('send-notification error:', err)
+    console.error('[notify] Failed:', err.message)
     return res.status(500).json({ error: err.message })
   }
 }

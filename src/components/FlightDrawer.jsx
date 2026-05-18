@@ -371,14 +371,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       if (Object.keys(aircraftUpdates).length)
         await supabase.from('aircraft').update(aircraftUpdates).eq('id', selectedAircraft.id)
 
-      // Email notification — fire and forget
-      fetch('/api/send-notification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'flight_log', data: sharedPayload }),
-      })
-        .then(r => { if (!r.ok) r.text().then(t => console.error('[notify] flight email failed:', t)) })
-        .catch(err => console.error('[notify] fetch error:', err))
+      // Email is now sent via Supabase DB webhook on INSERT — no client call needed
     }
 
     setSaving(false)
