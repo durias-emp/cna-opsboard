@@ -169,7 +169,7 @@ export default async function handler(req, res) {
   if (isWebhook) {
     // Validate secret so only Supabase can call this path
     const secret = req.headers['x-webhook-secret']
-    if (!process.env.WEBHOOK_SECRET || secret !== process.env.WEBHOOK_SECRET) {
+    if (!process.env.WEBHOOK_SECRET || secret !== process.env.WEBHOOK_SECRET.trim()) {
       console.error('[webhook] Unauthorized — secret mismatch')
       return res.status(401).json({ error: 'Unauthorized' })
     }
