@@ -174,7 +174,9 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'itinerary', data: payload }),
-      }).catch(() => {})
+      })
+        .then(r => { if (!r.ok) r.text().then(t => console.error('[notify] itinerary email failed:', t)) })
+        .catch(err => console.error('[notify] fetch error:', err))
     }
 
     setSuccess(true)
