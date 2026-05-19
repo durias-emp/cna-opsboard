@@ -1,4 +1,4 @@
-const RECIPIENTS = ['info@cielonorteaviacion.com', 'james@cielonorteaviacion.com']
+const RECIPIENTS = ['info@cielonorteaviacion.com', 'james@cielonorteaviacion.com', 'helicorp@truenorthairways.ca']
 const FROM = 'CNA OpsBoard <ops@cielonorteaviacion.com>'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
