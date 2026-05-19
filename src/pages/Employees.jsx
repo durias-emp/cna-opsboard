@@ -24,6 +24,10 @@ function initials(name) {
 
 function PilotCard({ pilot }) {
   const [expanded, setExpanded] = useState(false)
+  const [showAll,  setShowAll]  = useState(false)
+
+  const visibleFlights = showAll ? pilot.recentFlights : pilot.recentFlights.slice(0, 5)
+  const remaining      = pilot.recentFlights.length - 5
 
   return (
     <div className="card p-0 overflow-hidden">
@@ -65,9 +69,9 @@ function PilotCard({ pilot }) {
           {pilot.recentFlights.length === 0 ? (
             <p className="text-xs text-white/25 px-4 py-3 text-center">No flights logged yet</p>
           ) : (
-            pilot.recentFlights.map((f, i) => (
+            visibleFlights.map((f, i) => (
               <div key={f.id}
-                className={`flex items-center justify-between px-4 py-2.5 ${i < pilot.recentFlights.length - 1 ? 'border-b border-white/[0.04]' : ''}`}>
+                className={`flex items-center justify-between px-4 py-2.5 ${i < visibleFlights.length - 1 ? 'border-b border-white/[0.04]' : ''}`}>
                 <div>
                   <p className="text-xs font-medium text-white/70">{flightRoute(f)}</p>
                   <p className="text-[10px] text-white/30 mt-0.5">{formatDate(f.date)}</p>
@@ -78,10 +82,21 @@ function PilotCard({ pilot }) {
               </div>
             ))
           )}
-          {pilot.flightCount > 5 && (
-            <p className="text-[10px] text-white/20 text-center py-2">
-              +{pilot.flightCount - 5} more flights
-            </p>
+          {!showAll && remaining > 0 && (
+            <button
+              className="w-full text-[11px] text-white/35 hover:text-white/60 active:text-white/60 text-center py-2.5 border-t border-white/[0.04] transition-colors"
+              onClick={() => setShowAll(true)}
+            >
+              +{remaining} more flights
+            </button>
+          )}
+          {showAll && pilot.recentFlights.length > 5 && (
+            <button
+              className="w-full text-[11px] text-white/25 hover:text-white/50 text-center py-2.5 border-t border-white/[0.04] transition-colors"
+              onClick={() => setShowAll(false)}
+            >
+              Show less
+            </button>
           )}
         </div>
       )}

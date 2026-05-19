@@ -67,9 +67,29 @@ function paxTable(list) {
 
 function buildFlightEmail(d) {
   const legs  = d.legs ?? []
+
+  // Build route string from correct field names
   const route = legs.length > 0
-    ? legs.map(l => [l.origin_icao, l.destination_icao].filter(Boolean).join(' → ')).join(' · ')
+    ? legs.map(l => [l.takeoff_location, l.landing_location].filter(Boolean).join(' → ')).join(' · ')
     : '—'
+
+  // Build per-leg adjustment notes (only when air time was manually adjusted)
+  const adjustmentRows = legs
+    .filter(l => l.actual_minutes != null && l.wait_note)
+    .map(l => `
+      <tr>
+        <td style="padding:5px 0;color:#999;font-size:12px;vertical-align:top;white-space:nowrap">
+          ${l.takeoff_location || '?'} → ${l.landing_location || '?'}
+        </td>
+        <td style="padding:5px 0;color:#555;font-size:12px;vertical-align:top">${l.wait_note}</td>
+      </tr>`)
+    .join('')
+
+  const adjustmentSection = adjustmentRows ? `
+    <div style="margin-top:24px;border-top:1px solid #f0f0f0;padding-top:20px">
+      <p style="margin:0 0 10px;color:#aaa;font-size:10px;letter-spacing:2.5px;text-transform:uppercase">Ground Wait Notes</p>
+      <table width="100%" cellpadding="0" cellspacing="0">${adjustmentRows}</table>
+    </div>` : ''
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
 <body style="margin:0;padding:0;background:#f2f2f2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif">
@@ -84,7 +104,8 @@ function buildFlightEmail(d) {
     </div>
 
     <table width="100%" cellpadding="0" cellspacing="0">
-      ${row('Pilot', d.pilot)}
+      ${row('Pilot in Command', d.pilot)}
+      ${d.copilot ? row('Co-Pilot', d.copilot) : ''}
       ${row('Date', formatDate(d.date))}
       ${row('Aircraft', 'C-GOPF &nbsp;·&nbsp; Bell 206B3')}
       ${row('Flight Time', formatMins(d.total_minutes))}
@@ -92,6 +113,7 @@ function buildFlightEmail(d) {
       ${row('Notes', d.notes)}
     </table>
 
+    ${adjustmentSection}
     ${paxTable(d.passengers)}
 
   </td></tr>
@@ -115,6 +137,7 @@ function buildItineraryEmail(d) {
 
     <table width="100%" cellpadding="0" cellspacing="0">
       ${row('Pilot in Command', d.pilot_in_command)}
+      ${d.copilot ? row('Co-Pilot', d.copilot) : ''}
       ${row('Date', formatDate(d.date))}
       ${row('Aircraft', 'C-GOPF &nbsp;·&nbsp; Bell 206B3')}
       ${row('Departure Time', d.departure_time)}

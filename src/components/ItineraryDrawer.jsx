@@ -18,6 +18,7 @@ function todayLocal() {
 
 const EMPTY = () => ({
   pilot_in_command:   '',
+  copilot:            '',
   date:               todayLocal(),
   daily_inspection:   false,
   weight_and_balance: false,
@@ -89,6 +90,7 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
       while (filled.length < 4) filled.push({ name: '', weight: '' })
       setForm({
         pilot_in_command:   editRecord.pilot_in_command   ?? '',
+        copilot:            editRecord.copilot            ?? '',
         date:               editRecord.date               ?? todayLocal(),
         daily_inspection:   editRecord.daily_inspection   ?? false,
         weight_and_balance: editRecord.weight_and_balance ?? false,
@@ -149,6 +151,7 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
       aircraft_type:       AIRCRAFT_TYPE,
       registration:        REGISTRATION,
       pilot_in_command:    form.pilot_in_command,
+      copilot:             form.copilot || null,
       date:                form.date,
       daily_inspection:    form.daily_inspection,
       weight_and_balance:  form.weight_and_balance,
@@ -246,6 +249,53 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
                 </div>
               </div>
             </div>
+
+            {/* Co-Pilot */}
+            {!form.copilot ? (
+              <button
+                type="button"
+                onClick={() => set('copilot', pilots.find(p => p.name !== form.pilot_in_command)?.name ?? pilots[0]?.name ?? '')}
+                className="w-full flex items-center justify-center gap-2 text-sm text-white/50 hover:text-white/80 bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.08] rounded-xl py-2.5 transition-all"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                Add Co-Pilot
+              </button>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-[11px] text-white/40">Co-Pilot</p>
+                  <button
+                    type="button"
+                    onClick={() => set('copilot', '')}
+                    className="text-[11px] text-white/30 hover:text-white/60 transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
+                <div className="relative">
+                  <select
+                    value={form.copilot}
+                    onChange={e => set('copilot', e.target.value)}
+                    className="input-field w-full pr-10 text-white"
+                    style={{ WebkitAppearance: 'none', appearance: 'none', background: 'rgba(255,255,255,0.06)' }}
+                  >
+                    {pilots.filter(p => p.name !== form.pilot_in_command).map(p => (
+                      <option key={p.id} value={p.name} style={{ background: '#111827', color: 'white' }}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/30">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+                      strokeLinecap="round" className="w-4 h-4">
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Date */}
             <div>

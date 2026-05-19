@@ -24,7 +24,7 @@ export function useEmployeeFlights(aircraftId) {
     if (!aircraftId) { setLoading(false); return }
     supabase
       .from('flights')
-      .select('id, date, pilot, total_minutes, legs')
+      .select('id, date, pilot, copilot, total_minutes, legs')
       .eq('aircraft_id', aircraftId)
       .order('date', { ascending: false })
       .then(({ data }) => {
@@ -37,7 +37,8 @@ export function useEmployeeFlights(aircraftId) {
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
 
   const pilots = ROSTER.pilots.map(p => {
-    const myFlights = flights.filter(f => f.pilot === p.name)
+    // Count flights where pilot is PIC or Co-Pilot
+    const myFlights = flights.filter(f => f.pilot === p.name || f.copilot === p.name)
     const totalMins = myFlights.reduce((s, f) => s + (f.total_minutes || 0), 0)
     const monthMins = myFlights.filter(f => f.date >= monthStart).reduce((s, f) => s + (f.total_minutes || 0), 0)
     const lastFlight = myFlights[0] ?? null
@@ -47,7 +48,10 @@ export function useEmployeeFlights(aircraftId) {
       monthHours: toHobbs(monthMins),
       flightCount: myFlights.length,
       lastFlightDate: lastFlight?.date ?? null,
-      recentFlights: myFlights.slice(0, 5),
+      recentFlights: myFlights.map(f => ({
+        ...f,
+        role: f.pilot === p.name ? 'PIC' : 'SIC',
+      })),
     }
   })
 

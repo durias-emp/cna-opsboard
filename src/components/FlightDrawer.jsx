@@ -16,6 +16,8 @@ const emptyLeg = () => ({
   takeoff_location: '',
   landing_time:     '',
   landing_location: '',
+  actual_minutes:   null,  // pilot-adjusted air time (always ≤ calculated)
+  wait_note:        '',    // reason for ground wait adjustment
 })
 
 const emptyPassenger = () => ({ name: '', weight: '' })
@@ -31,16 +33,24 @@ function toMinutes(t) {
   return h * 60 + m
 }
 
-function calcLegMinutes(leg) {
+
+function calcLegMinutesRaw(leg) {
   if (!leg.takeoff_time || !leg.landing_time) return 0
   const diff = toMinutes(leg.landing_time) - toMinutes(leg.takeoff_time)
-  return diff > 0 ? diff : 0 // return 0 on invalid — error shown in UI
+  return diff > 0 ? diff : 0
+}
+
+function calcLegMinutes(leg) {
+  // Use pilot-adjusted time if set, otherwise use raw calculated time
+  if (leg.actual_minutes != null) return leg.actual_minutes
+  return calcLegMinutesRaw(leg)
 }
 
 function legTimeError(leg) {
   if (!leg.takeoff_time || !leg.landing_time) return false
   return toMinutes(leg.landing_time) <= toMinutes(leg.takeoff_time)
 }
+
 
 function formatDuration(mins) {
   if (!mins) return null
@@ -219,6 +229,11 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
 
   const [date,          setDate]          = useState(today)
   const [pilot,         setPilot]         = useState('James McBride')
+  const [copilot,       setCopilot]       = useState('')
+  const [tachMode,      setTachMode]      = useState(false)
+  const [tachNew,       setTachNew]       = useState('')
+  const [tachModal,     setTachModal]     = useState(false)
+  const [legConfirm,    setLegConfirm]    = useState(null) // { index, calculatedMins }
   const [legs,          setLegs]          = useState([emptyLeg()])
   const [cycles,        setCycles]        = useState('1')
   const [passengers,    setPassengers]    = useState([emptyPassenger(), emptyPassenger()])
@@ -246,6 +261,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
     if (isEditing && editFlight) {
       setDate(editFlight.date ?? today)
       setPilot(editFlight.pilot ?? '')
+      setCopilot(editFlight.copilot ?? '')
       setLegs(
         editFlight.legs?.length
           ? editFlight.legs.map(l => ({
@@ -253,6 +269,8 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
               takeoff_location: l.takeoff_location ?? '',
               landing_time:     l.landing_time     ?? '',
               landing_location: l.landing_location ?? '',
+              actual_minutes:   l.actual_minutes   ?? null,
+              wait_note:        l.wait_note        ?? '',
             }))
           : [emptyLeg()]
       )
@@ -269,9 +287,12 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       setFuelEnd(editFlight.fuel_end_gal     != null ? String(editFlight.fuel_end_gal)   : '')
       setNotes(editFlight.notes ?? '')
       setPreflightDone(true)
+      setTachMode(false); setTachNew(''); setTachModal(false); setLegConfirm(null)
     } else {
       setDate(today)
       setPilot('James McBride')
+      setCopilot('')
+      setTachMode(false); setTachNew(''); setTachModal(false); setLegConfirm(null)
       setLegs([emptyLeg()])
       setPassengers([emptyPassenger()])
       setCycles('1')
@@ -306,7 +327,12 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
   const removePassenger = (i) => setPassengers(prev => prev.filter((_, idx) => idx !== i))
 
   const hasLegTimeError = legs.some(legTimeError)
-  const totalMinutes   = legs.reduce((s, l) => s + calcLegMinutes(l), 0)
+  const legMinutes     = legs.reduce((s, l) => s + calcLegMinutes(l), 0)
+  const tachDelta      = tachMode && tachNew !== ''
+    ? Math.max(0, ROUND(parseFloat(tachNew) - (selectedAircraft?.hobbs_current ?? 0), 1))
+    : 0
+  const tachMins       = Math.round(tachDelta * 60)
+  const totalMinutes   = tachMode ? tachMins : legMinutes
   const fuelStartNum   = parseFloat(fuelStart)
   const fuelEndNum     = parseFloat(fuelEnd)
   const fuelConsumed   = !isNaN(fuelStartNum) && !isNaN(fuelEndNum)
@@ -315,7 +341,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
     ? ROUND(fuelConsumed / (totalMinutes / 60)) : null
   const fuelFilled     = fuelStart !== '' && fuelEnd !== ''
     && !isNaN(fuelStartNum) && !isNaN(fuelEndNum) && fuelConsumed >= 0
-  const legsComplete   = legs.some(l => l.takeoff_time && l.landing_time)
+  const legsComplete   = tachMode ? tachDelta > 0 : legs.some(l => l.takeoff_time && l.landing_time)
 
   function buildPassengersPayload() {
     const list = passengers.filter(p => p.name.trim())
@@ -334,7 +360,8 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
     const sharedPayload = {
       date,
       pilot:             pilot || null,
-      legs,
+      copilot:           copilot || null,
+      legs:              tachMode ? [] : legs,
       total_minutes:     totalMinutes,
       cycles:            cyclesNum || null,
       fuel_start_gal:    isNaN(fuelStartNum) ? null : fuelStartNum,
@@ -366,8 +393,13 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       if (err) { setSaving(false); setError(err.message); return }
 
       const aircraftUpdates = {}
-      if (totalMinutes > 0) aircraftUpdates.hobbs_current  = ROUND((selectedAircraft.hobbs_current  ?? 0) + toHobbs(totalMinutes))
-      if (cyclesNum > 0)    aircraftUpdates.cycles_current = (selectedAircraft.cycles_current ?? 0) + cyclesNum
+      if (tachMode && tachNew !== '') {
+        // Set hobbs to the exact tach reading — this is ground truth
+        aircraftUpdates.hobbs_current = ROUND(parseFloat(tachNew), 1)
+      } else if (totalMinutes > 0) {
+        aircraftUpdates.hobbs_current = ROUND((selectedAircraft.hobbs_current ?? 0) + toHobbs(totalMinutes))
+      }
+      if (cyclesNum > 0) aircraftUpdates.cycles_current = (selectedAircraft.cycles_current ?? 0) + cyclesNum
       if (Object.keys(aircraftUpdates).length)
         await supabase.from('aircraft').update(aircraftUpdates).eq('id', selectedAircraft.id)
 
@@ -408,6 +440,101 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
         className={`drawer-overlay ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
+
+      {/* Tach Modal — centered overlay above drawer panel */}
+      {tachModal && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center px-6">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setTachModal(false)} />
+          <div className="relative w-full max-w-sm bg-navy-800 rounded-2xl border border-white/[0.10] p-6 shadow-2xl">
+            <h3 className="text-base font-bold text-white mb-1">Tachometer Reading</h3>
+            <p className="text-xs text-white/35 mb-5">Enter the new air time shown on the tach after landing</p>
+
+            {/* Current reading */}
+            <div className="flex items-center justify-between bg-white/[0.05] rounded-xl px-4 py-3 mb-3">
+              <span className="text-xs text-white/40">Current Air Time</span>
+              <span className="text-sm font-bold text-white/60">
+                {selectedAircraft?.hobbs_current?.toLocaleString()} h
+              </span>
+            </div>
+
+            {/* New reading input */}
+            <div className="mb-4">
+              <label className="text-xs text-white/40 block mb-1.5">New Air Time Reading</label>
+              <input
+                type="text"
+                placeholder={selectedAircraft?.hobbs_current?.toFixed(1)}
+                value={tachNew}
+                onChange={e => setTachNew(e.target.value)}
+                className="input-field w-full text-lg font-bold pr-10"
+                autoFocus
+              />
+            </div>
+
+            {/* Live delta */}
+            {tachNew !== '' && !isNaN(parseFloat(tachNew)) && parseFloat(tachNew) > (selectedAircraft?.hobbs_current ?? 0) && (
+              <div className="flex items-center justify-between bg-accent/10 border border-accent/20 rounded-xl px-4 py-3 mb-5">
+                <span className="text-xs text-accent/70">Flight Time</span>
+                <span className="text-sm font-bold text-accent">
+                  {ROUND(parseFloat(tachNew) - (selectedAircraft?.hobbs_current ?? 0), 1).toFixed(1)} h
+                </span>
+              </div>
+            )}
+            {tachNew !== '' && !isNaN(parseFloat(tachNew)) && parseFloat(tachNew) <= (selectedAircraft?.hobbs_current ?? 0) && (
+              <p className="text-xs text-red-400 text-center mb-4">
+                New reading must be greater than current air time
+              </p>
+            )}
+
+            {/* Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setTachModal(false); setTachNew('') }}
+                className="flex-1 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] active:bg-white/[0.10]
+                           border border-white/[0.08] text-sm text-white/50 hover:text-white/80 active:text-white/80
+                           transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={tachNew === '' || isNaN(parseFloat(tachNew)) || parseFloat(tachNew) <= (selectedAircraft?.hobbs_current ?? 0)}
+                onClick={() => { setTachMode(true); setTachModal(false) }}
+                className="flex-1 py-2.5 rounded-xl bg-white hover:bg-white/90 active:bg-white/80
+                           text-sm font-semibold text-navy-950
+                           disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leg Air Time Confirmation Modal */}
+      {legConfirm && (() => {
+        const calcMins = legConfirm.calculatedMins
+        return (
+          <LegConfirmModal
+            calculatedMins={calcMins}
+            calculatedLabel={toHobbs(calcMins).toFixed(1)}
+            currentMins={legConfirm.currentMins}
+            from={legConfirm.from}
+            to={legConfirm.to}
+            takeoffTime={legConfirm.takeoffTime}
+            landingTime={legConfirm.landingTime}
+            onCancel={() => setLegConfirm(null)}
+            onUseCalculated={() => {
+              updateLeg(legConfirm.index, 'actual_minutes', null)
+              updateLeg(legConfirm.index, 'wait_note', '')
+              setLegConfirm(null)
+            }}
+            onConfirm={(actualMins, note) => {
+              updateLeg(legConfirm.index, 'actual_minutes', actualMins)
+              updateLeg(legConfirm.index, 'wait_note', note)
+              setLegConfirm(null)
+            }}
+          />
+        )
+      })()}
 
       {/* Panel */}
       <div className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`} style={panelStyle}>
@@ -458,7 +585,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
 
           {/* Pilot */}
           <div>
-            <label className="label block mb-1.5">Pilot</label>
+            <label className="label block mb-1.5">Pilot in Command</label>
             <div className="relative">
               <select
                 value={pilot}
@@ -474,19 +601,97 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
             </div>
           </div>
 
-          {/* Legs */}
-          {legs.map((leg, i) => (
-            <LegCard
-              key={i}
-              index={i}
-              leg={leg}
-              showIndex={legs.length > 1}
-              onRemove={legs.length > 1 ? () => removeLeg(i) : null}
-              onChange={(f, v) => updateLeg(i, f, v)}
-              onAddLeg={i === legs.length - 1 ? addLeg : null}
-              hasTimeError={legTimeError(leg)}
-            />
-          ))}
+          {/* Co-Pilot */}
+          {copilot === '' ? (
+            <button
+              type="button"
+              onClick={() => setCopilot(PILOTS.find(p => p !== pilot) ?? '')}
+              className="w-full flex items-center justify-center gap-2 text-sm text-white/50 hover:text-white/80 bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.08] rounded-xl py-2.5 transition-all"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Add Co-Pilot
+            </button>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="label">Co-Pilot</label>
+                <button
+                  type="button"
+                  onClick={() => setCopilot('')}
+                  className="text-[11px] text-white/30 hover:text-white/60 transition-colors"
+                >
+                  Remove
+                </button>
+              </div>
+              <div className="relative">
+                <select
+                  value={copilot}
+                  onChange={e => setCopilot(e.target.value)}
+                  className="input-field w-full appearance-none cursor-pointer pr-9"
+                >
+                  {PILOTS.filter(p => p !== pilot).map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+                  strokeLinecap="round" className="w-4 h-4 text-white/30 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </div>
+            </div>
+          )}
+
+          {/* Legs or Tach */}
+          {tachMode ? (
+            <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/[0.06] space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">Tachometer</p>
+                <button
+                  type="button"
+                  onClick={() => { setTachMode(false); setTachNew('') }}
+                  className="text-[11px] text-white/30 hover:text-white/60 transition-colors"
+                >
+                  Use legs instead
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="text-center flex-1">
+                  <p className="text-[10px] text-white/30 uppercase tracking-wide mb-1">Before</p>
+                  <p className="text-lg font-bold text-white/50">{selectedAircraft?.hobbs_current?.toLocaleString()}</p>
+                </div>
+                <svg viewBox="0 0 24 8" className="w-8 h-3 text-white/20 flex-shrink-0" fill="none">
+                  <path d="M0 4h20M16 1l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <div className="text-center flex-1">
+                  <p className="text-[10px] text-white/30 uppercase tracking-wide mb-1">After</p>
+                  <p className="text-lg font-bold text-white">{parseFloat(tachNew).toLocaleString()}</p>
+                </div>
+                <div className="text-center flex-1">
+                  <p className="text-[10px] text-white/30 uppercase tracking-wide mb-1">Flight Time</p>
+                  <p className="text-lg font-bold text-accent">{tachDelta.toFixed(1)}h</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            legs.map((leg, i) => (
+              <LegCard
+                key={i}
+                index={i}
+                leg={leg}
+                showIndex={legs.length > 1}
+                onRemove={legs.length > 1 ? () => removeLeg(i) : null}
+                onChange={(f, v) => updateLeg(i, f, v)}
+                onAddLeg={i === legs.length - 1 ? addLeg : null}
+                onUseTach={i === legs.length - 1 ? () => setTachModal(true) : null}
+                onLegComplete={(idx, calcMins, from, to, takeoffTime, landingTime, currentMins) =>
+                  setLegConfirm({ index: idx, calculatedMins: calcMins, from, to, takeoffTime, landingTime, currentMins: currentMins ?? null })
+                }
+                hasTimeError={legTimeError(leg)}
+              />
+            ))
+          )}
 
           {/* Cycles */}
           <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/[0.06]">
@@ -665,18 +870,32 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
 
 // ── Leg card ───────────────────────────────────────────────────────────────────
 
-function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, hasTimeError }) {
-  const mins = calcLegMinutes(leg)
+function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTach, onLegComplete, hasTimeError }) {
+  const mins    = calcLegMinutes(leg)
+  const rawMins = calcLegMinutesRaw(leg)
+
+  function handleToBlur(e) {
+    // Fire confirmation popup once the "To" ICAO is filled and we have a valid duration
+    const toValue = e.target.value
+    if (toValue && rawMins > 0 && leg.actual_minutes === null) {
+      onLegComplete?.(index, rawMins, leg.takeoff_location, toValue, leg.takeoff_time, leg.landing_time)
+    }
+  }
 
   return (
     <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/[0.06] space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">
-          {showIndex ? `Leg ${index + 1}` : 'Flight leg'}
+          {showIndex ? `Leg ${index + 1}` : 'Air Time'}
         </p>
         <div className="flex items-center gap-3">
           {mins > 0 && (
-            <span className="text-xs font-medium text-white/50">{formatDuration(mins)}</span>
+            <button
+              onClick={() => onLegComplete?.(index, rawMins, leg.takeoff_location, leg.landing_location, leg.takeoff_time, leg.landing_time, leg.actual_minutes)}
+              className="text-xs font-medium text-white/50 active:text-white/80 transition-colors select-none"
+            >
+              {formatDuration(mins)}
+            </button>
           )}
           {onRemove && (
             <button onClick={onRemove}
@@ -722,13 +941,14 @@ function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, hasTimeE
         <div className="flex-1 min-w-0">
           <label className="label block mb-1.5">Landing</label>
           <input type="time" value={leg.landing_time}
-            onChange={e => onChange('landing_time', e.target.value)}
+            onChange={e => { onChange('landing_time', e.target.value); onChange('actual_minutes', null) }}
             className="input-field w-full" />
         </div>
         <div className="w-[76px] flex-shrink-0">
           <label className="label block mb-1.5">To</label>
           <input type="text" placeholder="ICAO" value={leg.landing_location}
             onChange={e => onChange('landing_location', e.target.value.toUpperCase())}
+            onBlur={handleToBlur}
             maxLength={4} className="input-field w-full uppercase tracking-widest text-center px-2" />
         </div>
       </div>
@@ -739,23 +959,204 @@ function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, hasTimeE
         </p>
       )}
 
-      {onAddLeg && (
-        <div className="flex justify-center pt-1">
-          <button
-            onClick={onAddLeg}
-            className="flex items-center gap-1.5 px-5 py-2.5 rounded-2xl
-                       bg-white/[0.06] border border-white/[0.08]
-                       text-xs font-medium text-white/40
-                       active:bg-white/10 transition-colors select-none"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
-              strokeLinecap="round" className="w-3 h-3">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            Add Leg
-          </button>
+      {/* Adjustment summary card */}
+      {!hasTimeError && leg.actual_minutes != null && toHobbs(leg.actual_minutes) !== toHobbs(rawMins) && (
+        <button
+          onClick={() => onLegComplete?.(index, rawMins, leg.takeoff_location, leg.landing_location, leg.takeoff_time, leg.landing_time, leg.actual_minutes)}
+          className="w-full text-left rounded-xl border border-white/[0.08] bg-white/[0.04]
+                     active:bg-white/[0.07] transition-colors px-3.5 py-3 space-y-2 select-none"
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] text-white/30 uppercase tracking-widest">Air Time Adjustment</p>
+            <div className="flex items-center gap-2 tabular-nums">
+              <span className="text-[11px] text-white/30">{toHobbs(rawMins).toFixed(1)}h</span>
+              <svg viewBox="0 0 14 8" className="w-3 h-2 text-white/20 flex-shrink-0" fill="none">
+                <path d="M0 4h10M7 1.5l3 2.5-3 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span className="text-sm font-bold text-white">{toHobbs(leg.actual_minutes).toFixed(1)}h</span>
+            </div>
+          </div>
+          {leg.wait_note ? (
+            <p className="text-[11px] text-white/40 leading-snug border-t border-white/[0.05] pt-2">
+              {leg.wait_note}
+            </p>
+          ) : null}
+        </button>
+      )}
+
+      {(onAddLeg || onUseTach) && (
+        <div className="flex gap-2 pt-1">
+          {onAddLeg && (
+            <button
+              onClick={onAddLeg}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl
+                         bg-white/[0.06] hover:bg-white/[0.10] active:bg-white/[0.10]
+                         border border-white/[0.08]
+                         text-xs font-medium text-white/50 hover:text-white/80 active:text-white/80
+                         transition-all select-none"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
+                strokeLinecap="round" className="w-3 h-3">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Add Leg
+            </button>
+          )}
+          {onUseTach && (
+            <button
+              onClick={onUseTach}
+              disabled={rawMins > 0}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl
+                         bg-white/[0.06] hover:bg-white/[0.10] active:bg-white/[0.10]
+                         border border-white/[0.08]
+                         text-xs font-medium text-white/50 hover:text-white/80 active:text-white/80
+                         transition-all select-none
+                         disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="w-3 h-3">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 3" />
+              </svg>
+              Use Tach
+            </button>
+          )}
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Leg Air Time Confirmation Modal ───────────────────────────────────────────
+
+function LegConfirmModal({ calculatedMins, calculatedLabel, currentMins, from, to, takeoffTime, landingTime, onCancel, onUseCalculated, onConfirm }) {
+  // Pre-fill with the previously adjusted value if re-opening, otherwise use calculated
+  const [actualInput, setActualInput] = useState(
+    currentMins != null ? toHobbs(currentMins).toFixed(1) : calculatedLabel
+  )
+  const [note,        setNote]        = useState('')
+
+  // Hobbs decimal: 0.1 = 6 minutes, round to nearest 6-min tick
+  const actualFloat = parseFloat(actualInput)
+  const actualMins  = !isNaN(actualFloat) ? Math.round(actualFloat * 10) * 6 : NaN
+  const isValid     = !isNaN(actualMins)
+  const isReduced   = isValid && toHobbs(actualMins) < toHobbs(calculatedMins)
+  const isInvalid   = isValid && toHobbs(actualMins) > toHobbs(calculatedMins)
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center px-5">
+      <div className="absolute inset-0 bg-black/70" onClick={onCancel} />
+      <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.10] shadow-2xl overflow-hidden"
+           style={{ background: '#0e0e10' }}>
+
+        {/* ── Route card ── */}
+        <div className="px-6 pt-6 pb-5" style={{ background: 'linear-gradient(160deg,#17171a,#111113)' }}>
+          {/* ICAO + times row */}
+          <div className="flex items-center justify-between mb-3">
+            {/* Origin */}
+            <div className="text-center w-16">
+              <p className="text-2xl font-bold text-white tracking-widest leading-none">
+                {from || '—'}
+              </p>
+              <p className="text-[11px] text-white/35 mt-1.5 font-mono">{takeoffTime || ''}</p>
+            </div>
+
+            {/* Flight path */}
+            <div className="flex-1 flex items-center gap-1.5 px-2">
+              <div className="flex-1 border-t border-dashed border-white/[0.12]" />
+              <img src="/helicopter.png" alt=""
+                className="w-4 h-4 object-contain opacity-30 flex-shrink-0"
+                style={{ filter: 'brightness(0) invert(1)' }} />
+              <div className="flex-1 border-t border-dashed border-white/[0.12]" />
+            </div>
+
+            {/* Destination */}
+            <div className="text-center w-16">
+              <p className="text-2xl font-bold text-white tracking-widest leading-none">
+                {to || '—'}
+              </p>
+              <p className="text-[11px] text-white/35 mt-1.5 font-mono">{landingTime || ''}</p>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-white/[0.07] my-4" />
+
+          {/* Calculated air time pill */}
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-white/30 uppercase tracking-widest">Calculated Air Time</span>
+            <span className="text-sm font-bold text-white/50 tabular-nums">{calculatedLabel}h</span>
+          </div>
+        </div>
+
+        {/* ── Body ── */}
+        <div className="px-6 pt-5 pb-6 space-y-4">
+          <div>
+            <p className="text-sm font-bold text-white mb-0.5">Confirm Air Time</p>
+            <p className="text-xs text-white/35">
+              Adjust down if the helicopter waited on the ground
+            </p>
+          </div>
+
+          {/* Actual air time input */}
+          <div>
+            <label className="text-xs text-white/40 block mb-1.5">Actual Air Time</label>
+            <div className="relative">
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder={calculatedLabel}
+                value={actualInput}
+                onChange={e => setActualInput(e.target.value)}
+                className="input-field w-full pr-8 text-lg font-bold tabular-nums"
+                autoFocus
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/30 pointer-events-none">h</span>
+            </div>
+
+            {isInvalid && (
+              <p className="text-xs text-red-400 mt-1.5">Cannot exceed calculated time ({calculatedLabel}h)</p>
+            )}
+            {isReduced && (
+              <p className="text-xs text-white/30 mt-1.5">
+                Ground wait: <span className="text-accent/70 font-semibold">{toHobbs(calculatedMins - actualMins).toFixed(1)}h</span>
+              </p>
+            )}
+          </div>
+
+          {/* Note */}
+          <div>
+            <label className="text-xs text-white/40 block mb-1.5">Note</label>
+            <input
+              type="text"
+              placeholder="e.g. Waited 12 min on ground at Costa del Sol"
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              className="input-field w-full text-sm"
+            />
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-3 pt-1">
+            <button
+              onClick={onUseCalculated}
+              className="flex-1 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] active:bg-white/[0.10]
+                         border border-white/[0.08] text-sm text-white/50 hover:text-white/80 active:text-white/80
+                         transition-all"
+            >
+              Use Calculated
+            </button>
+            <button
+              disabled={isInvalid || !isValid}
+              onClick={() => onConfirm(actualMins, note.trim())}
+              className="flex-1 py-2.5 rounded-xl bg-white hover:bg-white/90 active:bg-white/80
+                         text-sm font-semibold text-navy-950
+                         disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
