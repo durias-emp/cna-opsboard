@@ -174,7 +174,7 @@ export default function ComplianceDrawer({ open, onClose, item, hobbsCurrent, cy
 
             <div>
               <p className="text-[11px] text-white/40 mb-1.5">
-                Hobbs at Compliance
+                Air Time at Compliance
                 {errors.hours && <span className="ml-1.5 text-white/50">— {errors.hours}</span>}
               </p>
               <div className="relative">

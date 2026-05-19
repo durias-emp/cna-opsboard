@@ -48,7 +48,7 @@ export default function MaintenanceDrawer({ open, onClose, onSaved, defaultType 
   async function handleSave() {
     if (!selectedAircraft) return
     const hobbsNum = parseFloat(hobbs)
-    if (!date || isNaN(hobbsNum)) { setError('Date and Hobbs are required.'); return }
+    if (!date || isNaN(hobbsNum)) { setError('Date and Air Time are required.'); return }
     if (currentType.hasQuarts && (!quarts || isNaN(parseFloat(quarts)))) {
       setError('Please enter the quantity in quarts.'); return
     }
@@ -101,7 +101,7 @@ export default function MaintenanceDrawer({ open, onClose, onSaved, defaultType 
           <div>
             <h2 className="text-lg font-bold text-white">Log Service</h2>
             <p className="text-xs text-white/35 mt-0.5">
-              {selectedAircraft?.tail_number} · Hobbs {selectedAircraft?.hobbs_current?.toLocaleString()}h
+              {selectedAircraft?.tail_number} · Air Time {selectedAircraft?.hobbs_current?.toLocaleString()}h
             </p>
           </div>
           <button
@@ -144,7 +144,7 @@ export default function MaintenanceDrawer({ open, onClose, onSaved, defaultType 
 
           {/* Hobbs */}
           <div>
-            <label className="label block mb-1.5">Hobbs at service</label>
+            <label className="label block mb-1.5">Air Time at service</label>
             <div className="relative">
               <input type="number" value={hobbs} onChange={e => setHobbs(e.target.value)}
                 step="0.1" min="0"

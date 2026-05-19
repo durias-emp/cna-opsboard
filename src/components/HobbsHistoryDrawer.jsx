@@ -80,9 +80,9 @@ export default function HobbsHistoryDrawer({ open, onClose, flights, currentHobb
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 flex-shrink-0">
           <div>
-            <h2 className="text-lg font-bold text-white">Hobbs History</h2>
+            <h2 className="text-lg font-bold text-white">Air Time History</h2>
             <p className="text-xs text-white/35 mt-0.5">
-              {tailNumber} · Current {currentHobbs?.toLocaleString()}h
+              {tailNumber} · Air Time {currentHobbs?.toLocaleString()}h
             </p>
           </div>
           <button

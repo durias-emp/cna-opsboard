@@ -272,7 +272,7 @@ export default function Dashboard() {
             onClick={() => setHobbsHistoryOpen(true)}
           >
             <div>
-              <p className="label mb-1">Current Hobbs</p>
+              <p className="label mb-1">Air Time</p>
               <p className="text-4xl font-bold text-white tracking-tight">
                 {hobbs.toLocaleString()}
                 <span className="text-base text-white/40 font-normal ml-1.5">h</span>
