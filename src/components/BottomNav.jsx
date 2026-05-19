@@ -17,7 +17,7 @@ const TABS = [
     to: '/flights',
     label: 'Flights',
     icon: (
-      <img src="/helicopter.png" alt="helicopter" className="w-7 h-7 object-contain"
+      <img src="/helicopter.png" alt="helicopter" className="w-5 h-5 object-contain"
         style={{ filter: 'brightness(0) invert(1)' }} />
     ),
   },
