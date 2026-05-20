@@ -70,7 +70,7 @@ function buildFlightEmail(d) {
 
   // Build route string from correct field names
   const route = legs.length > 0
-    ? legs.map(l => [l.takeoff_location, l.landing_location].filter(Boolean).join(' → ')).join(' · ')
+    ? legs.map(l => [l.takeoff_location, l.landing_location].filter(Boolean).join(' → ')).filter(Boolean).join(' · ') || '—'
     : '—'
 
   // Build per-leg adjustment notes (only when air time was manually adjusted)
