@@ -1,4 +1,5 @@
-const RECIPIENTS = ['info@cielonorteaviacion.com', 'james@cielonorteaviacion.com', 'helicorp@truenorthairways.ca']
+const RECIPIENTS_FLIGHT_LOG  = ['info@cielonorteaviacion.com', 'james@cielonorteaviacion.com']
+const RECIPIENTS_ITINERARY   = ['info@cielonorteaviacion.com', 'james@cielonorteaviacion.com', 'helicorp@truenorthairways.ca', 'javier@cielonorteaviacion.com', 'alonia@cielonorteaviacion.com']
 const FROM = 'CNA OpsBoard <ops@cielonorteaviacion.com>'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -161,14 +162,14 @@ function buildItineraryEmail(d) {
 
 // ── Send via Resend ────────────────────────────────────────────────────────────
 
-async function sendEmail(subject, html) {
+async function sendEmail(subject, html, recipients) {
   const resp = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ from: FROM, to: RECIPIENTS, subject, html }),
+    body: JSON.stringify({ from: FROM, to: recipients, subject, html }),
   })
   if (!resp.ok) {
     const text = await resp.text()
@@ -226,9 +227,10 @@ export default async function handler(req, res) {
     : `Flight Log — ${data.pilot ?? ''} · ${data.date ?? ''}`
 
   const html = isItinerary ? buildItineraryEmail(data) : buildFlightEmail(data)
+  const recipients = isItinerary ? RECIPIENTS_ITINERARY : RECIPIENTS_FLIGHT_LOG
 
   try {
-    await sendEmail(subject, html)
+    await sendEmail(subject, html, recipients)
     console.log(`[notify] Sent ${type} email for ${data.date}`)
     return res.status(200).json({ ok: true })
   } catch (err) {
