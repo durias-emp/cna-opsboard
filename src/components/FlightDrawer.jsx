@@ -11,11 +11,13 @@ const toHobbs = (minutes) => Math.floor(minutes / 6) / 10
 
 const PILOTS = ['James McBride', 'Jay McMackin', 'Daniel Sandoval']
 
+const ICAO_PRESETS = ['SALA', 'MSSS', 'MSLP', 'MGGT', 'MHTG']
+
 const emptyLeg = () => ({
   takeoff_time:     '',
-  takeoff_location: '',
+  takeoff_location: 'SALA',
   landing_time:     '',
-  landing_location: '',
+  landing_location: 'SALA',
   actual_minutes:   null,  // pilot-adjusted air time (always ≤ calculated)
   wait_note:        '',    // reason for ground wait adjustment
 })
@@ -741,8 +743,8 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
             </div>
 
             {passengers.reduce((s, p) => s + (parseFloat(p.weight) || 0), 0) > 650 && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
-                <p className="text-xs text-red-400 font-medium text-center">Total weight exceeds 650 lb limit</p>
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
+                <p className="text-xs text-amber-400 font-medium text-center">⚠️ Total weight exceeds 650 lb — verify W&B</p>
               </div>
             )}
 
@@ -868,15 +870,132 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
   )
 }
 
+// ── ICAO picker field ──────────────────────────────────────────────────────────
+
+function IcaoField({ value, onChange, onConfirm }) {
+  const [open,      setOpen]      = useState(false)
+  const [custom,    setCustom]    = useState(false)
+  const [customVal, setCustomVal] = useState('')
+  const ref       = useRef(null)
+  const inputRef  = useRef(null)
+
+  useEffect(() => {
+    if (custom && inputRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 50)
+    }
+  }, [custom])
+
+  useEffect(() => {
+    if (!open) return
+    function outside(e) {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false); setCustom(false)
+      }
+    }
+    document.addEventListener('mousedown', outside)
+    document.addEventListener('touchstart', outside)
+    return () => {
+      document.removeEventListener('mousedown', outside)
+      document.removeEventListener('touchstart', outside)
+    }
+  }, [open])
+
+  function select(v) {
+    onChange(v)
+    onConfirm?.(v)
+    setOpen(false); setCustom(false); setCustomVal('')
+  }
+
+  return (
+    <div className="relative flex flex-col flex-1" ref={ref}>
+      <button
+        type="button"
+        onClick={() => { setOpen(o => !o); setCustom(false) }}
+        className="input-field w-full flex-1 text-sm font-bold uppercase tracking-widest text-center px-1"
+      >
+        {value || <span className="text-white/30 text-xs font-normal normal-case tracking-normal">ICAO</span>}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1.5 z-50 rounded-2xl border border-white/[0.10]
+                        shadow-2xl p-2.5 w-[164px]"
+             style={{ background: '#1c1c1e' }}>
+          {!custom ? (
+            <>
+              <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+                {ICAO_PRESETS.map(icao => (
+                  <button
+                    key={icao}
+                    type="button"
+                    onMouseDown={e => { e.preventDefault(); select(icao) }}
+                    className={`py-2 rounded-xl text-xs font-bold tracking-widest transition-colors select-none
+                      ${value === icao
+                        ? 'bg-white text-black'
+                        : 'bg-white/[0.07] text-white/70 active:bg-white/[0.14]'
+                      }`}
+                  >
+                    {icao}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCustom(true)
+                  setCustomVal(ICAO_PRESETS.includes(value) ? '' : (value || ''))
+                }}
+                className="w-full py-2 rounded-xl text-xs text-white/40 bg-white/[0.04]
+                           active:bg-white/[0.08] transition-colors select-none"
+              >
+                Custom
+              </button>
+            </>
+          ) : (
+            <div className="space-y-2">
+              <input
+                ref={inputRef}
+                type="text"
+                maxLength={4}
+                placeholder="ICAO"
+                value={customVal}
+                onChange={e => setCustomVal(e.target.value.toUpperCase())}
+                onKeyDown={e => { if (e.key === 'Enter' && customVal) select(customVal) }}
+                className="input-field w-full text-center uppercase tracking-widest text-sm font-bold"
+              />
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onMouseDown={e => { e.preventDefault(); setCustom(false) }}
+                  className="flex-1 py-2 rounded-xl text-xs text-white/40 bg-white/[0.06]
+                             active:bg-white/[0.10] transition-colors select-none"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={e => { e.preventDefault(); if (customVal) select(customVal) }}
+                  disabled={!customVal}
+                  className="flex-1 py-2 rounded-xl text-xs font-semibold bg-white text-black
+                             disabled:opacity-30 select-none"
+                >
+                  Set
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Leg card ───────────────────────────────────────────────────────────────────
 
 function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTach, onLegComplete, hasTimeError }) {
   const mins    = calcLegMinutes(leg)
   const rawMins = calcLegMinutesRaw(leg)
 
-  function handleToBlur(e) {
-    // Fire confirmation popup once the "To" ICAO is filled and we have a valid duration
-    const toValue = e.target.value
+  function handleToConfirm(toValue) {
     if (toValue && rawMins > 0 && leg.actual_minutes === null) {
       onLegComplete?.(index, rawMins, leg.takeoff_location, toValue, leg.takeoff_time, leg.landing_time)
     }
@@ -890,12 +1009,9 @@ function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTac
         </p>
         <div className="flex items-center gap-3">
           {mins > 0 && (
-            <button
-              onClick={() => onLegComplete?.(index, rawMins, leg.takeoff_location, leg.landing_location, leg.takeoff_time, leg.landing_time, leg.actual_minutes)}
-              className="text-xs font-medium text-white/50 active:text-white/80 transition-colors select-none"
-            >
+            <span className="text-xs font-semibold text-white/50 tabular-nums">
               {formatDuration(mins)}
-            </button>
+            </span>
           )}
           {onRemove && (
             <button onClick={onRemove}
@@ -911,18 +1027,19 @@ function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTac
       </div>
 
       {/* Takeoff row: time gets flexible width, ICAO fixed 76px */}
-      <div className="flex gap-2">
-        <div className="flex-1 min-w-0">
+      <div className="flex gap-2 items-stretch">
+        <div className="flex-1 min-w-0 flex flex-col">
           <label className="label block mb-1.5">Takeoff</label>
           <input type="time" value={leg.takeoff_time}
             onChange={e => onChange('takeoff_time', e.target.value)}
-            className="input-field w-full" />
+            className="input-field w-full flex-1" />
         </div>
-        <div className="w-[76px] flex-shrink-0">
+        <div className="w-[76px] flex-shrink-0 flex flex-col">
           <label className="label block mb-1.5">From</label>
-          <input type="text" placeholder="ICAO" value={leg.takeoff_location}
-            onChange={e => onChange('takeoff_location', e.target.value.toUpperCase())}
-            maxLength={4} className="input-field w-full uppercase tracking-widest text-center px-2" />
+          <IcaoField
+            value={leg.takeoff_location}
+            onChange={v => onChange('takeoff_location', v)}
+          />
         </div>
       </div>
 
@@ -937,19 +1054,20 @@ function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTac
       </div>
 
       {/* Landing row: same proportions */}
-      <div className="flex gap-2">
-        <div className="flex-1 min-w-0">
+      <div className="flex gap-2 items-stretch">
+        <div className="flex-1 min-w-0 flex flex-col">
           <label className="label block mb-1.5">Landing</label>
           <input type="time" value={leg.landing_time}
             onChange={e => { onChange('landing_time', e.target.value); onChange('actual_minutes', null) }}
-            className="input-field w-full" />
+            className="input-field w-full flex-1" />
         </div>
-        <div className="w-[76px] flex-shrink-0">
+        <div className="w-[76px] flex-shrink-0 flex flex-col">
           <label className="label block mb-1.5">To</label>
-          <input type="text" placeholder="ICAO" value={leg.landing_location}
-            onChange={e => onChange('landing_location', e.target.value.toUpperCase())}
-            onBlur={handleToBlur}
-            maxLength={4} className="input-field w-full uppercase tracking-widest text-center px-2" />
+          <IcaoField
+            value={leg.landing_location}
+            onChange={v => onChange('landing_location', v)}
+            onConfirm={handleToConfirm}
+          />
         </div>
       </div>
 
@@ -959,30 +1077,41 @@ function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTac
         </p>
       )}
 
-      {/* Adjustment summary card */}
-      {!hasTimeError && leg.actual_minutes != null && toHobbs(leg.actual_minutes) !== toHobbs(rawMins) && (
-        <button
-          onClick={() => onLegComplete?.(index, rawMins, leg.takeoff_location, leg.landing_location, leg.takeoff_time, leg.landing_time, leg.actual_minutes)}
-          className="w-full text-left rounded-xl border border-white/[0.08] bg-white/[0.04]
-                     active:bg-white/[0.07] transition-colors px-3.5 py-3 space-y-2 select-none"
-        >
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] text-white/30 uppercase tracking-widest">Air Time Adjustment</p>
-            <div className="flex items-center gap-2 tabular-nums">
-              <span className="text-[11px] text-white/30">{toHobbs(rawMins).toFixed(1)}h</span>
-              <svg viewBox="0 0 14 8" className="w-3 h-2 text-white/20 flex-shrink-0" fill="none">
-                <path d="M0 4h10M7 1.5l3 2.5-3 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span className="text-sm font-bold text-white">{toHobbs(leg.actual_minutes).toFixed(1)}h</span>
+      {/* Air time card — always visible once times are filled */}
+      {!hasTimeError && rawMins > 0 && (() => {
+        const isAdjusted = leg.actual_minutes != null && toHobbs(leg.actual_minutes) !== toHobbs(rawMins)
+        return (
+          <button
+            onClick={() => onLegComplete?.(index, rawMins, leg.takeoff_location, leg.landing_location, leg.takeoff_time, leg.landing_time, leg.actual_minutes)}
+            className="w-full text-left rounded-xl border border-white/[0.08] bg-white/[0.04]
+                       active:bg-white/[0.07] transition-colors px-3.5 py-3 select-none"
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] text-white/30 uppercase tracking-widest">
+                {isAdjusted ? 'Air Time Adjustment' : 'Adjust Air Time'}
+              </p>
+              <div className="flex items-center gap-2 tabular-nums">
+                {isAdjusted ? (
+                  <>
+                    <span className="text-[11px] text-white/30">{toHobbs(rawMins).toFixed(1)}h</span>
+                    <svg viewBox="0 0 14 8" className="w-3 h-2 text-white/20 flex-shrink-0" fill="none">
+                      <path d="M0 4h10M7 1.5l3 2.5-3 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span className="text-sm font-bold text-white">{toHobbs(leg.actual_minutes).toFixed(1)}h</span>
+                  </>
+                ) : (
+                  <span className="text-sm font-bold text-white">{toHobbs(rawMins).toFixed(1)}h</span>
+                )}
+              </div>
             </div>
-          </div>
-          {leg.wait_note ? (
-            <p className="text-[11px] text-white/40 leading-snug border-t border-white/[0.05] pt-2">
-              {leg.wait_note}
-            </p>
-          ) : null}
-        </button>
-      )}
+            {isAdjusted && leg.wait_note ? (
+              <p className="text-[11px] text-white/40 leading-snug border-t border-white/[0.05] mt-2 pt-2">
+                {leg.wait_note}
+              </p>
+            ) : null}
+          </button>
+        )
+      })()}
 
       {(onAddLeg || onUseTach) && (
         <div className="flex gap-2 pt-1">

@@ -48,8 +48,10 @@ function initials(name) {
 // ── Profile Modal ──────────────────────────────────────────────────────────────
 
 function ProfileModal({ person, isPilot, onClose, onSave }) {
-  const [editing, setEditing]   = useState(false)
-  const [draft,   setDraft]     = useState(person)
+  const [editing, setEditing] = useState(false)
+  const [draft,   setDraft]   = useState(person)
+  const [saving,  setSaving]  = useState(false)
+  const [error,   setError]   = useState(null)
 
   function set(field, val) { setDraft(d => ({ ...d, [field]: val })) }
 
@@ -68,14 +70,23 @@ function ProfileModal({ person, isPilot, onClose, onSave }) {
     setDraft(d => ({ ...d, licenses: d.licenses.filter((_, idx) => idx !== i) }))
   }
 
-  function handleSave() {
-    onSave(draft)
-    setEditing(false)
+  async function handleSave() {
+    setSaving(true)
+    setError(null)
+    try {
+      await onSave(draft)
+      setEditing(false)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   function handleCancel() {
     setDraft(person)
     setEditing(false)
+    setError(null)
   }
 
   const age = calcAge(draft.dob)
@@ -140,10 +151,15 @@ function ProfileModal({ person, isPilot, onClose, onSave }) {
                 </button>
                 <button
                   onClick={handleSave}
+                  disabled={saving}
                   className="text-[11px] font-semibold text-black bg-white hover:bg-white/90
-                             rounded-lg px-3 py-1.5 transition-colors"
+                             rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50
+                             flex items-center gap-1.5"
                 >
-                  Save
+                  {saving && (
+                    <span className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                  )}
+                  {saving ? 'Saving…' : 'Save'}
                 </button>
               </>
             )}
@@ -152,6 +168,9 @@ function ProfileModal({ person, isPilot, onClose, onSave }) {
 
         {/* Body */}
         <div className="px-6 py-5 space-y-5">
+          {error && (
+            <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">{error}</p>
+          )}
 
           {/* General info */}
           <div className="space-y-3">
@@ -403,23 +422,28 @@ function MemberCard({ member, onProfileClick, onCall }) {
 
 export default function Employees() {
   const { selectedAircraft } = useAircraft()
-  const { pilots, mechanics, operations, loading } = useEmployeeFlights(selectedAircraft?.id)
+  const { pilots, mechanics, operations, loading, dbProfiles, saveProfile } = useEmployeeFlights(selectedAircraft?.id)
 
-  // Profile overrides persisted in localStorage
-  const [overrides, setOverrides] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('cna_team_profiles') || '{}') }
-    catch { return {} }
-  })
-  const [profile, setProfile] = useState(null) // { person, isPilot }
+  const [profile,    setProfile]    = useState(null)  // { person, isPilot }
+  const [saveError,  setSaveError]  = useState(null)
 
   function getProfile(person) {
-    return { ...person, ...(overrides[person.name] || {}) }
+    const db = dbProfiles[person.name] || {}
+    // DB fields override ROSTER defaults; skip null/undefined DB values
+    return {
+      ...person,
+      ...Object.fromEntries(Object.entries(db).filter(([, v]) => v != null)),
+    }
   }
 
-  function handleSave(updated) {
-    const next = { ...overrides, [updated.name]: updated }
-    setOverrides(next)
-    localStorage.setItem('cna_team_profiles', JSON.stringify(next))
+  async function handleSave(updated) {
+    setSaveError(null)
+    try {
+      await saveProfile(updated)
+      setProfile(p => ({ ...p, person: updated }))
+    } catch (err) {
+      setSaveError(err.message)
+    }
   }
 
   function openProfile(person, isPilot) {

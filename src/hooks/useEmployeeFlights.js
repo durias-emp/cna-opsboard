@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
 const ROSTER = {
@@ -45,22 +45,54 @@ const ROSTER = {
 
 const toHobbs = mins => Math.floor(mins / 6) / 10
 
+// Convert DB row (snake_case) → app shape (camelCase)
+function dbToProfile(row) {
+  return {
+    dob:         row.dob         ?? null,
+    startDate:   row.start_date  ?? null,
+    phone:       row.phone       ?? null,
+    licenses:    row.licenses    ?? null,
+    lastMedical: row.last_medical ?? null,
+    role:        row.role        ?? null,
+  }
+}
+
 export function useEmployeeFlights(aircraftId) {
-  const [flights, setFlights] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [flights,    setFlights]    = useState([])
+  const [dbProfiles, setDbProfiles] = useState({}) // keyed by name
+  const [loading,    setLoading]    = useState(true)
 
   useEffect(() => {
-    if (!aircraftId) { setLoading(false); return }
-    supabase
-      .from('flights')
-      .select('id, date, pilot, copilot, total_minutes, legs')
-      .eq('aircraft_id', aircraftId)
-      .order('date', { ascending: false })
-      .then(({ data }) => {
-        setFlights(data ?? [])
-        setLoading(false)
-      })
+    const flightsQ = aircraftId
+      ? supabase.from('flights').select('id, date, pilot, copilot, total_minutes, legs').eq('aircraft_id', aircraftId).order('date', { ascending: false })
+      : Promise.resolve({ data: [] })
+
+    const profilesQ = supabase.from('team_profiles').select('*')
+
+    Promise.all([flightsQ, profilesQ]).then(([flightsRes, profilesRes]) => {
+      setFlights(flightsRes.data ?? [])
+      const map = {}
+      ;(profilesRes.data ?? []).forEach(row => { map[row.name] = dbToProfile(row) })
+      setDbProfiles(map)
+      setLoading(false)
+    })
   }, [aircraftId])
+
+  const saveProfile = useCallback(async (person) => {
+    const payload = {
+      name:         person.name,
+      role:         person.role         || null,
+      dob:          person.dob          || null,
+      start_date:   person.startDate    || null,
+      phone:        person.phone        || null,
+      licenses:     person.licenses     || null,
+      last_medical: person.lastMedical  || null,
+      updated_at:   new Date().toISOString(),
+    }
+    const { error } = await supabase.from('team_profiles').upsert(payload, { onConflict: 'name' })
+    if (error) throw error
+    setDbProfiles(prev => ({ ...prev, [person.name]: dbToProfile(payload) }))
+  }, [])
 
   const now = new Date()
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
@@ -84,5 +116,5 @@ export function useEmployeeFlights(aircraftId) {
     }
   })
 
-  return { pilots, mechanics: ROSTER.mechanics, operations: ROSTER.operations, loading }
+  return { pilots, mechanics: ROSTER.mechanics, operations: ROSTER.operations, loading, dbProfiles, saveProfile }
 }
