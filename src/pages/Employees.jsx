@@ -364,7 +364,7 @@ function PilotCard({ pilot, onProfileClick }) {
                   <p className="text-[10px] text-white/30 mt-0.5">{formatDate(f.date)}</p>
                 </div>
                 <p className="text-xs text-white/40 flex-shrink-0 ml-3">
-                  {f.total_minutes ? `${toHobbs(f.total_minutes).toFixed(1)}h` : '—'}
+                  {f.displayMins ? `${toHobbs(f.displayMins).toFixed(1)}h` : '—'}
                 </p>
               </div>
             ))

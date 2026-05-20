@@ -235,7 +235,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
   const [tachMode,      setTachMode]      = useState(false)
   const [tachNew,       setTachNew]       = useState('')
   const [tachModal,     setTachModal]     = useState(false)
-  const [legConfirm,    setLegConfirm]    = useState(null) // { index, calculatedMins }
+  const [legConfirm,    setLegConfirm]    = useState(null)
   const [legs,          setLegs]          = useState([emptyLeg()])
   const [cycles,        setCycles]        = useState('1')
   const [passengers,    setPassengers]    = useState([emptyPassenger(), emptyPassenger()])
@@ -248,6 +248,12 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
   const [saving,        setSaving]        = useState(false)
   const [error,         setError]         = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  // ── Flight Time state ──────────────────────────────────────────────────────
+  const [ftMethod,    setFtMethod]    = useState(null)  // 'engine' | 'hobbs' | 'timer'
+  const [ftMins,      setFtMins]      = useState(null)  // recorded flight time in minutes
+  const [ftModal,     setFtModal]     = useState(null)  // which modal is open
+  const [ftHobbsNew,  setFtHobbsNew]  = useState('')    // new hobbs reading (hobbs method)
 
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
@@ -290,6 +296,9 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       setNotes(editFlight.notes ?? '')
       setPreflightDone(true)
       setTachMode(false); setTachNew(''); setTachModal(false); setLegConfirm(null)
+      setFtMins(editFlight.flight_time_minutes ?? null)
+      setFtMethod(editFlight.flight_time_minutes != null ? 'saved' : null)
+      setFtModal(null); setFtHobbsNew('')
     } else {
       setDate(today)
       setPilot('James McBride')
@@ -303,6 +312,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       setNotes('')
       setPreflightDone(false)
       setPaxDropdown(null)
+      setFtMethod(null); setFtMins(null); setFtModal(null); setFtHobbsNew('')
     }
   }, [open])
 
@@ -344,6 +354,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
   const fuelFilled     = fuelStart !== '' && fuelEnd !== ''
     && !isNaN(fuelStartNum) && !isNaN(fuelEndNum) && fuelConsumed >= 0
   const legsComplete   = tachMode ? tachDelta > 0 : legs.some(l => l.takeoff_time && l.landing_time)
+  const ftComplete     = isEditing || (ftMins != null && ftMins > 0)
 
   function buildPassengersPayload() {
     const list = passengers.filter(p => p.name.trim())
@@ -361,16 +372,17 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
 
     const sharedPayload = {
       date,
-      pilot:             pilot || null,
-      copilot:           copilot || null,
-      legs:              tachMode ? [] : legs,
-      total_minutes:     totalMinutes,
-      cycles:            cyclesNum || null,
-      fuel_start_gal:    isNaN(fuelStartNum) ? null : fuelStartNum,
-      fuel_end_gal:      isNaN(fuelEndNum)   ? null : fuelEndNum,
-      fuel_consumed_gal: fuelConsumed ?? null,
-      passengers:        buildPassengersPayload(),
-      notes:             notes.trim() || null,
+      pilot:                pilot || null,
+      copilot:              copilot || null,
+      legs:                 tachMode ? [] : legs,
+      total_minutes:        totalMinutes,
+      flight_time_minutes:  ftMins ?? null,
+      cycles:               cyclesNum || null,
+      fuel_start_gal:       isNaN(fuelStartNum) ? null : fuelStartNum,
+      fuel_end_gal:         isNaN(fuelEndNum)   ? null : fuelEndNum,
+      fuel_consumed_gal:    fuelConsumed ?? null,
+      passengers:           buildPassengersPayload(),
+      notes:                notes.trim() || null,
     }
 
     if (isEditing) {
@@ -402,6 +414,8 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
         aircraftUpdates.hobbs_current = ROUND((selectedAircraft.hobbs_current ?? 0) + toHobbs(totalMinutes))
       }
       if (cyclesNum > 0) aircraftUpdates.cycles_current = (selectedAircraft.cycles_current ?? 0) + cyclesNum
+      if (ftMethod === 'hobbs' && ftHobbsNew !== '')
+        aircraftUpdates.flight_hobbs_current = ROUND(parseFloat(ftHobbsNew), 1)
       if (Object.keys(aircraftUpdates).length)
         await supabase.from('aircraft').update(aircraftUpdates).eq('id', selectedAircraft.id)
 
@@ -509,6 +523,27 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Flight Time modals */}
+      {ftModal === 'engine' && (
+        <FlightEngineModal
+          onCancel={() => setFtModal(null)}
+          onConfirm={mins => { setFtMins(mins); setFtMethod('engine'); setFtModal(null) }}
+        />
+      )}
+      {ftModal === 'hobbs' && (
+        <FlightHobbsModal
+          currentHobbs={selectedAircraft?.flight_hobbs_current ?? 0}
+          onCancel={() => setFtModal(null)}
+          onConfirm={(mins, newHobbs) => { setFtMins(mins); setFtMethod('hobbs'); setFtHobbsNew(String(newHobbs)); setFtModal(null) }}
+        />
+      )}
+      {ftModal === 'timer' && (
+        <FlightTimerModal
+          onCancel={() => setFtModal(null)}
+          onConfirm={mins => { setFtMins(mins); setFtMethod('timer'); setFtModal(null) }}
+        />
       )}
 
       {/* Leg Air Time Confirmation Modal */}
@@ -695,6 +730,65 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
             ))
           )}
 
+          {/* Flight Time */}
+          <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/[0.06] space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">Flight Time</p>
+            </div>
+
+            {/* Recorded result — tap to re-edit */}
+            {ftMins != null ? (
+              <button
+                onClick={() => setFtModal(ftMethod === 'saved' ? 'timer' : ftMethod)}
+                className="w-full text-left bg-white/[0.04] rounded-xl px-3.5 py-3.5
+                           border border-white/[0.06] active:bg-white/[0.07] transition-colors select-none"
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest">
+                    {ftMethod === 'engine' ? 'Engine Starter' : ftMethod === 'hobbs' ? 'Hobbs' : 'Timer'}
+                  </p>
+                  <span className="text-lg font-bold text-white tabular-nums">{toHobbs(ftMins).toFixed(1)}h</span>
+                </div>
+                <p className="text-[11px] text-white/40">{pilot}</p>
+              </button>
+            ) : (
+              /* Method buttons — hidden once time is recorded */
+              <div className="grid grid-cols-3 gap-2">
+              {[
+                { key: 'engine', label: 'Engine\nStarter', icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" className="w-5 h-5">
+                    <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
+                  </svg>
+                )},
+                { key: 'hobbs', label: 'Hobbs', icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" className="w-5 h-5">
+                    <rect x="3" y="6" width="18" height="13" rx="2"/><path d="M8 6V4M16 6V4M3 10h18"/>
+                  </svg>
+                )},
+                { key: 'timer', label: 'Timer', icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" className="w-5 h-5">
+                    <circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 3h6M12 3v2"/>
+                  </svg>
+                )},
+              ].map(({ key, label, icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setFtModal(key)}
+                  className={`flex flex-col items-center justify-center gap-2 h-20 rounded-xl border
+                               text-[11px] font-medium whitespace-pre-line leading-tight text-center
+                               transition-all select-none
+                               ${ftMethod === key
+                                 ? 'bg-white/[0.12] border-white/25 text-white'
+                                 : 'bg-white/[0.06] border-white/[0.08] text-white/50 active:bg-white/[0.10]'}`}
+                >
+                  {icon}
+                  {label}
+                </button>
+              ))}
+            </div>
+            )}
+          </div>
+
           {/* Cycles */}
           <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/[0.06]">
             <div className="flex items-center justify-between mb-3">
@@ -826,7 +920,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
         >
           <button
             onClick={handleSave}
-            disabled={saving || !legsComplete || hasLegTimeError || !fuelFilled || !preflightDone}
+            disabled={saving || !legsComplete || hasLegTimeError || !fuelFilled || !preflightDone || !ftComplete}
             className="w-full py-3.5 rounded-2xl bg-white text-black font-bold text-sm
                        flex items-center justify-center gap-2
                        active:scale-[0.98] transition-transform disabled:opacity-40"
@@ -867,6 +961,201 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
         </div>
       </div>
     </>
+  )
+}
+
+// ── Flight Time modals ─────────────────────────────────────────────────────────
+
+function FlightEngineModal({ onCancel, onConfirm }) {
+  const [engineOn,  setEngineOn]  = useState('')
+  const [engineOff, setEngineOff] = useState('')
+
+  const diff     = toMinutes(engineOff) - toMinutes(engineOn)
+  const isValid  = engineOn && engineOff && diff > 0
+  const mins     = isValid ? diff : 0
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center px-5">
+      <div className="absolute inset-0 bg-black/70" onClick={onCancel} />
+      <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.10] shadow-2xl overflow-hidden"
+           style={{ background: '#0e0e10' }}>
+        <div className="px-6 pt-6 pb-4" style={{ background: 'linear-gradient(160deg,#17171a,#111113)' }}>
+          <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Flight Time</p>
+          <p className="text-lg font-bold text-white">Engine Starter</p>
+        </div>
+        <div className="px-6 pt-5 pb-6 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-white/40 block mb-1.5">Engine On</label>
+              <input type="time" value={engineOn} onChange={e => setEngineOn(e.target.value)}
+                className="input-field w-full" />
+            </div>
+            <div>
+              <label className="text-xs text-white/40 block mb-1.5">Engine Off</label>
+              <input type="time" value={engineOff} onChange={e => setEngineOff(e.target.value)}
+                className="input-field w-full" />
+            </div>
+          </div>
+          {isValid && (
+            <div className="flex items-center justify-between bg-white/[0.05] rounded-xl px-4 py-3">
+              <span className="text-xs text-white/40">Flight Time</span>
+              <span className="text-sm font-bold text-white tabular-nums">{toHobbs(mins).toFixed(1)}h</span>
+            </div>
+          )}
+          {engineOn && engineOff && !isValid && (
+            <p className="text-xs text-red-400 text-center">Engine off must be after engine on</p>
+          )}
+          <div className="flex gap-3 pt-1">
+            <button onClick={onCancel}
+              className="flex-1 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.08] text-sm text-white/50">
+              Cancel
+            </button>
+            <button disabled={!isValid} onClick={() => onConfirm(mins)}
+              className="flex-1 py-2.5 rounded-xl bg-white text-sm font-semibold text-black disabled:opacity-30">
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FlightHobbsModal({ currentHobbs, onCancel, onConfirm }) {
+  const [newHobbs, setNewHobbs] = useState('')
+  const current   = currentHobbs ?? 0
+  const newVal    = parseFloat(newHobbs)
+  const isValid   = !isNaN(newVal) && newVal > current
+  const delta     = isValid ? ROUND(newVal - current, 1) : 0
+  const deltaMins = Math.round(delta * 60)
+  const display   = String(current.toFixed(1)).padStart(6, '0')
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center px-5">
+      <div className="absolute inset-0 bg-black/70" onClick={onCancel} />
+      <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.10] shadow-2xl overflow-hidden"
+           style={{ background: '#0e0e10' }}>
+        <div className="px-6 pt-6 pb-4" style={{ background: 'linear-gradient(160deg,#17171a,#111113)' }}>
+          <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Flight Time</p>
+          <p className="text-lg font-bold text-white">Hobbs Reading</p>
+        </div>
+        <div className="px-6 pt-5 pb-6 space-y-4">
+          <div className="space-y-3">
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Current</p>
+              <div className="bg-white/[0.04] rounded-xl px-4 h-14 border border-white/[0.06] flex items-center justify-center">
+                <p className="text-2xl font-bold text-white/40 tabular-nums font-mono tracking-widest">{display}</p>
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">New Reading</p>
+              <input type="text" inputMode="decimal" placeholder={current.toFixed(1)}
+                value={newHobbs} onChange={e => setNewHobbs(e.target.value)}
+                autoFocus className="input-field w-full h-14 text-2xl font-bold tabular-nums text-center" />
+            </div>
+          </div>
+          {isValid && (
+            <div className="flex items-center justify-between bg-accent/10 border border-accent/20 rounded-xl px-4 py-3">
+              <span className="text-xs text-accent/70">Flight Time</span>
+              <span className="text-sm font-bold text-accent tabular-nums">{delta.toFixed(1)}h</span>
+            </div>
+          )}
+          {newHobbs !== '' && !isNaN(newVal) && newVal <= current && (
+            <p className="text-xs text-red-400 text-center">New reading must be greater than current ({current.toFixed(1)})</p>
+          )}
+          <div className="flex gap-3 pt-1">
+            <button onClick={onCancel}
+              className="flex-1 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.08] text-sm text-white/50">
+              Cancel
+            </button>
+            <button disabled={!isValid} onClick={() => onConfirm(deltaMins, newVal)}
+              className="flex-1 py-2.5 rounded-xl bg-white text-sm font-semibold text-black disabled:opacity-30">
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FlightTimerModal({ onCancel, onConfirm }) {
+  const [digits, setDigits] = useState(['', '', '', ''])
+  const r0 = useRef(null); const r1 = useRef(null)
+  const r2 = useRef(null); const r3 = useRef(null)
+  const refs = [r0, r1, r2, r3]
+
+  function handleChange(i, val) {
+    const d = val.replace(/[^0-9]/g, '').slice(-1)
+    const next = [...digits]; next[i] = d; setDigits(next)
+    if (d && i < 3) setTimeout(() => refs[i + 1].current?.focus(), 0)
+  }
+
+  function handleKeyDown(i, e) {
+    if (e.key === 'Backspace' && !digits[i] && i > 0) {
+      refs[i - 1].current?.focus()
+    }
+  }
+
+  const hh       = parseInt((digits[0] || '0') + (digits[1] || '0'), 10)
+  const mm       = parseInt((digits[2] || '0') + (digits[3] || '0'), 10)
+  const totalMins = hh * 60 + mm
+  const hasInput  = digits.some(d => d !== '')
+  const isValid   = hasInput && totalMins > 0 && mm < 60
+
+  const digitBox = 'w-16 h-16 rounded-xl text-3xl font-bold text-white text-center tabular-nums ' +
+    'bg-white/[0.06] border border-white/[0.10] focus:border-white/30 focus:bg-white/[0.09] ' +
+    'outline-none transition-colors caret-white'
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center px-5">
+      <div className="absolute inset-0 bg-black/70" onClick={onCancel} />
+      <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.10] shadow-2xl overflow-hidden"
+           style={{ background: '#0e0e10' }}>
+        <div className="px-6 pt-6 pb-4" style={{ background: 'linear-gradient(160deg,#17171a,#111113)' }}>
+          <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Flight Time</p>
+          <p className="text-lg font-bold text-white">Timer</p>
+        </div>
+        <div className="px-6 pt-5 pb-6 space-y-4">
+          <div className="flex items-center justify-center gap-2">
+            <input ref={r0} type="text" inputMode="numeric" maxLength={1} value={digits[0]}
+              onChange={e => handleChange(0, e.target.value)} onKeyDown={e => handleKeyDown(0, e)}
+              autoFocus className={digitBox} />
+            <input ref={r1} type="text" inputMode="numeric" maxLength={1} value={digits[1]}
+              onChange={e => handleChange(1, e.target.value)} onKeyDown={e => handleKeyDown(1, e)}
+              className={digitBox} />
+            <span className="text-3xl font-bold text-white/30 px-1">:</span>
+            <input ref={r2} type="text" inputMode="numeric" maxLength={1} value={digits[2]}
+              onChange={e => handleChange(2, e.target.value)} onKeyDown={e => handleKeyDown(2, e)}
+              className={digitBox} />
+            <input ref={r3} type="text" inputMode="numeric" maxLength={1} value={digits[3]}
+              onChange={e => handleChange(3, e.target.value)} onKeyDown={e => handleKeyDown(3, e)}
+              className={digitBox} />
+          </div>
+
+          {isValid && (
+            <div className="flex items-center justify-between bg-white/[0.05] rounded-xl px-4 py-3">
+              <span className="text-xs text-white/40">Flight Time</span>
+              <span className="text-sm font-bold text-white tabular-nums">{toHobbs(totalMins).toFixed(1)}h</span>
+            </div>
+          )}
+          {hasInput && mm >= 60 && (
+            <p className="text-xs text-red-400 text-center">Minutes must be 00–59</p>
+          )}
+
+          <div className="flex gap-3 pt-1">
+            <button onClick={onCancel}
+              className="flex-1 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.08] text-sm text-white/50">
+              Cancel
+            </button>
+            <button disabled={!isValid} onClick={() => onConfirm(totalMins)}
+              className="flex-1 py-2.5 rounded-xl bg-white text-sm font-semibold text-black disabled:opacity-30">
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

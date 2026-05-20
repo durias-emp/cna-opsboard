@@ -109,7 +109,8 @@ function buildFlightEmail(d) {
       ${d.copilot ? row('Co-Pilot', d.copilot) : ''}
       ${row('Date', formatDate(d.date))}
       ${row('Aircraft', 'C-GOPF &nbsp;·&nbsp; Bell 206B3')}
-      ${row('Flight Time', formatMins(d.total_minutes))}
+      ${row('Air Time', formatMins(d.total_minutes))}
+      ${row('Flight Time', formatMins(d.flight_time_minutes))}
       ${row('Fuel Consumed', d.fuel_consumed_gal != null ? d.fuel_consumed_gal + ' gal' : null)}
       ${row('Notes', d.notes)}
     </table>

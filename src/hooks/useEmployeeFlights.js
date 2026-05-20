@@ -64,7 +64,7 @@ export function useEmployeeFlights(aircraftId) {
 
   useEffect(() => {
     const flightsQ = aircraftId
-      ? supabase.from('flights').select('id, date, pilot, copilot, total_minutes, legs').eq('aircraft_id', aircraftId).order('date', { ascending: false })
+      ? supabase.from('flights').select('id, date, pilot, copilot, total_minutes, flight_time_minutes, legs').eq('aircraft_id', aircraftId).order('date', { ascending: false })
       : Promise.resolve({ data: [] })
 
     const profilesQ = supabase.from('team_profiles').select('*')
@@ -97,20 +97,24 @@ export function useEmployeeFlights(aircraftId) {
   const now = new Date()
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
 
+  // For each flight, use flight_time_minutes (pilot logbook time) if recorded,
+  // otherwise fall back to total_minutes (air time) for older flights
+  const effectiveMins = f => f.flight_time_minutes ?? f.total_minutes ?? 0
+
   const pilots = ROSTER.pilots.map(p => {
-    // Count flights where pilot is PIC or Co-Pilot
     const myFlights = flights.filter(f => f.pilot === p.name || f.copilot === p.name)
-    const totalMins = myFlights.reduce((s, f) => s + (f.total_minutes || 0), 0)
-    const monthMins = myFlights.filter(f => f.date >= monthStart).reduce((s, f) => s + (f.total_minutes || 0), 0)
+    const totalMins = myFlights.reduce((s, f) => s + effectiveMins(f), 0)
+    const monthMins = myFlights.filter(f => f.date >= monthStart).reduce((s, f) => s + effectiveMins(f), 0)
     const lastFlight = myFlights[0] ?? null
     return {
       ...p,
-      totalHours: toHobbs(totalMins),
-      monthHours: toHobbs(monthMins),
-      flightCount: myFlights.length,
+      totalHours:    toHobbs(totalMins),
+      monthHours:    toHobbs(monthMins),
+      flightCount:   myFlights.length,
       lastFlightDate: lastFlight?.date ?? null,
       recentFlights: myFlights.map(f => ({
         ...f,
+        displayMins: effectiveMins(f),
         role: f.pilot === p.name ? 'PIC' : 'SIC',
       })),
     }
