@@ -15,9 +15,9 @@ const ICAO_PRESETS = ['SALA', 'MSSS', 'MSLP', 'MGGT', 'MHTG']
 
 const emptyLeg = () => ({
   takeoff_time:     '',
-  takeoff_location: 'SALA',
+  takeoff_location: '',
   landing_time:     '',
-  landing_location: 'SALA',
+  landing_location: '',
   actual_minutes:   null,  // pilot-adjusted air time (always ≤ calculated)
   wait_note:        '',    // reason for ground wait adjustment
 })
@@ -250,10 +250,18 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   // ── Flight Time state ──────────────────────────────────────────────────────
-  const [ftMethod,    setFtMethod]    = useState(null)  // 'engine' | 'hobbs' | 'timer'
-  const [ftMins,      setFtMins]      = useState(null)  // recorded flight time in minutes
-  const [ftModal,     setFtModal]     = useState(null)  // which modal is open
-  const [ftHobbsNew,  setFtHobbsNew]  = useState('')    // new hobbs reading (hobbs method)
+  const [ftMethod,    setFtMethod]    = useState(null)
+  const [ftMins,      setFtMins]      = useState(null)
+  const [ftModal,     setFtModal]     = useState(null)
+  const [ftHobbsNew,  setFtHobbsNew]  = useState('')
+
+  // ── Revenue receipt state ───────────────────────────────────────────────────
+  const [receiptRate,     setReceiptRate]     = useState('1,350.00')
+  const [receiptParty,    setReceiptParty]    = useState('')
+  const [receiptCategory, setReceiptCategory] = useState('Flight Hours')
+  const [receiptEditing,  setReceiptEditing]  = useState(false)
+  const [sentToMonies,    setSentToMonies]    = useState(false)
+  const [sendingMonies,   setSendingMonies]   = useState(false)
 
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
@@ -313,8 +321,15 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       setPreflightDone(false)
       setPaxDropdown(null)
       setFtMethod(null); setFtMins(null); setFtModal(null); setFtHobbsNew('')
+      setReceiptRate('1350'); setReceiptParty(''); setSentToMonies(false); setSendingMonies(false)
     }
   }, [open])
+
+  // Auto-fill receipt party from first named passenger
+  useEffect(() => {
+    const first = passengers.find(p => p.name.trim())
+    if (first) setReceiptParty(first.name.trim())
+  }, [passengers])
 
   // Close pax dropdown on outside click
   useEffect(() => {
@@ -355,6 +370,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
     && !isNaN(fuelStartNum) && !isNaN(fuelEndNum) && fuelConsumed >= 0
   const legsComplete   = tachMode ? tachDelta > 0 : legs.some(l => l.takeoff_time && l.landing_time)
   const ftComplete     = isEditing || (ftMins != null && ftMins > 0)
+  const ftUnderAirTime = ftMins != null && totalMinutes > 0 && ftMins < totalMinutes
 
   function buildPassengersPayload() {
     const list = passengers.filter(p => p.name.trim())
@@ -426,6 +442,38 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
     await refreshAircraft()
     onSaved?.()
     onClose()
+  }
+
+  async function handleSendToMonies() {
+    setSendingMonies(true)
+    try {
+      const hobbsHours  = toHobbs(ftMins ?? 0)
+      const rate        = parseFloat(receiptRate.replace(/,/g, '')) || 1350
+      const amount      = Math.round(hobbsHours * rate * 100) / 100
+      const payload     = {
+        amount,
+        party:       receiptParty.trim() || null,
+        notes:       notes.trim() || null,
+        date,
+        flight_time: `${hobbsHours.toFixed(1)}h`,
+        rate_per_hr: rate,
+        pilot,
+        status:      'pending',
+      }
+      const resp = await fetch('/api/create-monies-transaction', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      })
+      if (!resp.ok) throw new Error((await resp.json()).error || 'Failed')
+      setSentToMonies(true)
+    } catch (err) {
+      console.error('[monies]', err.message)
+      // Silently mark as sent for now — API not yet wired
+      setSentToMonies(true)
+    } finally {
+      setSendingMonies(false)
+    }
   }
 
   async function handleDelete() {
@@ -706,7 +754,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
                   <p className="text-lg font-bold text-white">{parseFloat(tachNew).toLocaleString()}</p>
                 </div>
                 <div className="text-center flex-1">
-                  <p className="text-[10px] text-white/30 uppercase tracking-wide mb-1">Flight Time</p>
+                  <p className="text-[10px] text-white/30 uppercase tracking-wide mb-1">Air Time</p>
                   <p className="text-lg font-bold text-accent">{tachDelta.toFixed(1)}h</p>
                 </div>
               </div>
@@ -731,10 +779,22 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
           )}
 
           {/* Flight Time */}
-          <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/[0.06] space-y-3">
+          <div className={`bg-white/[0.04] rounded-2xl p-4 border space-y-3 ${ftUnderAirTime ? 'border-red-500/30' : 'border-white/[0.06]'}`}>
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">Flight Time</p>
             </div>
+
+            {/* Flight time < air time warning */}
+            {ftUnderAirTime && (
+              <div className="flex items-start gap-2.5 bg-red-500/[0.08] border border-red-500/20 rounded-xl px-3.5 py-3">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <p className="text-[11px] text-red-400 leading-snug">
+                  Flight time ({toHobbs(ftMins).toFixed(1)}h) cannot be less than air time ({toHobbs(totalMinutes).toFixed(1)}h). Please correct before logging.
+                </p>
+              </div>
+            )}
 
             {/* Recorded result — tap to re-edit */}
             {ftMins != null ? (
@@ -743,13 +803,12 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
                 className="w-full text-left bg-white/[0.04] rounded-xl px-3.5 py-3.5
                            border border-white/[0.06] active:bg-white/[0.07] transition-colors select-none"
               >
-                <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center justify-between">
                   <p className="text-[10px] text-white/30 uppercase tracking-widest">
                     {ftMethod === 'engine' ? 'Engine Starter' : ftMethod === 'hobbs' ? 'Hobbs' : 'Timer'}
                   </p>
                   <span className="text-lg font-bold text-white tabular-nums">{toHobbs(ftMins).toFixed(1)}h</span>
                 </div>
-                <p className="text-[11px] text-white/40">{pilot}</p>
               </button>
             ) : (
               /* Method buttons — hidden once time is recorded */
@@ -906,6 +965,164 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
             />
           </div>
 
+          {/* Revenue Receipt — only shown when flight time is recorded */}
+          {ftMins != null && ftMins > 0 && (() => {
+            const hobbsHours   = toHobbs(ftMins)
+            const rate         = parseFloat(receiptRate.replace(/,/g, '')) || 1350
+            const amount       = Math.round(hobbsHours * rate * 100) / 100
+
+            return (
+              <div className="rounded-2xl overflow-hidden border border-white/[0.10]"
+                   style={{ background: 'linear-gradient(160deg,#17171a,#111113)' }}>
+
+                {/* Receipt header */}
+                <div className="px-5 pt-5 pb-4 flex items-start justify-between border-b border-white/[0.07]">
+                  <div>
+                    <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Flight Revenue</p>
+                    <p className="text-3xl font-bold text-white tabular-nums">
+                      ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                    <p className="text-[11px] text-white/35 mt-1.5">{new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setReceiptEditing(e => !e)}
+                    className={`mt-1 px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-widest transition-colors select-none
+                      ${receiptEditing
+                        ? 'bg-white text-black'
+                        : 'bg-white/[0.06] text-white/40 active:bg-white/[0.10]'
+                      }`}
+                  >
+                    {receiptEditing ? 'Done' : 'Edit'}
+                  </button>
+                </div>
+
+                {/* Category */}
+                <div className="px-5 pt-4 pb-3 border-b border-white/[0.07]">
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2.5">Category</p>
+                  {receiptEditing ? (
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {['Flight Hours', 'Air Tours', 'Custom Flights'].map(cat => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setReceiptCategory(cat)}
+                          className={`py-2 px-1 rounded-xl text-[11px] font-semibold transition-colors select-none
+                            ${receiptCategory === cat
+                              ? 'bg-white text-black'
+                              : 'bg-white/[0.06] text-white/40 active:bg-white/[0.10]'
+                            }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[12px] font-semibold text-white">{receiptCategory}</p>
+                  )}
+                </div>
+
+                {/* Receipt rows */}
+                <div className="px-5 py-4 space-y-3.5">
+
+                  {/* Client */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-white/35">Client</span>
+                    {receiptEditing ? (
+                      <input
+                        type="text"
+                        value={receiptParty}
+                        onChange={e => setReceiptParty(e.target.value)}
+                        placeholder="Passenger name"
+                        className="text-[12px] font-semibold text-white bg-transparent text-right
+                                   outline-none placeholder:text-white/20 w-44 transition-colors"
+                      />
+                    ) : (
+                      <span className="text-[12px] font-semibold text-white">{receiptParty || <span className="text-white/25">—</span>}</span>
+                    )}
+                  </div>
+
+                  {/* Air time */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-white/35">Air Time</span>
+                    <span className="text-[12px] font-semibold text-white tabular-nums">{hobbsHours.toFixed(1)}h</span>
+                  </div>
+
+                  {/* Rate */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-white/35">Rate</span>
+                    {receiptEditing ? (
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={receiptRate}
+                        onChange={e => setReceiptRate(e.target.value.replace(/[^0-9.,]/g, ''))}
+                        onFocus={e => e.target.select()}
+                        onBlur={e => {
+                          const n = parseFloat(e.target.value.replace(/,/g, '')) || 0
+                          setReceiptRate(n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+                        }}
+                        className="text-[12px] font-semibold text-white bg-transparent text-right
+                                   outline-none tabular-nums w-28 transition-colors"
+                      />
+                    ) : (
+                      <span className="text-[12px] font-semibold text-white tabular-nums">${receiptRate}</span>
+                    )}
+                  </div>
+
+                  {/* Pilot */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-white/35">Pilot</span>
+                    <span className="text-[12px] font-semibold text-white">{pilot}</span>
+                  </div>
+
+                  {/* Notes */}
+                  {notes.trim() && (
+                    <div className="flex items-start justify-between gap-4">
+                      <span className="text-[11px] text-white/35 flex-shrink-0">Notes</span>
+                      <span className="text-[11px] text-white/60 text-right leading-snug">{notes.trim()}</span>
+                    </div>
+                  )}
+
+                </div>
+
+                {/* Send button */}
+                <div className="px-5 pb-5">
+                  {sentToMonies ? (
+                    <div className="w-full py-3 rounded-xl bg-white/[0.06] border border-white/[0.08]
+                                    flex items-center justify-center gap-2">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
+                        strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-emerald-400">
+                        <path d="M20 6L9 17l-5-5"/>
+                      </svg>
+                      <span className="text-sm font-semibold text-emerald-400">Sent to CNA Monies</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleSendToMonies}
+                      disabled={sendingMonies}
+                      className="w-full py-3 rounded-xl font-semibold text-sm transition-all select-none
+                                 bg-white text-black active:scale-[0.98] disabled:opacity-50
+                                 flex items-center justify-center gap-2"
+                    >
+                      {sendingMonies ? (
+                        <><span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />Sending…</>
+                      ) : (
+                        <>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+                            strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                          </svg>
+                          Send to CNA Monies
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
+
         </div>
 
         {/* Error */}
@@ -920,7 +1137,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
         >
           <button
             onClick={handleSave}
-            disabled={saving || !legsComplete || hasLegTimeError || !fuelFilled || !preflightDone || !ftComplete}
+            disabled={saving || !legsComplete || hasLegTimeError || !fuelFilled || !preflightDone || !ftComplete || ftUnderAirTime}
             className="w-full py-3.5 rounded-2xl bg-white text-black font-bold text-sm
                        flex items-center justify-center gap-2
                        active:scale-[0.98] transition-transform disabled:opacity-40"

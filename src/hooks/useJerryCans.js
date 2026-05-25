@@ -17,25 +17,11 @@ export function useJerryCans() {
 
   useEffect(() => { load() }, [load])
 
-  async function cycleLevel(can) {
-    // Full → Half → Empty → Full
-    let next
-    const cap = parseFloat(can.capacity_gallons)
-    const cur = parseFloat(can.current_gallons)
-
-    if (cur >= cap) {
-      next = parseFloat((cap / 2).toFixed(1))
-    } else if (cur > 0) {
-      next = 0.0
-    } else {
-      next = cap
-    }
-
-    // Optimistic update
+  async function setLevel(can, gallons) {
+    const next = parseFloat(gallons)
     setCans(prev =>
       prev.map(c => c.id === can.id ? { ...c, current_gallons: next } : c)
     )
-
     await supabase
       .from('jerry_cans')
       .update({ current_gallons: next })
@@ -45,5 +31,5 @@ export function useJerryCans() {
   const totalCurrentGal  = cans.reduce((s, c) => s + parseFloat(c.current_gallons),  0)
   const totalCapacityGal = cans.reduce((s, c) => s + parseFloat(c.capacity_gallons), 0)
 
-  return { cans, loading, cycleLevel, totalCurrentGal, totalCapacityGal, refresh: load }
+  return { cans, loading, setLevel, totalCurrentGal, totalCapacityGal, refresh: load }
 }

@@ -7,7 +7,7 @@ import PageHeader from '../components/PageHeader'
 import SectionHeader from '../components/SectionHeader'
 import TankFillupDrawer from '../components/TankFillupDrawer'
 
-const TOTAL_FACILITY_CAPACITY = 181 // 140 tank + 41 jerry cans
+const TOTAL_FACILITY_CAPACITY = 180 // 140 tank + 40 jerry cans
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 
@@ -260,144 +260,152 @@ function FlightFuelRow({ flight, isLast }) {
   )
 }
 
-// ── Jerry Can SVG ──────────────────────────────────────────────────────────────
-
-function JerryCanSVG({ canId, fillRatio, isMetal }) {
-  const clipId  = `jc-clip-${canId}`
-  const bodyY   = 13
-  const bodyH   = 33
-  const fillH   = Math.max(fillRatio * bodyH, 0)
-  const fillY   = bodyY + bodyH - fillH
-
-  const fillColor = isMetal
-    ? `rgba(255,255,255,${0.15 + fillRatio * 0.45})`
-    : `rgba(255,255,255,${0.08 + fillRatio * 0.22})`
-
-  return (
-    <svg viewBox="0 0 36 52" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-      <defs>
-        <clipPath id={clipId}>
-          <rect x="3" y={bodyY} width="30" height={bodyH} rx="3.5" />
-        </clipPath>
-      </defs>
-
-      {/* Spout neck */}
-      <rect x="12" y="5" width="12" height="10" rx="2"
-        fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.14)" strokeWidth="1" />
-      {/* Cap */}
-      <rect x="14" y="1" width="8" height="6" rx="2"
-        fill="rgba(255,255,255,0.09)" stroke="rgba(255,255,255,0.16)" strokeWidth="1" />
-
-      {/* Body background */}
-      <rect x="3" y={bodyY} width="30" height={bodyH} rx="3.5"
-        fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.13)" strokeWidth="1" />
-
-      {/* Fill level */}
-      {fillRatio > 0 && (
-        <rect x="3" y={fillY} width="30" height={fillH + 0.5}
-          fill={fillColor} clipPath={`url(#${clipId})`} />
-      )}
-
-      {/* Rib lines on body (detail) */}
-      <line x1="3" y1={bodyY + bodyH * 0.33} x2="33" y2={bodyY + bodyH * 0.33}
-        stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
-      <line x1="3" y1={bodyY + bodyH * 0.66} x2="33" y2={bodyY + bodyH * 0.66}
-        stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
-
-      {/* Handle on right side */}
-      <path d="M33 20 Q40 20 40 30 Q40 40 33 40"
-        stroke="rgba(255,255,255,0.12)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-// ── Jerry Can Card ─────────────────────────────────────────────────────────────
-
-function JerryCanCard({ can, onCycle }) {
-  const cap       = parseFloat(can.capacity_gallons)
-  const cur       = parseFloat(can.current_gallons)
-  const fillRatio = cap > 0 ? cur / cap : 0
-  const isMetal   = can.material === 'metal'
-
-  const levelLabel = fillRatio >= 1 ? 'Full'
-    : fillRatio > 0 ? 'Half'
-    : 'Empty'
-
-  const levelColor = fillRatio >= 1 ? 'text-white/70'
-    : fillRatio > 0 ? 'text-white/45'
-    : 'text-white/20'
-
-  return (
-    <button
-      onClick={() => onCycle(can)}
-      className="flex flex-col items-center gap-1.5 select-none active:scale-95 transition-transform"
-    >
-      <div className="w-10 h-14 relative">
-        <JerryCanSVG canId={can.id} fillRatio={fillRatio} isMetal={isMetal} />
-      </div>
-      <p className={`text-[10px] font-semibold ${levelColor}`}>{levelLabel}</p>
-      <p className="text-[9px] text-white/25">{cap}g</p>
-    </button>
-  )
-}
-
 // ── Jerry Cans Section ─────────────────────────────────────────────────────────
 
-function JerryCanSection({ cans, loading, cycleLevel, totalCurrentGal, totalCapacityGal }) {
-  if (loading) return <div className="card animate-pulse h-28" />
+function JerryCanSection({ cans, loading, setLevel, totalCurrentGal, totalCapacityGal }) {
+  const [showModal, setShowModal] = useState(false)
 
-  const metalCans   = cans.filter(c => c.material === 'metal')
-  const plasticCans = cans.filter(c => c.material === 'plastic')
+  if (loading) return <div className="card animate-pulse h-48" />
+
+  const fillPercent = totalCapacityGal > 0 ? totalCurrentGal / totalCapacityGal : 0
+  const isLow       = fillPercent < 0.25
+  const isMedium    = fillPercent >= 0.25 && fillPercent < 0.6
+
+  const r      = 52
+  const circ   = 2 * Math.PI * r
+  const offset = circ * (1 - fillPercent)
+
+  const ringColor = isLow    ? 'rgba(255,255,255,0.9)'
+    : isMedium ? 'rgba(255,255,255,0.6)'
+    : 'rgba(255,255,255,0.35)'
 
   return (
-    <div className="card">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <p className="label">Jerry Cans</p>
-          <p className="text-xs text-white/40 mt-0.5">
-            {totalCurrentGal.toFixed(1)} / {totalCapacityGal.toFixed(0)} gal · Tap to cycle level
-          </p>
+    <>
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="label">Jerry Cans</p>
+            <p className="text-xs text-white/40 mt-0.5">Max {totalCapacityGal.toFixed(0)} gal · US Gallons</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {isLow && <span className="badge bg-white text-black text-[10px] animate-pulse">Low</span>}
+            <img src="/combustible.png" alt="jerry cans" className="w-8 h-8 object-contain opacity-40" style={{ filter: 'brightness(0) invert(1)' }} />
+          </div>
         </div>
-        <div className="text-right">
-          <p className="text-xl font-bold text-white">{totalCurrentGal.toFixed(1)}</p>
-          <p className="text-[10px] text-white/30">gallons</p>
+
+        <div className="flex items-center gap-6">
+          {/* Ring gauge */}
+          <div className="relative w-32 h-32 flex-shrink-0">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r={r} fill="none"
+                stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
+              <circle cx="60" cy="60" r={r} fill="none"
+                stroke={ringColor}
+                strokeWidth="10"
+                strokeDasharray={circ}
+                strokeDashoffset={offset}
+                strokeLinecap="round"
+                style={{ transition: 'stroke-dashoffset 0.8s ease, stroke 0.4s ease' }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <p className="text-2xl font-bold text-white leading-none">
+                {totalCurrentGal.toFixed(1)}
+              </p>
+              <p className="text-[10px] text-white/35 mt-0.5">of {totalCapacityGal.toFixed(0)} gal</p>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="flex-1 space-y-3">
+            <div>
+              <p className="label mb-1">Level</p>
+              <p className="text-xl font-bold text-white">{Math.round(fillPercent * 100)}%</p>
+            </div>
+            <div>
+              <p className="label mb-1">Available</p>
+              <p className="text-sm font-semibold text-white">{totalCurrentGal.toFixed(1)} gal</p>
+            </div>
+            <div>
+              <p className="label mb-1">Cans</p>
+              <p className="text-xs text-white/60">{cans.length} total</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Action button */}
+        <div className="mt-4 pt-4 border-t border-white/[0.05]">
+          <button
+            onClick={() => setShowModal(true)}
+            className="w-full py-2.5 rounded-xl border border-white/10 text-xs font-medium
+                       text-white/50 flex items-center justify-center gap-1.5
+                       active:bg-white/5 transition-colors select-none"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+              strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+              <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5"/>
+              <path d="M15.5 2.5a2.121 2.121 0 0 1 3 3L12 12l-4 1 1-4 6.5-6.5z"/>
+            </svg>
+            Update levels
+          </button>
         </div>
       </div>
 
-      {/* Metal cans row */}
-      {metalCans.length > 0 && (
-        <div className="mb-3">
-          <p className="text-[9px] font-semibold text-white/25 uppercase tracking-widest mb-2.5">
-            Metal · Transportable ({metalCans.length})
-          </p>
-          <div className="flex gap-4">
-            {metalCans.map(can => (
-              <JerryCanCard key={can.id} can={can} onCycle={cycleLevel} />
-            ))}
+      {/* Update modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-[60] flex items-end" onClick={() => setShowModal(false)}>
+          <div className="absolute inset-0 bg-black/60" />
+          <div
+            className="relative w-full rounded-t-2xl border-t border-white/[0.08] p-5 pb-10 space-y-3"
+            style={{ background: '#111113' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm font-bold text-white">Update Jerry Can Levels</p>
+              <button onClick={() => setShowModal(false)}
+                className="text-white/40 text-xs active:text-white/70">Done</button>
+            </div>
+
+            {cans.map((can, i) => {
+              const cap       = parseFloat(can.capacity_gallons)
+              const cur       = parseFloat(can.current_gallons)
+              const fillRatio = cap > 0 ? cur / cap : 0
+              const level     = fillRatio >= 1 ? 'full' : cur > 0 ? 'half' : 'empty'
+
+              return (
+                <div key={can.id} className="flex items-center justify-between py-2.5
+                  border-b border-white/[0.05] last:border-0">
+                  <div>
+                    <p className="text-xs font-semibold text-white">Can {i + 1}</p>
+                    <p className="text-[10px] text-white/30 capitalize mt-0.5">{can.material} · {cap} gal</p>
+                  </div>
+                  {/* Segmented toggle */}
+                  <div className="flex rounded-xl overflow-hidden border border-white/[0.08] text-[10px] font-bold">
+                    {[
+                      { key: 'empty', label: 'Empty', val: 0 },
+                      { key: 'half',  label: 'Half',  val: parseFloat((cap / 2).toFixed(1)) },
+                      { key: 'full',  label: 'Full',  val: cap },
+                    ].map(opt => (
+                      <button
+                        key={opt.key}
+                        onClick={() => setLevel(can, opt.val)}
+                        className={`px-3 py-2 select-none transition-colors
+                          ${level === opt.key
+                            ? 'bg-white text-black'
+                            : 'bg-white/[0.04] text-white/40 active:bg-white/[0.10]'
+                          }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
-
-      {/* Divider */}
-      {metalCans.length > 0 && plasticCans.length > 0 && (
-        <div className="border-t border-white/[0.05] my-3" />
-      )}
-
-      {/* Plastic cans row */}
-      {plasticCans.length > 0 && (
-        <div>
-          <p className="text-[9px] font-semibold text-white/25 uppercase tracking-widest mb-2.5">
-            Plastic · Facility only ({plasticCans.length})
-          </p>
-          <div className="flex gap-4">
-            {plasticCans.map(can => (
-              <JerryCanCard key={can.id} can={can} onCycle={cycleLevel} />
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   )
 }
 
@@ -463,6 +471,9 @@ export default function Fuel() {
   const jerryCans            = useJerryCans()
   const [drawerOpen,    setDrawerOpen]    = useState(false)
   const [drawerMode,    setDrawerMode]    = useState('fillup')
+  const [spentModal,    setSpentModal]    = useState(false)
+  const [avgModal,      setAvgModal]      = useState(false)
+  const [monthModal,    setMonthModal]    = useState(false)
 
   return (
     <div className="flex-1 overflow-y-auto nav-clearance">
@@ -493,7 +504,7 @@ export default function Fuel() {
         <JerryCanSection
           cans={jerryCans.cans}
           loading={jerryCans.loading}
-          cycleLevel={jerryCans.cycleLevel}
+          setLevel={jerryCans.setLevel}
           totalCurrentGal={jerryCans.totalCurrentGal}
           totalCapacityGal={jerryCans.totalCapacityGal}
         />
@@ -501,29 +512,32 @@ export default function Fuel() {
         {/* ── Tank stats row ── */}
         <div className="grid grid-cols-3 gap-3">
           {/* Total spent */}
-          <div className="card text-center py-3">
+          <button className="card text-center py-3 active:bg-white/[0.07] transition-colors select-none"
+            onClick={() => setSpentModal(true)}>
             <div className="flex justify-center mb-1.5 text-white/30"><IconDollar /></div>
             <p className="text-lg font-bold text-white">
               {tank.totalSpent > 0 ? `$${tank.totalSpent.toFixed(0)}` : '—'}
             </p>
             <p className="label mt-0.5">Total spent</p>
-          </div>
+          </button>
           {/* Avg price */}
-          <div className="card text-center py-3">
+          <button className="card text-center py-3 active:bg-white/[0.07] transition-colors select-none"
+            onClick={() => setAvgModal(true)}>
             <div className="flex justify-center mb-1.5 text-white/30"><IconDrop /></div>
             <p className="text-lg font-bold text-white">
               {tank.avgPricePerGal ? `$${tank.avgPricePerGal}` : '—'}
             </p>
             <p className="label mt-0.5">Avg/gal</p>
-          </div>
+          </button>
           {/* Monthly used */}
-          <div className="card text-center py-3">
+          <button className="card text-center py-3 active:bg-white/[0.07] transition-colors select-none"
+            onClick={() => setMonthModal(true)}>
             <div className="flex justify-center mb-1.5 text-white/30"><IconFillup /></div>
             <p className="text-lg font-bold text-white">
               {tank.monthUsedGal > 0 ? `${tank.monthUsedGal}` : '—'}
             </p>
             <p className="label mt-0.5">Gal / month</p>
-          </div>
+          </button>
         </div>
 
         {/* ── Fill-up history ── */}
@@ -602,6 +616,149 @@ export default function Fuel() {
         lastGallonsAfter={tank.currentLevel}
         defaultMode={drawerMode}
       />
+
+      {/* ── Monthly consumption modal ── */}
+      {monthModal && (() => {
+        const withdrawals = tank.fillups.filter(f => f.type === 'withdrawal')
+        const byMonth = {}
+        withdrawals.forEach(f => {
+          const key = f.date.slice(0, 7) // "YYYY-MM"
+          byMonth[key] = (byMonth[key] ?? 0) + Math.abs(f.gallons_added ?? 0)
+        })
+        const now = new Date()
+        const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+        const months = Object.keys(byMonth).sort().reverse()
+        const monthLabel = key => {
+          const [y, m] = key.split('-')
+          return new Date(parseInt(y), parseInt(m) - 1, 1)
+            .toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+        }
+        return (
+          <div className="fixed inset-0 z-[60] flex items-end" onClick={() => setMonthModal(false)}>
+            <div className="absolute inset-0 bg-black/60" />
+            <div
+              className="relative w-full rounded-t-2xl border-t border-white/[0.08] p-5 pb-10 max-h-[75vh] overflow-y-auto"
+              style={{ background: '#111113' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm font-bold text-white">Monthly Consumption</p>
+                <button onClick={() => setMonthModal(false)}
+                  className="text-white/40 text-xs active:text-white/70">Done</button>
+              </div>
+
+              {months.length === 0 ? (
+                <p className="text-xs text-white/30 text-center py-6">No withdrawal records yet</p>
+              ) : (
+                <div>
+                  {months.map((key, i, arr) => (
+                    <div key={key}
+                      className={`flex items-center justify-between py-3 ${i < arr.length - 1 ? 'border-b border-white/[0.05]' : ''}`}>
+                      <div>
+                        <p className="text-xs font-semibold text-white">{monthLabel(key)}</p>
+                        {key === currentKey && (
+                          <p className="text-[10px] text-white/35 mt-0.5">In progress</p>
+                        )}
+                      </div>
+                      <p className="text-xs font-semibold text-white tabular-nums">
+                        {byMonth[key].toFixed(1)} gal
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* ── Avg price modal ── */}
+      {avgModal && (
+        <div className="fixed inset-0 z-[60] flex items-end" onClick={() => setAvgModal(false)}>
+          <div className="absolute inset-0 bg-black/60" />
+          <div
+            className="relative w-full rounded-t-2xl border-t border-white/[0.08] p-5 pb-10 max-h-[75vh] overflow-y-auto"
+            style={{ background: '#111113' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-bold text-white">Price per Gallon</p>
+                <p className="text-[11px] text-white/35 mt-0.5">
+                  Avg: ${tank.avgPricePerGal}/gal
+                </p>
+              </div>
+              <button onClick={() => setAvgModal(false)}
+                className="text-white/40 text-xs active:text-white/70">Done</button>
+            </div>
+
+            {tank.fillups.filter(f => f.type === 'fillup').length === 0 ? (
+              <p className="text-xs text-white/30 text-center py-6">No fill-ups recorded yet</p>
+            ) : (
+              <div>
+                {tank.fillups.filter(f => f.type === 'fillup').map((f, i, arr) => (
+                  <div key={f.id}
+                    className={`flex items-center justify-between py-3 ${i < arr.length - 1 ? 'border-b border-white/[0.05]' : ''}`}>
+                    <div>
+                      <p className="text-xs font-semibold text-white">{formatDate(f.date)}</p>
+                      <p className="text-[10px] text-white/35 mt-0.5">
+                        {SUPPLIERS[f.supplier] ?? f.supplier} · {f.gallons_added} gal
+                      </p>
+                    </div>
+                    <p className="text-xs font-semibold text-white">${f.price_per_gallon}/gal</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Total spent modal ── */}
+      {spentModal && (
+        <div className="fixed inset-0 z-[60] flex items-end" onClick={() => setSpentModal(false)}>
+          <div className="absolute inset-0 bg-black/60" />
+          <div
+            className="relative w-full rounded-t-2xl border-t border-white/[0.08] p-5 pb-10 max-h-[75vh] overflow-y-auto"
+            style={{ background: '#111113' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-bold text-white">Fill-up History</p>
+                <p className="text-[11px] text-white/35 mt-0.5">
+                  Total: ${tank.totalSpent.toFixed(2)}
+                </p>
+              </div>
+              <button onClick={() => setSpentModal(false)}
+                className="text-white/40 text-xs active:text-white/70">Done</button>
+            </div>
+
+            {/* Fillup rows */}
+            {tank.fillups.filter(f => f.type === 'fillup').length === 0 ? (
+              <p className="text-xs text-white/30 text-center py-6">No fill-ups recorded yet</p>
+            ) : (
+              <div>
+                {tank.fillups.filter(f => f.type === 'fillup').map((f, i, arr) => (
+                  <div key={f.id}
+                    className={`flex items-center justify-between py-3 ${i < arr.length - 1 ? 'border-b border-white/[0.05]' : ''}`}>
+                    <div>
+                      <p className="text-xs font-semibold text-white">{formatDate(f.date)}</p>
+                      <p className="text-[10px] text-white/35 mt-0.5">
+                        {SUPPLIERS[f.supplier] ?? f.supplier} · {f.gallons_added} gal
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-semibold text-white">${f.total_cost?.toFixed(2)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
