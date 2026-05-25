@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAircraft } from '../context/AircraftContext'
 import { useEmployeeFlights } from '../hooks/useEmployeeFlights'
 
-const toHobbs = mins => Math.floor(mins / 6) / 10
+const toHobbs = mins => Math.round(mins / 6) / 10
 
 function formatDate(iso) {
   if (!iso) return '—'

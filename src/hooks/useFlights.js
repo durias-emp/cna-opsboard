@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
 const round2 = n => Math.round(n * 100) / 100
-const toHobbs = minutes => Math.floor(minutes / 6) / 10
+const toHobbs = minutes => Math.round(minutes / 6) / 10
 
 export function useFlights(aircraftId) {
   const [flights, setFlights] = useState([])

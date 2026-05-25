@@ -42,7 +42,7 @@ function formatDate(iso) {
   })
 }
 
-const toHobbs = mins => Math.floor(mins / 6) / 10
+const toHobbs = mins => Math.round(mins / 6) / 10
 
 function formatDuration(mins) {
   if (!mins) return null

@@ -43,7 +43,7 @@ const ROSTER = {
   ],
 }
 
-const toHobbs = mins => Math.floor(mins / 6) / 10
+const toHobbs = mins => Math.round(mins / 6) / 10
 
 // Convert DB row (snake_case) → app shape (camelCase)
 function dbToProfile(row) {

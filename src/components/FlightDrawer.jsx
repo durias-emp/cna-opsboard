@@ -7,7 +7,7 @@ import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 const ROUND = (n, decimals = 2) => Math.round(n * 10 ** decimals) / 10 ** decimals
 
 // Hobbs meters tick every 6 minutes → floor to nearest 0.1
-const toHobbs = (minutes) => Math.floor(minutes / 6) / 10
+const toHobbs = (minutes) => Math.round(minutes / 6) / 10
 
 const PILOTS = ['James McBride', 'Jay McMackin', 'Daniel Sandoval']
 
@@ -235,7 +235,6 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
   const [tachMode,      setTachMode]      = useState(false)
   const [tachNew,       setTachNew]       = useState('')
   const [tachModal,     setTachModal]     = useState(false)
-  const [legConfirm,    setLegConfirm]    = useState(null)
   const [legs,          setLegs]          = useState([emptyLeg()])
   const [cycles,        setCycles]        = useState('1')
   const [passengers,    setPassengers]    = useState([emptyPassenger(), emptyPassenger()])
@@ -303,7 +302,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       setFuelEnd(editFlight.fuel_end_gal     != null ? String(editFlight.fuel_end_gal)   : '')
       setNotes(editFlight.notes ?? '')
       setPreflightDone(true)
-      setTachMode(false); setTachNew(''); setTachModal(false); setLegConfirm(null)
+      setTachMode(false); setTachNew(''); setTachModal(false)
       setFtMins(editFlight.flight_time_minutes ?? null)
       setFtMethod(editFlight.flight_time_minutes != null ? 'saved' : null)
       setFtModal(null); setFtHobbsNew('')
@@ -311,7 +310,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       setDate(today)
       setPilot('James McBride')
       setCopilot('')
-      setTachMode(false); setTachNew(''); setTachModal(false); setLegConfirm(null)
+      setTachMode(false); setTachNew(''); setTachModal(false)
       setLegs([emptyLeg()])
       setPassengers([emptyPassenger()])
       setCycles('1')
@@ -458,6 +457,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
         flight_time: `${hobbsHours.toFixed(1)}h`,
         rate_per_hr: rate,
         pilot,
+        category:    receiptCategory,
         status:      'pending',
       }
       const resp = await fetch('/api/create-monies-transaction', {
@@ -589,37 +589,12 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       )}
       {ftModal === 'timer' && (
         <FlightTimerModal
-          onCancel={() => setFtModal(null)}
+          initialMins={ftMins}
+          onCancel={() => { setFtMins(null); setFtMethod(null); setFtModal(null) }}
           onConfirm={mins => { setFtMins(mins); setFtMethod('timer'); setFtModal(null) }}
         />
       )}
 
-      {/* Leg Air Time Confirmation Modal */}
-      {legConfirm && (() => {
-        const calcMins = legConfirm.calculatedMins
-        return (
-          <LegConfirmModal
-            calculatedMins={calcMins}
-            calculatedLabel={toHobbs(calcMins).toFixed(1)}
-            currentMins={legConfirm.currentMins}
-            from={legConfirm.from}
-            to={legConfirm.to}
-            takeoffTime={legConfirm.takeoffTime}
-            landingTime={legConfirm.landingTime}
-            onCancel={() => setLegConfirm(null)}
-            onUseCalculated={() => {
-              updateLeg(legConfirm.index, 'actual_minutes', null)
-              updateLeg(legConfirm.index, 'wait_note', '')
-              setLegConfirm(null)
-            }}
-            onConfirm={(actualMins, note) => {
-              updateLeg(legConfirm.index, 'actual_minutes', actualMins)
-              updateLeg(legConfirm.index, 'wait_note', note)
-              setLegConfirm(null)
-            }}
-          />
-        )
-      })()}
 
       {/* Panel */}
       <div className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`} style={panelStyle}>
@@ -728,7 +703,62 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
             </div>
           )}
 
-          {/* Legs or Tach */}
+          {/* Flight Time */}
+          <div className={`bg-white/[0.04] rounded-2xl p-4 border space-y-3 ${ftUnderAirTime ? 'border-red-500/30' : 'border-white/[0.06]'}`}>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">Flight Time</p>
+            </div>
+
+            {/* Flight time < air time warning */}
+            {ftUnderAirTime && (
+              <div className="flex items-start gap-2.5 bg-red-500/[0.08] border border-red-500/20 rounded-xl px-3.5 py-3">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <p className="text-[11px] text-red-400 leading-snug">
+                  Flight time ({toHobbs(ftMins).toFixed(1)}h) cannot be less than air time ({toHobbs(totalMinutes).toFixed(1)}h). Please correct before logging.
+                </p>
+              </div>
+            )}
+
+            {/* Recorded result — tap to re-edit */}
+            {ftMins != null ? (
+              <button
+                onClick={() => setFtModal(ftMethod === 'saved' ? 'timer' : ftMethod)}
+                className="w-full text-left bg-white/[0.04] rounded-xl px-3.5 py-3.5
+                           border border-white/[0.06] active:bg-white/[0.07] transition-colors select-none"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest">
+                    {ftMethod === 'engine' ? 'Engine Starter' : ftMethod === 'hobbs' ? 'Hobbs' : 'Timer'}
+                  </p>
+                  <span className="text-lg font-bold text-white tabular-nums">{toHobbs(ftMins).toFixed(1)}h</span>
+                </div>
+              </button>
+            ) : (
+              <div className="flex rounded-2xl overflow-hidden border border-white/[0.08]">
+                {[
+                  { key: 'engine', label: 'Engine Starter' },
+                  { key: 'hobbs',  label: 'Hobbs'          },
+                  { key: 'timer',  label: 'Timer'          },
+                ].map(({ key, label }, i, arr) => (
+                  <button
+                    key={key}
+                    onClick={() => setFtModal(key)}
+                    className={`flex-1 py-3 text-xs font-semibold select-none transition-colors
+                      ${i < arr.length - 1 ? 'border-r border-white/[0.08]' : ''}
+                      ${ftMethod === key
+                        ? 'bg-white text-black'
+                        : 'bg-white/[0.04] text-white/40 active:bg-white/[0.08]'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Air Time */}
           {tachMode ? (
             <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/[0.06] space-y-3">
               <div className="flex items-center justify-between">
@@ -770,83 +800,11 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
                 onChange={(f, v) => updateLeg(i, f, v)}
                 onAddLeg={i === legs.length - 1 ? addLeg : null}
                 onUseTach={i === legs.length - 1 ? () => setTachModal(true) : null}
-                onLegComplete={(idx, calcMins, from, to, takeoffTime, landingTime, currentMins) =>
-                  setLegConfirm({ index: idx, calculatedMins: calcMins, from, to, takeoffTime, landingTime, currentMins: currentMins ?? null })
-                }
+                onLegComplete={null}
                 hasTimeError={legTimeError(leg)}
               />
             ))
           )}
-
-          {/* Flight Time */}
-          <div className={`bg-white/[0.04] rounded-2xl p-4 border space-y-3 ${ftUnderAirTime ? 'border-red-500/30' : 'border-white/[0.06]'}`}>
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">Flight Time</p>
-            </div>
-
-            {/* Flight time < air time warning */}
-            {ftUnderAirTime && (
-              <div className="flex items-start gap-2.5 bg-red-500/[0.08] border border-red-500/20 rounded-xl px-3.5 py-3">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5">
-                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                <p className="text-[11px] text-red-400 leading-snug">
-                  Flight time ({toHobbs(ftMins).toFixed(1)}h) cannot be less than air time ({toHobbs(totalMinutes).toFixed(1)}h). Please correct before logging.
-                </p>
-              </div>
-            )}
-
-            {/* Recorded result — tap to re-edit */}
-            {ftMins != null ? (
-              <button
-                onClick={() => setFtModal(ftMethod === 'saved' ? 'timer' : ftMethod)}
-                className="w-full text-left bg-white/[0.04] rounded-xl px-3.5 py-3.5
-                           border border-white/[0.06] active:bg-white/[0.07] transition-colors select-none"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] text-white/30 uppercase tracking-widest">
-                    {ftMethod === 'engine' ? 'Engine Starter' : ftMethod === 'hobbs' ? 'Hobbs' : 'Timer'}
-                  </p>
-                  <span className="text-lg font-bold text-white tabular-nums">{toHobbs(ftMins).toFixed(1)}h</span>
-                </div>
-              </button>
-            ) : (
-              /* Method buttons — hidden once time is recorded */
-              <div className="grid grid-cols-3 gap-2">
-              {[
-                { key: 'engine', label: 'Engine\nStarter', icon: (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" className="w-5 h-5">
-                    <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
-                  </svg>
-                )},
-                { key: 'hobbs', label: 'Hobbs', icon: (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" className="w-5 h-5">
-                    <rect x="3" y="6" width="18" height="13" rx="2"/><path d="M8 6V4M16 6V4M3 10h18"/>
-                  </svg>
-                )},
-                { key: 'timer', label: 'Timer', icon: (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" className="w-5 h-5">
-                    <circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 3h6M12 3v2"/>
-                  </svg>
-                )},
-              ].map(({ key, label, icon }) => (
-                <button
-                  key={key}
-                  onClick={() => setFtModal(key)}
-                  className={`flex flex-col items-center justify-center gap-2 h-20 rounded-xl border
-                               text-[11px] font-medium whitespace-pre-line leading-tight text-center
-                               transition-all select-none
-                               ${ftMethod === key
-                                 ? 'bg-white/[0.12] border-white/25 text-white'
-                                 : 'bg-white/[0.06] border-white/[0.08] text-white/50 active:bg-white/[0.10]'}`}
-                >
-                  {icon}
-                  {label}
-                </button>
-              ))}
-            </div>
-            )}
-          </div>
 
           {/* Cycles */}
           <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/[0.06]">
@@ -1042,10 +1000,16 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
                     )}
                   </div>
 
+                  {/* Flight time */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-white/35">Flight Time</span>
+                    <span className="text-[12px] font-semibold text-white tabular-nums">{hobbsHours.toFixed(1)}h</span>
+                  </div>
+
                   {/* Air time */}
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-white/35">Air Time</span>
-                    <span className="text-[12px] font-semibold text-white tabular-nums">{hobbsHours.toFixed(1)}h</span>
+                    <span className="text-[12px] font-semibold text-white tabular-nums">{toHobbs(totalMinutes).toFixed(1)}h</span>
                   </div>
 
                   {/* Rate */}
@@ -1296,8 +1260,14 @@ function FlightHobbsModal({ currentHobbs, onCancel, onConfirm }) {
   )
 }
 
-function FlightTimerModal({ onCancel, onConfirm }) {
-  const [digits, setDigits] = useState(['', '', '', ''])
+function FlightTimerModal({ onCancel, onConfirm, initialMins }) {
+  const initDigits = () => {
+    if (!initialMins) return ['', '', '', '']
+    const hh = String(Math.floor(initialMins / 60)).padStart(2, '0')
+    const mm  = String(initialMins % 60).padStart(2, '0')
+    return [hh[0], hh[1], mm[0], mm[1]]
+  }
+  const [digits, setDigits] = useState(initDigits)
   const r0 = useRef(null); const r1 = useRef(null)
   const r2 = useRef(null); const r3 = useRef(null)
   const refs = [r0, r1, r2, r3]
@@ -1500,11 +1470,35 @@ function IcaoField({ value, onChange, onConfirm }) {
 function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTach, onLegComplete, hasTimeError }) {
   const mins    = calcLegMinutes(leg)
   const rawMins = calcLegMinutesRaw(leg)
+  const [adjustOpen, setAdjustOpen] = useState(false)
+  const [adjustVal,  setAdjustVal]  = useState('')
 
   function handleToConfirm(toValue) {
     if (toValue && rawMins > 0 && leg.actual_minutes === null) {
       onLegComplete?.(index, rawMins, leg.takeoff_location, toValue, leg.takeoff_time, leg.landing_time)
     }
+  }
+
+  function openAdjust() {
+    const current = leg.actual_minutes != null ? toHobbs(leg.actual_minutes) : toHobbs(rawMins)
+    setAdjustVal(current.toFixed(1))
+    setAdjustOpen(true)
+  }
+
+  function confirmAdjust() {
+    const h = parseFloat(adjustVal)
+    if (!isNaN(h) && h > 0) {
+      const newMins = Math.round(h * 60)
+      if (newMins > rawMins) return // cannot exceed calculated time
+      onChange('actual_minutes', newMins)
+    }
+    setAdjustOpen(false)
+  }
+
+  function resetAdjust() {
+    onChange('actual_minutes', null)
+    onChange('wait_note', '')
+    setAdjustOpen(false)
   }
 
   return (
@@ -1587,35 +1581,75 @@ function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTac
       {!hasTimeError && rawMins > 0 && (() => {
         const isAdjusted = leg.actual_minutes != null && toHobbs(leg.actual_minutes) !== toHobbs(rawMins)
         return (
-          <button
-            onClick={() => onLegComplete?.(index, rawMins, leg.takeoff_location, leg.landing_location, leg.takeoff_time, leg.landing_time, leg.actual_minutes)}
-            className="w-full text-left rounded-xl border border-white/[0.08] bg-white/[0.04]
-                       active:bg-white/[0.07] transition-colors px-3.5 py-3 select-none"
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] text-white/30 uppercase tracking-widest">
-                {isAdjusted ? 'Air Time Adjustment' : 'Adjust Air Time'}
-              </p>
-              <div className="flex items-center gap-2 tabular-nums">
-                {isAdjusted ? (
-                  <>
-                    <span className="text-[11px] text-white/30">{toHobbs(rawMins).toFixed(1)}h</span>
-                    <svg viewBox="0 0 14 8" className="w-3 h-2 text-white/20 flex-shrink-0" fill="none">
-                      <path d="M0 4h10M7 1.5l3 2.5-3 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <span className="text-sm font-bold text-white">{toHobbs(leg.actual_minutes).toFixed(1)}h</span>
-                  </>
-                ) : (
-                  <span className="text-sm font-bold text-white">{toHobbs(rawMins).toFixed(1)}h</span>
-                )}
+          <>
+            <button
+              onClick={openAdjust}
+              className="w-full text-left rounded-xl border border-white/[0.08] bg-white/[0.04]
+                         active:bg-white/[0.07] transition-colors px-3.5 py-3 select-none"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] text-white/30 uppercase tracking-widest">
+                  {isAdjusted ? 'Air Time Adjustment' : 'Adjust Air Time'}
+                </p>
+                <div className="flex items-center gap-2 tabular-nums">
+                  {isAdjusted ? (
+                    <>
+                      <span className="text-[11px] text-white/30">{toHobbs(rawMins).toFixed(1)}h</span>
+                      <svg viewBox="0 0 14 8" className="w-3 h-2 text-white/20 flex-shrink-0" fill="none">
+                        <path d="M0 4h10M7 1.5l3 2.5-3 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span className="text-sm font-bold text-white">{toHobbs(leg.actual_minutes).toFixed(1)}h</span>
+                    </>
+                  ) : (
+                    <span className="text-sm font-bold text-white">{toHobbs(rawMins).toFixed(1)}h</span>
+                  )}
+                </div>
               </div>
-            </div>
-            {isAdjusted && leg.wait_note ? (
-              <p className="text-[11px] text-white/40 leading-snug border-t border-white/[0.05] mt-2 pt-2">
-                {leg.wait_note}
-              </p>
-            ) : null}
-          </button>
+            </button>
+
+            {/* Adjust mini modal */}
+            {adjustOpen && (
+              <div className="rounded-xl border border-white/[0.10] bg-white/[0.06] p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-white/40 uppercase tracking-widest">Adjust Air Time</p>
+                  <span className="text-[10px] text-white/25">Calculated: {toHobbs(rawMins).toFixed(1)}h</span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={adjustVal}
+                    onChange={e => setAdjustVal(e.target.value.replace(/[^0-9.]/g, ''))}
+                    autoFocus
+                    className={`input-field w-full pr-8 text-lg font-bold tabular-nums ${parseFloat(adjustVal) * 60 > rawMins ? 'border-red-500/50 text-red-400' : ''}`}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/30 pointer-events-none">h</span>
+                </div>
+                {parseFloat(adjustVal) * 60 > rawMins && (
+                  <p className="text-[11px] text-red-400">Cannot exceed calculated time ({toHobbs(rawMins).toFixed(1)}h)</p>
+                )}
+                <div className="flex gap-2">
+                  {isAdjusted && (
+                    <button onClick={resetAdjust}
+                      className="flex-1 py-2.5 rounded-xl border border-white/[0.08] text-xs text-white/40
+                                 active:bg-white/[0.07] transition-colors select-none">
+                      Reset
+                    </button>
+                  )}
+                  <button onClick={() => setAdjustOpen(false)}
+                    className="flex-1 py-2.5 rounded-xl border border-white/[0.08] text-xs text-white/40
+                               active:bg-white/[0.07] transition-colors select-none">
+                    Cancel
+                  </button>
+                  <button onClick={confirmAdjust}
+                    className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold
+                               active:scale-[0.98] transition-transform select-none">
+                    Confirm
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )
       })()}
 

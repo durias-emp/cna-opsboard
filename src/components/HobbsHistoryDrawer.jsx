@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 
-const toHobbs = mins => Math.floor(mins / 6) / 10
+const toHobbs = mins => Math.round(mins / 6) / 10
 
 function formatDate(dateStr) {
   if (!dateStr) return '—'
