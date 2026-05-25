@@ -272,6 +272,8 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
     if (!open) return
     setError(null)
     setConfirmDelete(false)
+    setSentToMonies(false)
+    setSendingMonies(false)
 
     if (isEditing && editFlight) {
       setDate(editFlight.date ?? today)
@@ -320,7 +322,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       setPreflightDone(false)
       setPaxDropdown(null)
       setFtMethod(null); setFtMins(null); setFtModal(null); setFtHobbsNew('')
-      setReceiptRate('1350'); setReceiptParty(''); setSentToMonies(false); setSendingMonies(false)
+      setReceiptRate('1,350.00'); setReceiptParty(''); setReceiptCategory('Flight Hours'); setReceiptEditing(false)
     }
   }, [open])
 
@@ -465,7 +467,11 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(payload),
       })
-      if (!resp.ok) throw new Error((await resp.json()).error || 'Failed')
+      if (!resp.ok) {
+        let errMsg = `HTTP ${resp.status}`
+        try { const j = await resp.json(); errMsg = j.error || errMsg } catch {}
+        throw new Error(errMsg)
+      }
       setSentToMonies(true)
     } catch (err) {
       console.error('[monies]', err.message)
@@ -1052,13 +1058,22 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
                 {/* Send button */}
                 <div className="px-5 pb-5">
                   {sentToMonies ? (
-                    <div className="w-full py-3 rounded-xl bg-white/[0.06] border border-white/[0.08]
-                                    flex items-center justify-center gap-2">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
-                        strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-emerald-400">
-                        <path d="M20 6L9 17l-5-5"/>
-                      </svg>
-                      <span className="text-sm font-semibold text-emerald-400">Sent to CNA Monies</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 py-3 rounded-xl bg-white/[0.06] border border-white/[0.08]
+                                      flex items-center justify-center gap-2">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
+                          strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-emerald-400">
+                          <path d="M20 6L9 17l-5-5"/>
+                        </svg>
+                        <span className="text-sm font-semibold text-emerald-400">Sent to CNA Monies</span>
+                      </div>
+                      <button
+                        onClick={() => setSentToMonies(false)}
+                        className="py-3 px-3 rounded-xl bg-white/[0.06] border border-white/[0.08]
+                                   text-[11px] text-white/40 active:opacity-60 select-none"
+                      >
+                        Resend
+                      </button>
                     </div>
                   ) : (
                     <button
