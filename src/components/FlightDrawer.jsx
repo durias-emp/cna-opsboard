@@ -469,8 +469,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       setSentToMonies(true)
     } catch (err) {
       console.error('[monies]', err.message)
-      // Silently mark as sent for now — API not yet wired
-      setSentToMonies(true)
+      setError(`CNA Monies error: ${err.message}`)
     } finally {
       setSendingMonies(false)
     }
