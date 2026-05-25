@@ -120,7 +120,7 @@ function TankMiniCard({ tank, onClick }) {
             <p className="text-base font-bold text-white leading-none">
               {currentLevel != null ? currentLevel : '—'}
             </p>
-            <p className="text-[8px] text-white/35 mt-0.5">of 140</p>
+            <p className="text-[8px] text-white/35 mt-0.5">of 150</p>
           </div>
         </div>
       </div>

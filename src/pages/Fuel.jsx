@@ -7,7 +7,7 @@ import PageHeader from '../components/PageHeader'
 import SectionHeader from '../components/SectionHeader'
 import TankFillupDrawer from '../components/TankFillupDrawer'
 
-const TOTAL_FACILITY_CAPACITY = 180 // 140 tank + 40 jerry cans
+const TOTAL_FACILITY_CAPACITY = 190 // 150 tank + 40 jerry cans
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 

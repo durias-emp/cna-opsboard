@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
-export const TANK_MAX_GAL = 140
+export const TANK_MAX_GAL = 150
 export const SUPPLIERS = {
   comalapa: 'Comalapa',
   ilopango: 'Ilopango',
