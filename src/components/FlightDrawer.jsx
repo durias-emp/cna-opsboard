@@ -445,6 +445,66 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
     onClose()
   }
 
+  function exportFlightCSV() {
+    const hobbsHours = toHobbs(ftMins ?? 0)
+    const rate       = parseFloat(receiptRate.replace(/,/g, '')) || 1350
+    const amount     = Math.round(hobbsHours * rate * 100) / 100
+
+    const firstLeg = legs[0]
+    const lastLeg  = legs[legs.length - 1]
+    const from     = firstLeg?.takeoff_location ?? ''
+    const to       = lastLeg?.landing_location  ?? ''
+
+    // Air time = sum of actual_minutes or tach-derived minutes across legs
+    const airTimeMins = legs.reduce((sum, l) => {
+      const raw = (() => {
+        if (l.takeoff_time && l.landing_time) {
+          const [th, tm] = l.takeoff_time.split(':').map(Number)
+          const [lh, lm] = l.landing_time.split(':').map(Number)
+          return (lh * 60 + lm) - (th * 60 + tm)
+        }
+        return 0
+      })()
+      return sum + (l.actual_minutes ?? (raw > 0 ? raw : 0))
+    }, 0)
+
+    const paxList = passengers
+      .filter(p => p.name.trim())
+      .map(p => p.name.trim() + (p.weight ? ` (${p.weight} lbs)` : ''))
+      .join('; ')
+
+    const headers = ['Date','Pilot','Copilot','From','To','Legs','Passengers','Cycles',
+                     'Flight Time (h)','Air Time (h)','Category','Client','Rate ($/hr)','Amount ($)','Notes']
+
+    const row = [
+      date,
+      pilot,
+      copilot,
+      from,
+      to,
+      legs.length,
+      paxList,
+      cycles,
+      hobbsHours.toFixed(1),
+      toHobbs(airTimeMins).toFixed(1),
+      receiptCategory,
+      receiptParty,
+      rate.toFixed(2),
+      amount.toFixed(2),
+      notes.replace(/"/g, '""'),
+    ]
+
+    const escape = v => `"${String(v ?? '').replace(/"/g, '""')}"`
+    const csv    = [headers.map(escape).join(','), row.map(escape).join(',')].join('\n')
+    const blob   = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url    = URL.createObjectURL(blob)
+    const a      = document.createElement('a')
+    a.href       = url
+    a.download   = `flight-${date}-${from || 'log'}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   async function handleSendToMonies() {
     setSendingMonies(true)
     try {
@@ -947,17 +1007,35 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
                     </p>
                     <p className="text-[11px] text-white/35 mt-1.5">{new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setReceiptEditing(e => !e)}
-                    className={`mt-1 px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-widest transition-colors select-none
-                      ${receiptEditing
-                        ? 'bg-white text-black'
-                        : 'bg-white/[0.06] text-white/40 active:bg-white/[0.10]'
-                      }`}
-                  >
-                    {receiptEditing ? 'Done' : 'Edit'}
-                  </button>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    {/* Export CSV */}
+                    <button
+                      type="button"
+                      onClick={exportFlightCSV}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-widest
+                                 bg-white/[0.06] text-white/40 active:bg-white/[0.10] transition-colors select-none"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+                        strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                      CSV
+                    </button>
+                    {/* Edit / Done */}
+                    <button
+                      type="button"
+                      onClick={() => setReceiptEditing(e => !e)}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-widest transition-colors select-none
+                        ${receiptEditing
+                          ? 'bg-white text-black'
+                          : 'bg-white/[0.06] text-white/40 active:bg-white/[0.10]'
+                        }`}
+                    >
+                      {receiptEditing ? 'Done' : 'Edit'}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Category */}
