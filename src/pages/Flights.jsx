@@ -496,6 +496,45 @@ export default function Flights() {
     setEditingFlight(null)
   }
 
+  function exportFlightsCSV() {
+    const toHobbs = mins => Math.round(mins / 6) / 10
+
+    const headers = ['Date','Pilot','Copilot','From','To','Legs',
+                     'Air Time (h)','Flight Time (h)','Cycles',
+                     'Fuel Start (gal)','Fuel End (gal)','Notes']
+
+    const rows = filtered.map(f => {
+      const firstLeg = f.legs?.[0]
+      const lastLeg  = f.legs?.[f.legs.length - 1]
+      return [
+        f.date,
+        f.pilot       ?? '',
+        f.copilot     ?? '',
+        firstLeg?.takeoff_location ?? '',
+        lastLeg?.landing_location  ?? '',
+        f.legs?.length ?? 1,
+        f.total_minutes       != null ? toHobbs(f.total_minutes).toFixed(1)       : '',
+        f.flight_time_minutes != null ? toHobbs(f.flight_time_minutes).toFixed(1) : '',
+        f.cycles      ?? '',
+        f.fuel_start_gal ?? '',
+        f.fuel_end_gal   ?? '',
+        (f.notes ?? '').replace(/"/g, '""'),
+      ]
+    })
+
+    const escape = v => `"${String(v ?? '').replace(/"/g, '""')}"`
+    const lines  = [headers, ...rows].map(r => r.map(escape).join(','))
+    const csv    = lines.join('\n')
+    const blob   = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url    = URL.createObjectURL(blob)
+    const a      = document.createElement('a')
+    a.href       = url
+    const label  = activeFilter === 1 ? 'this-month' : activeFilter === 2 ? 'last-month' : 'all'
+    a.download   = `flights-${selectedAircraft?.tail_number ?? 'log'}-${label}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   // Auto-open drawer when navigated here with openDrawer state
   useEffect(() => {
     if (location.state?.openDrawer) {
@@ -592,10 +631,34 @@ export default function Flights() {
 
         {/* Flight list */}
         <div>
-          <SectionHeader
-            title="Flight log"
-            action={{ label: editMode ? 'Done' : 'Edit', onClick: toggleEditMode }}
-          />
+          {/* Custom header with CSV + Edit buttons */}
+          <div className="flex items-center justify-between mb-3">
+            <p className="label">Flight log</p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={exportFlightsCSV}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold
+                           bg-white/[0.06] text-white/40 active:bg-white/[0.10] transition-colors select-none"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+                  strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                CSV
+              </button>
+              <button
+                onClick={toggleEditMode}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors select-none
+                  ${editMode
+                    ? 'bg-white text-black'
+                    : 'text-accent active:opacity-70'}`}
+              >
+                {editMode ? 'Done' : 'Edit'}
+              </button>
+            </div>
+          </div>
 
           {loading ? (
             <div className="space-y-3">
