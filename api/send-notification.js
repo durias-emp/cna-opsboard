@@ -42,7 +42,7 @@ function header(subtitle) {
 function footer() {
   return `
     <tr><td style="padding:24px 0;text-align:center">
-      <p style="margin:0;color:#ccc;font-size:11px">CNA OpsBoard &nbsp;·&nbsp; C-GOPF &nbsp;·&nbsp; Bell 206B3 JetRanger</p>
+      <p style="margin:0;color:#ccc;font-size:11px">CNA OpsBoard &nbsp;·&nbsp; YS-CNA &nbsp;·&nbsp; Bell 206B3 JetRanger</p>
     </td></tr>`
 }
 
@@ -108,7 +108,7 @@ function buildFlightEmail(d) {
       ${row('Pilot in Command', d.pilot)}
       ${d.copilot ? row('Co-Pilot', d.copilot) : ''}
       ${row('Date', formatDate(d.date))}
-      ${row('Aircraft', 'C-GOPF &nbsp;·&nbsp; Bell 206B3')}
+      ${row('Aircraft', 'YS-CNA &nbsp;·&nbsp; Bell 206B3')}
       ${row('Air Time', formatMins(d.total_minutes))}
       ${row('Flight Time', formatMins(d.flight_time_minutes))}
       ${row('Fuel Consumed', d.fuel_consumed_gal != null ? d.fuel_consumed_gal + ' gal' : null)}
@@ -141,7 +141,7 @@ function buildItineraryEmail(d) {
       ${row('Pilot in Command', d.pilot_in_command)}
       ${d.copilot ? row('Co-Pilot', d.copilot) : ''}
       ${row('Date', formatDate(d.date))}
-      ${row('Aircraft', 'C-GOPF &nbsp;·&nbsp; Bell 206B3')}
+      ${row('Aircraft', 'YS-CNA &nbsp;·&nbsp; Bell 206B3')}
       ${row('Departure Time', d.departure_time)}
       ${row('ETE', d.ete)}
       ${row('Fuel on Board', d.fuel_on_board ? d.fuel_on_board + ' gal' : null)}

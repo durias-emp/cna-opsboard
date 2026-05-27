@@ -1,6 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { seedAircraft, seedMaintenanceItems } from '../lib/seed'
+import { seedAircraft } from '../lib/seed'
 
 const AircraftContext = createContext(null)
 
@@ -8,7 +8,6 @@ export function AircraftProvider({ children }) {
   const [aircraft, setAircraft] = useState([])
   const [selectedAircraft, setSelectedAircraftState] = useState(null)
   const [loading, setLoading] = useState(true)
-  const maintenanceSeeded = useRef(false)
 
   const loadAircraft = useCallback(async () => {
     await seedAircraft()
@@ -32,12 +31,6 @@ export function AircraftProvider({ children }) {
       setAircraft(data)
       const next = data.find(a => a.id === selectedAircraft?.id) ?? data[0]
       setSelectedAircraftState(next)
-
-      // Seed maintenance items exactly once per session
-      if (next?.id && !maintenanceSeeded.current) {
-        maintenanceSeeded.current = true
-        seedMaintenanceItems(next.id)
-      }
     }
 
     setLoading(false)

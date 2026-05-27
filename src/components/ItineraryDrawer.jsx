@@ -9,7 +9,7 @@ const FREQUENT_PAX = [
 ]
 
 const AIRCRAFT_TYPE = 'Bell 206B3 JetRanger'
-const REGISTRATION  = 'C-GOPF'
+const REGISTRATION  = 'YS-CNA'
 
 function todayLocal() {
   const d = new Date()
