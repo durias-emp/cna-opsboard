@@ -573,7 +573,7 @@ export default function Flights() {
         </div>
 
         {/* Heatmap */}
-        {!loading && flights.length > 0 && (
+        {!loading && (
           <FlightHeatmap flights={flights} />
         )}
 

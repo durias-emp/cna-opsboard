@@ -22,9 +22,9 @@ export function AircraftProvider({ children }) {
       console.error('Failed to load aircraft:', error.message)
       const fallback = {
         id: 'local-1',
-        tail_number: 'C-GOPF',
+        tail_number: 'YS-CNA',
         make_model: 'Bell 206B3 JetRanger',
-        hobbs_current: 17563.6,
+        hobbs_current: 17538.0,
       }
       setAircraft([fallback])
       setSelectedAircraftState(fallback)

@@ -9,10 +9,10 @@ export async function seedAircraft() {
     .from('aircraft')
     .upsert(
       {
-        tail_number: 'C-GOPF',
+        tail_number: 'YS-CNA',
         make_model: 'Bell 206B3 JetRanger',
-        hobbs_current: 17563.6,
-        cycles_current: 25900,
+        hobbs_current: 17538.0,
+        cycles_current: 25868,
       },
       { onConflict: 'tail_number', ignoreDuplicates: true }
     )
