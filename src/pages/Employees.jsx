@@ -418,6 +418,7 @@ export default function Employees() {
 
   const [profile,    setProfile]    = useState(null)  // { person, isPilot }
   const [saveError,  setSaveError]  = useState(null)
+  const [todoOpen,   setTodoOpen]   = useState(false)
 
   function getProfile(person) {
     const db = dbProfiles[person.name] || {}
@@ -444,11 +445,20 @@ export default function Employees() {
 
   return (
     <div className="flex-1 overflow-y-auto nav-clearance">
-      <div className="px-4 pt-5 pb-2">
-        <h1 className="page-title">Team</h1>
-        <p className="text-xs text-white/40 mt-0.5">
-          {selectedAircraft?.tail_number} · Cielo Norte Aviación
-        </p>
+      <div className="flex items-center justify-between px-4 pt-5 pb-2">
+        <div>
+          <h1 className="page-title">Team</h1>
+          <p className="text-xs text-white/40 mt-0.5">
+            {selectedAircraft?.tail_number} · Cielo Norte Aviación
+          </p>
+        </div>
+        <button className="fab" onClick={() => setTodoOpen(true)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
+            strokeLinecap="round" className="w-4 h-4">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          To Do
+        </button>
       </div>
 
       <div className="px-4 pb-6 space-y-6">
