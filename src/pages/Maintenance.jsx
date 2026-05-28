@@ -349,6 +349,7 @@ export default function Maintenance() {
   const [fluidDrawer,   setFluidDrawer]   = useState(false)
   const [fluidType,     setFluidType]     = useState('engine_oil')
   const [forcedOpen,    setForcedOpen]    = useState({})
+  const [snagOpen,      setSnagOpen]      = useState(false)
 
   const overdueRef  = useRef(null)
   const dueSoonRef  = useRef(null)
@@ -402,11 +403,20 @@ export default function Maintenance() {
       <div className="relative">
 
         {/* Page title */}
-        <div className="px-4 pt-6 pb-2">
-          <h1 className="text-2xl font-bold text-white">Maintenance</h1>
-          <p className="text-xs text-white/35 mt-0.5">
-            {selectedAircraft?.tail_number} · {hobbs.toLocaleString()}h · {cycles.toLocaleString()} cyc
-          </p>
+        <div className="flex items-center justify-between px-4 pt-5 pb-2">
+          <div>
+            <h1 className="page-title">Maintenance</h1>
+            <p className="text-xs text-white/35 mt-0.5">
+              {selectedAircraft?.tail_number} · {hobbs.toLocaleString()}h · {cycles.toLocaleString()} cyc
+            </p>
+          </div>
+          <button className="fab" onClick={() => setSnagOpen(true)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
+              strokeLinecap="round" className="w-4 h-4">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Snag List
+          </button>
         </div>
 
         {/* Helicopter blueprint — screen blend makes black bg transparent.
