@@ -267,6 +267,75 @@ function Section({ label, statusColor, items, onCircleTap, onEdit, defaultOpen =
   )
 }
 
+// ── Calendar event popup ──────────────────────────────────────────────────────
+
+function CalendarEventPopup({ event, onClose }) {
+  function fmtTime(iso) {
+    if (!iso) return ''
+    return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+  }
+  function fmtDate(iso) {
+    if (!iso) return ''
+    return new Date(iso).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  }
+
+  return (
+    <div className="fixed inset-0 z-[95] flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.08] shadow-2xl overflow-hidden flex"
+           style={{ background: '#111113' }}>
+
+        {/* Left accent — calendar blue */}
+        <div className="w-1 flex-shrink-0" style={{ backgroundColor: '#63b3ed', opacity: 0.7 }} />
+
+        <div className="flex-1 p-5 space-y-4">
+
+          {/* Header */}
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(99,179,237,0.15)' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+                strokeLinecap="round" className="w-4 h-4" style={{ color: '#63b3ed' }}>
+                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-0.5"
+                style={{ color: '#63b3ed' }}>Google Calendar</p>
+              <h3 className="text-base font-bold text-white leading-snug">{event.title}</h3>
+            </div>
+          </div>
+
+          {/* Date + time */}
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            <div>
+              <p className="text-[10px] text-white/25 mb-0.5">Date</p>
+              <p className="text-xs font-semibold text-white/60">{fmtDate(event.start)}</p>
+            </div>
+            {event.start && (
+              <div>
+                <p className="text-[10px] text-white/25 mb-0.5">Time</p>
+                <p className="text-xs font-semibold text-white/60">
+                  {fmtTime(event.start)}{event.end ? ` → ${fmtTime(event.end)}` : ''}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <button onClick={onClose}
+            className="w-full py-3 rounded-2xl border border-white/10 text-white/40 text-sm font-semibold
+                       active:bg-white/[0.05] transition-colors">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Task popup (calendar tap) ─────────────────────────────────────────────────
 
 const PRIORITY_LABEL = { urgent: 'Urgent', high: 'High', medium: 'Medium', low: 'Low' }
@@ -537,7 +606,7 @@ const PRIORITY_DOT = {
   low:    'rgba(255,255,255,0.25)',
 }
 
-function MiniCalendar({ todos, onTaskTap }) {
+function MiniCalendar({ todos, onTaskTap, onEventTap }) {
   const base = new Date(); base.setHours(0, 0, 0, 0)
   const { events: calEvents, loading: calLoading } = useGoogleCalendar(3)
 
@@ -603,11 +672,11 @@ function MiniCalendar({ todos, onTaskTap }) {
                   <div className="h-6 rounded-lg bg-white/[0.04] animate-pulse" />
                 )}
                 {gcEvents.map((ev, j) => (
-                  <div key={j}
-                    className="flex items-start gap-1.5 rounded-xl px-2 py-1.5"
+                  <button key={j}
+                    onClick={() => onEventTap(ev)}
+                    className="flex items-start gap-1.5 rounded-xl px-2 py-1.5 w-full text-left active:opacity-60 transition-opacity"
                     style={{ background: 'rgba(99,179,237,0.12)' }}
                   >
-                    {/* Calendar icon */}
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
                       strokeLinecap="round" className="w-2.5 h-2.5 flex-shrink-0 mt-0.5"
                       style={{ color: '#63b3ed' }}>
@@ -618,7 +687,7 @@ function MiniCalendar({ todos, onTaskTap }) {
                     </svg>
                     <span className="text-[10px] leading-tight line-clamp-2"
                       style={{ color: '#90cdf4' }}>{ev.title}</span>
-                  </div>
+                  </button>
                 ))}
 
                 {/* Task divider when both exist */}
@@ -685,6 +754,7 @@ export default function Employees() {
   const [activeTab,     setActiveTab]     = useState('inbox')
   const [calendarTask,  setCalendarTask]  = useState(null)   // task tapped from calendar
   const [previewTask,   setPreviewTask]   = useState(null)   // task tapped from list
+  const [calendarEvent, setCalendarEvent] = useState(null)   // google calendar event tapped
 
   // Derive sections
   const overdueItems   = [...todo, ...inProgress].filter(t => isOverdue(t.due_date))
@@ -765,7 +835,7 @@ export default function Employees() {
 
         {/* Mini calendar — inbox only, scrolls with page */}
         {activeTab === 'inbox' && !todosLoading && (
-          <MiniCalendar todos={todos} onTaskTap={setCalendarTask} />
+          <MiniCalendar todos={todos} onTaskTap={setCalendarTask} onEventTap={setCalendarEvent} />
         )}
 
         {/* Tab chips */}
@@ -855,6 +925,11 @@ export default function Employees() {
         onDelete={deleteTodo}
         initial={editing}
       />
+
+      {/* Google Calendar event popup */}
+      {calendarEvent && (
+        <CalendarEventPopup event={calendarEvent} onClose={() => setCalendarEvent(null)} />
+      )}
 
       {/* Calendar task popup */}
       {calendarTask && (
