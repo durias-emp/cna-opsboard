@@ -905,26 +905,30 @@ export default function Employees() {
         )}
       </div>
 
-      {/* Roster drawer */}
-      <RosterDrawer
-        open={rosterOpen}
-        onClose={() => setRosterOpen(false)}
-        pilots={pilots}
-        mechanics={mechanics}
-        operations={operations}
-        loading={rosterLoading}
-        getProfile={getProfile}
-        onSave={saveProfile}
-      />
+      {/* Roster drawer — conditionally mounted so inputs never live in the DOM when closed */}
+      {rosterOpen && (
+        <RosterDrawer
+          open={rosterOpen}
+          onClose={() => setRosterOpen(false)}
+          pilots={pilots}
+          mechanics={mechanics}
+          operations={operations}
+          loading={rosterLoading}
+          getProfile={getProfile}
+          onSave={saveProfile}
+        />
+      )}
 
-      {/* Create / edit task drawer */}
-      <TodoDrawer
-        open={todoOpen}
-        onClose={() => { setTodoOpen(false); setEditing(null) }}
-        onSave={handleSave}
-        onDelete={deleteTodo}
-        initial={editing}
-      />
+      {/* Create / edit task drawer — conditionally mounted so inputs never live in the DOM when closed */}
+      {todoOpen && (
+        <TodoDrawer
+          open={todoOpen}
+          onClose={() => { setTodoOpen(false); setEditing(null) }}
+          onSave={handleSave}
+          onDelete={deleteTodo}
+          initial={editing}
+        />
+      )}
 
       {/* Google Calendar event popup */}
       {calendarEvent && (

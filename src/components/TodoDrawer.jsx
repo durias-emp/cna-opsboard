@@ -142,7 +142,7 @@ export default function TodoDrawer({ open, onClose, onSave, onDelete, initial })
             <label className="label block mb-1.5">Title</label>
             <input type="text" value={title} onChange={e => setTitle(e.target.value)}
               placeholder="What needs to be done?"
-              className="input-field w-full" autoFocus={!isEdit} />
+              className="input-field w-full" />
           </div>
 
           {/* Description */}
