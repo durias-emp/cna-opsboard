@@ -103,6 +103,12 @@ function SnagDetail({ snag, onClose, onUpdated }) {
               <p className="text-white/35 mb-0.5">Reported By</p>
               <p className="text-white font-medium">{snag.reported_by}</p>
             </div>
+            {snag.assigned_to && (
+              <div>
+                <p className="text-white/35 mb-0.5">Assigned To</p>
+                <p className="text-white font-medium">{snag.assigned_to}</p>
+              </div>
+            )}
             <div>
               <p className="text-white/35 mb-0.5">Aircraft Hours</p>
               <p className="text-white font-medium">{snag.aircraft_hours?.toLocaleString()}h</p>

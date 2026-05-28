@@ -33,6 +33,13 @@ const REPORTERS = [
   'Luis Soriano',
 ]
 
+// ── Mechanics who can be assigned a snag ─────────────────────────────────────
+const MECHANICS = [
+  'Cesar Espinoza',
+  'Antony Villalta',
+  'Luis Soriano',
+]
+
 const DESCRIPTION_PLACEHOLDER =
   `Describe the snag in detail:\n• What happened\n• When it happened\n• Under what conditions (flight phase, time of day, etc.)\n• Whether it is intermittent or constant\n\nExample: "Landing light inoperative during night operation. Circuit breaker checked — normal position. Condition appeared on departure, constant throughout flight."`
 
@@ -49,6 +56,7 @@ export default function SnagDrawer({ open, onClose, onSaved }) {
 
   const [date,        setDate]        = useState('')
   const [reportedBy,  setReportedBy]  = useState('')
+  const [assignedTo,  setAssignedTo]  = useState('')
   const [maintType,   setMaintType]   = useState('')
   const [description, setDescription] = useState('')
   const [hours,       setHours]       = useState('')
@@ -61,6 +69,7 @@ export default function SnagDrawer({ open, onClose, onSaved }) {
     if (open) {
       setDate(today())
       setReportedBy('')
+      setAssignedTo('')
       setMaintType('')
       setDescription('')
       setHours(selectedAircraft?.hobbs_current?.toString() ?? '')
@@ -97,6 +106,7 @@ export default function SnagDrawer({ open, onClose, onSaved }) {
       aircraft_id:      selectedAircraft.id,
       date,
       reported_by:      reportedBy,
+      assigned_to:      assignedTo || null,
       maintenance_type: maintType,
       description:      description.trim(),
       aircraft_hours:   hoursNum,
@@ -180,6 +190,31 @@ export default function SnagDrawer({ open, onClose, onSaved }) {
                     <option key={name} value={name} style={{ color: 'white', backgroundColor: '#1a1a1a' }}>{name}</option>
                   ))}
                 </optgroup>
+              </select>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+                strokeLinecap="round"
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25 pointer-events-none">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Assign To */}
+          <div>
+            <label className="label block mb-1.5">
+              Assign To <span className="normal-case font-normal text-white/25">(optional)</span>
+            </label>
+            <div className="relative">
+              <select
+                value={assignedTo}
+                onChange={e => setAssignedTo(e.target.value)}
+                className="input-field w-full appearance-none pr-8"
+                style={{ color: assignedTo ? 'white' : 'rgba(255,255,255,0.25)' }}
+              >
+                <option value="">Unassigned</option>
+                {MECHANICS.map(name => (
+                  <option key={name} value={name} style={{ color: 'white', backgroundColor: '#1a1a1a' }}>{name}</option>
+                ))}
               </select>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
                 strokeLinecap="round"
