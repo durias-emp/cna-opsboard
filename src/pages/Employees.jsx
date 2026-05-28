@@ -3,6 +3,7 @@ import { useAircraft } from '../context/AircraftContext'
 import { useEmployeeFlights } from '../hooks/useEmployeeFlights'
 import { useTodos } from '../hooks/useTodos'
 import { useTaskUpdates } from '../hooks/useTaskUpdates'
+import { useGoogleCalendar } from '../hooks/useGoogleCalendar'
 import TodoDrawer, { TEAM } from '../components/TodoDrawer'
 import RosterDrawer from '../components/RosterDrawer'
 import { supabase } from '../lib/supabase'
@@ -538,6 +539,7 @@ const PRIORITY_DOT = {
 
 function MiniCalendar({ todos, onTaskTap }) {
   const base = new Date(); base.setHours(0, 0, 0, 0)
+  const { events: calEvents, loading: calLoading } = useGoogleCalendar(3)
 
   const days = [0, 1, 2].map(offset => {
     const d = new Date(base)
@@ -554,6 +556,10 @@ function MiniCalendar({ todos, onTaskTap }) {
     return todos.filter(t => t.due_date === str && t.status !== 'done')
   }
 
+  function eventsForDay(d) {
+    return calEvents[toDateStr(d)] ?? []
+  }
+
   return (
     <div>
       <p className="text-[11px] font-semibold text-white/25 uppercase tracking-wider mb-2 px-0.5">
@@ -561,8 +567,11 @@ function MiniCalendar({ todos, onTaskTap }) {
       </p>
       <div className="flex gap-2">
         {days.map((day, i) => {
-          const isToday = i === 0
-          const tasks   = tasksForDay(day)
+          const isToday  = i === 0
+          const tasks    = tasksForDay(day)
+          const gcEvents = eventsForDay(day)
+          const isEmpty  = tasks.length === 0 && gcEvents.length === 0
+
           return (
             <div
               key={i}
@@ -579,7 +588,7 @@ function MiniCalendar({ todos, onTaskTap }) {
               </p>
 
               {/* Date number */}
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center mb-4 flex-shrink-0
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center mb-3 flex-shrink-0
                 ${isToday ? 'bg-white' : ''}`}>
                 <span className={`text-lg font-bold leading-none
                   ${isToday ? 'text-black' : 'text-white/70'}`}>
@@ -587,28 +596,52 @@ function MiniCalendar({ todos, onTaskTap }) {
                 </span>
               </div>
 
-              {/* Task list */}
-              <div className="flex-1 flex flex-col gap-2 overflow-hidden">
-                {tasks.length === 0 ? (
-                  <p className="text-[11px] text-white/15 mt-1">No tasks</p>
-                ) : (
-                  <>
-                    {tasks.slice(0, 6).map(t => (
-                      <button
-                        key={t.id}
-                        onClick={() => onTaskTap(t)}
-                        className="flex items-start gap-2 rounded-xl px-2 py-2 w-full text-left active:opacity-60 transition-opacity"
-                        style={{ background: 'rgba(255,255,255,0.05)' }}
-                      >
-                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-0.5"
-                          style={{ backgroundColor: PRIORITY_DOT[t.priority] ?? PRIORITY_DOT.medium }} />
-                        <span className="text-[11px] text-white/60 leading-tight line-clamp-2">{t.title}</span>
-                      </button>
-                    ))}
-                    {tasks.length > 6 && (
-                      <p className="text-[10px] text-white/25 px-2">+{tasks.length - 6} more</p>
-                    )}
-                  </>
+              {/* Content */}
+              <div className="flex-1 flex flex-col gap-1.5 overflow-hidden">
+                {/* Google Calendar events */}
+                {calLoading && i === 0 && (
+                  <div className="h-6 rounded-lg bg-white/[0.04] animate-pulse" />
+                )}
+                {gcEvents.map((ev, j) => (
+                  <div key={j}
+                    className="flex items-start gap-1.5 rounded-xl px-2 py-1.5"
+                    style={{ background: 'rgba(99,179,237,0.12)' }}
+                  >
+                    {/* Calendar icon */}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+                      strokeLinecap="round" className="w-2.5 h-2.5 flex-shrink-0 mt-0.5"
+                      style={{ color: '#63b3ed' }}>
+                      <rect x="3" y="4" width="18" height="18" rx="2"/>
+                      <line x1="16" y1="2" x2="16" y2="6"/>
+                      <line x1="8" y1="2" x2="8" y2="6"/>
+                      <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <span className="text-[10px] leading-tight line-clamp-2"
+                      style={{ color: '#90cdf4' }}>{ev.title}</span>
+                  </div>
+                ))}
+
+                {/* Task divider when both exist */}
+                {gcEvents.length > 0 && tasks.length > 0 && (
+                  <div className="border-t border-white/[0.06] my-0.5" />
+                )}
+
+                {/* Tasks */}
+                {tasks.slice(0, 4).map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => onTaskTap(t)}
+                    className="flex items-start gap-1.5 rounded-xl px-2 py-1.5 w-full text-left active:opacity-60 transition-opacity"
+                    style={{ background: 'rgba(255,255,255,0.05)' }}
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-0.5"
+                      style={{ backgroundColor: PRIORITY_DOT[t.priority] ?? PRIORITY_DOT.medium }} />
+                    <span className="text-[10px] text-white/55 leading-tight line-clamp-2">{t.title}</span>
+                  </button>
+                ))}
+
+                {isEmpty && !calLoading && (
+                  <p className="text-[11px] text-white/15 mt-1">Nothing scheduled</p>
                 )}
               </div>
             </div>
