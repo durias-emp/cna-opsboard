@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
+import { toHobbs, formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
 import { useFlights } from '../hooks/useFlights'
 import PageHeader from '../components/PageHeader'
@@ -27,14 +28,6 @@ const IconCalendar = () => (
 )
 
 const FILTERS = ['All', 'This month', 'Last month']
-
-function formatDate(iso) {
-  return new Date(iso + 'T12:00:00').toLocaleDateString('en-CA', {
-    month: 'short', day: 'numeric', year: 'numeric',
-  })
-}
-
-const toHobbs = mins => Math.round(mins / 6) / 10
 
 function formatDuration(mins) {
   if (!mins) return '—'
@@ -496,8 +489,6 @@ export default function Flights() {
   }
 
   function exportFlightsCSV() {
-    const toHobbs = mins => Math.round(mins / 6) / 10
-
     const headers = ['Date','Pilot','Copilot','From','To','Legs',
                      'Air Time (h)','Flight Time (h)','Cycles',
                      'Fuel Start (gal)','Fuel End (gal)','Notes']

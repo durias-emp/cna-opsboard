@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
 import { useMaintenance, FLUID_TYPES } from '../hooks/useMaintenance'
 import { useMaintenanceItems } from '../hooks/useMaintenanceItems'
@@ -9,13 +10,6 @@ import ComplianceDrawer from '../components/ComplianceDrawer'
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
-
-function formatDate(iso) {
-  if (!iso) return '—'
-  return new Date(iso + 'T12:00:00').toLocaleDateString('en-CA', {
-    month: 'short', day: 'numeric', year: 'numeric',
-  })
-}
 
 function daysRemaining(dueDateStr) {
   if (!dueDateStr) return null

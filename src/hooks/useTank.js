@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { round2 } from '../lib/utils'
 
 export const TANK_MAX_GAL = 150
 export const SUPPLIERS = {
   comalapa: 'Comalapa',
   ilopango: 'Ilopango',
 }
-
-const round2 = n => Math.round(n * 100) / 100
 
 export function useTank() {
   const [fillups,  setFillups]  = useState([])

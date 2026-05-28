@@ -1,13 +1,6 @@
 import { useEffect } from 'react'
+import { toHobbs, formatDate } from '../lib/utils'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
-
-const toHobbs = mins => Math.round(mins / 6) / 10
-
-function formatDate(dateStr) {
-  if (!dateStr) return '—'
-  const d = new Date(dateStr + 'T12:00:00')
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
 
 function formatHobbs(h) {
   return h.toFixed(1)

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { toHobbs, formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
 import { useFlights } from '../hooks/useFlights'
 import { useMaintenance, FLUID_TYPES } from '../hooks/useMaintenance'
@@ -153,14 +154,6 @@ function flightRoute(flight) {
   if (!first?.takeoff_location || !last?.landing_location) return '—'
   return `${first.takeoff_location} → ${last.landing_location}`
 }
-
-function formatDate(iso) {
-  return new Date(iso + 'T12:00:00').toLocaleDateString('en-CA', {
-    month: 'short', day: 'numeric', year: 'numeric',
-  })
-}
-
-const toHobbs = mins => Math.round(mins / 6) / 10
 
 function formatDuration(mins) {
   if (!mins) return '—'

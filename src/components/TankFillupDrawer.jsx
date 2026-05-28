@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { round2 } from '../lib/utils'
 import { TANK_MAX_GAL, SUPPLIERS } from '../hooks/useTank'
 import DatePicker from './DatePicker'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
-
-const round2 = n => Math.round(n * 100) / 100
 
 // defaultMode: 'fillup' | 'withdrawal'
 export default function TankFillupDrawer({ open, onClose, onSaved, lastGallonsAfter, defaultMode = 'fillup' }) {

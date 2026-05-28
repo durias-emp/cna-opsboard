@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { round2 } from '../lib/utils'
 
 export const FLUID_TYPES = {
   engine_oil:        { label: 'Engine Oil',        short: 'Eng. Oil' },
@@ -10,7 +11,6 @@ export const FLUID_TYPES = {
 const GREASE_INTERVAL = 25   // hours
 const GREASE_WARN_AT  = 23   // hours — start warning
 
-function round2(n) { return Math.round(n * 100) / 100 }
 
 export function useMaintenance(aircraftId, currentHobbs) {
   const [fluidLogs, setFluidLogs]   = useState({})   // keyed by fluid_type

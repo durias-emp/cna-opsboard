@@ -1,15 +1,7 @@
 import { useState } from 'react'
+import { toHobbs, formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
 import { useEmployeeFlights } from '../hooks/useEmployeeFlights'
-
-const toHobbs = mins => Math.round(mins / 6) / 10
-
-function formatDate(iso) {
-  if (!iso) return '—'
-  return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
-  })
-}
 
 function calcAge(dob) {
   if (!dob) return null

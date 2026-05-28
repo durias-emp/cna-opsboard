@@ -1,15 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { formatDate } from '../lib/utils'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-function formatDate(iso) {
-  if (!iso) return '—'
-  return new Date(iso + 'T12:00:00').toLocaleDateString('en-CA', {
-    month: 'short', day: 'numeric', year: 'numeric',
-  })
-}
 
 function formatDateTime(iso) {
   if (!iso) return '—'

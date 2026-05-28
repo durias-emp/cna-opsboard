@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
 import { useFlights } from '../hooks/useFlights'
 import { useTank, TANK_MAX_GAL, SUPPLIERS } from '../hooks/useTank'
@@ -25,15 +26,6 @@ const IconDollar = () => (
   <img src="/dollar-symbol.png" alt="dollar" className="w-4 h-4 object-contain"
     style={{ filter: 'brightness(0) invert(1)', opacity: 0.3 }} />
 )
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-function formatDate(iso) {
-  if (!iso) return '—'
-  return new Date(iso + 'T12:00:00').toLocaleDateString('en-CA', {
-    month: 'short', day: 'numeric', year: 'numeric',
-  })
-}
 
 // ── Tank Gauge ─────────────────────────────────────────────────────────────────
 

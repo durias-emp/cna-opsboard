@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { toHobbs } from '../lib/utils'
 
 // Only names and roles are hardcoded — all PII (DOB, phone, licenses, medical)
 // lives in the team_profiles table in Supabase and is loaded via dbProfiles.
@@ -20,8 +21,6 @@ const ROSTER = {
     { name: 'Diego Urias',     role: 'Operations'          },
   ],
 }
-
-const toHobbs = mins => Math.round(mins / 6) / 10
 
 // Convert DB row (snake_case) → app shape (camelCase)
 function dbToProfile(row) {
