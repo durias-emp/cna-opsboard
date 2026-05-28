@@ -6,7 +6,7 @@ import { useMaintenanceItems } from '../hooks/useMaintenanceItems'
 import PageHeader from '../components/PageHeader'
 import MaintenanceDrawer from '../components/MaintenanceDrawer'
 import ComplianceDrawer from '../components/ComplianceDrawer'
-import SnagDrawer from '../components/SnagDrawer'
+import SnagListDrawer from '../components/SnagListDrawer'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -608,10 +608,9 @@ export default function Maintenance() {
       />
 
       {/* Snag list drawer */}
-      <SnagDrawer
+      <SnagListDrawer
         open={snagOpen}
         onClose={() => setSnagOpen(false)}
-        onSaved={() => {}}
       />
     </div>
   )
