@@ -29,7 +29,11 @@ export function AircraftProvider({ children }) {
       setSelectedAircraftState(fallback)
     } else if (data && data.length > 0) {
       setAircraft(data)
-      const next = data.find(a => a.id === selectedAircraft?.id) ?? data[0]
+      // Prefer the previously selected aircraft, then YS-CNA, then first in list.
+      // This prevents a stale/ghost row from being shown if it sorts before YS-CNA.
+      const next = data.find(a => a.id === selectedAircraft?.id)
+        ?? data.find(a => a.tail_number === 'YS-CNA')
+        ?? data[0]
       setSelectedAircraftState(next)
     }
 
