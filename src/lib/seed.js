@@ -12,8 +12,8 @@ export async function seedAircraft() {
       {
         tail_number: 'YS-CNA',
         make_model: 'Bell 206B3 JetRanger',
-        hobbs_current: 17502.8,
-        cycles_current: 25816,
+        hobbs_current: 17503.4,
+        cycles_current: 25817,
       },
       { onConflict: 'tail_number', ignoreDuplicates: true }
     )

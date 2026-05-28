@@ -23,7 +23,7 @@ export function AircraftProvider({ children }) {
         id: 'local-1',
         tail_number: 'YS-CNA',
         make_model: 'Bell 206B3 JetRanger',
-        hobbs_current: 17502.8,
+        hobbs_current: 17503.4,
       }
       setAircraft([fallback])
       setSelectedAircraftState(fallback)
