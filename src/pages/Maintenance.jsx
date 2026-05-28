@@ -6,6 +6,7 @@ import { useMaintenanceItems } from '../hooks/useMaintenanceItems'
 import PageHeader from '../components/PageHeader'
 import MaintenanceDrawer from '../components/MaintenanceDrawer'
 import ComplianceDrawer from '../components/ComplianceDrawer'
+import SnagDrawer from '../components/SnagDrawer'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -604,6 +605,13 @@ export default function Maintenance() {
         onClose={() => setFluidDrawer(false)}
         onSaved={maint.refresh}
         defaultType={fluidType}
+      />
+
+      {/* Snag list drawer */}
+      <SnagDrawer
+        open={snagOpen}
+        onClose={() => setSnagOpen(false)}
+        onSaved={() => {}}
       />
     </div>
   )
