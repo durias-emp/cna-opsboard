@@ -7,6 +7,7 @@ import { useGoogleCalendar } from '../hooks/useGoogleCalendar'
 import TodoDrawer, { TEAM } from '../components/TodoDrawer'
 import RosterDrawer from '../components/RosterDrawer'
 import { supabase } from '../lib/supabase'
+import { notifyAssignment } from '../lib/notifyAssignment'
 
 // Priority border colors — inline styles to avoid Tailwind JIT issues
 const PRIORITY_BORDER = {
@@ -789,8 +790,19 @@ export default function Employees() {
   }
 
   async function handleSave(payload) {
+    const prevAssignee = editing?.assigned_to ?? null
     if (editing) { await updateTodo(editing.id, payload) }
     else         { await addTodo(payload) }
+
+    // Notify the assignee if they were just assigned (new task or reassigned)
+    if (payload.assigned_to && payload.assigned_to !== prevAssignee) {
+      notifyAssignment({
+        assignee:   payload.assigned_to,
+        title:      payload.title,
+        dueDate:    payload.due_date ?? null,
+        assignedBy: localStorage.getItem('cna_identity') ?? null,
+      })
+    }
   }
 
   const noTasks   = !todosLoading && inboxItems.length === 0 && activeItems.length === 0 && overdueItems.length === 0 && done.length === 0
