@@ -25,22 +25,24 @@ export default function AircraftBar() {
       ) : aircraft.length <= 1 ? (
         <AircraftChip aircraft={selectedAircraft} />
       ) : (
-        <select
-          value={selectedAircraft?.id ?? ''}
-          onChange={(e) => {
-            const found = aircraft.find((a) => String(a.id) === e.target.value)
-            if (found) setSelectedAircraft(found)
-          }}
-          className="bg-navy-800 text-white text-xs font-medium rounded-full
-                     border border-white/10 px-3 py-1.5 outline-none
-                     appearance-none cursor-pointer"
-        >
-          {aircraft.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.tail_number} — {a.make_model}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <select
+            value={selectedAircraft?.id ?? ''}
+            onChange={(e) => {
+              const found = aircraft.find((a) => String(a.id) === e.target.value)
+              if (found) setSelectedAircraft(found)
+            }}
+            className="bg-transparent text-white text-xs font-semibold outline-none
+                       appearance-none cursor-pointer opacity-0 absolute inset-0 w-full h-full"
+          >
+            {aircraft.map((a) => (
+              <option key={a.id} value={a.id} style={{ backgroundColor: '#0f172a' }}>
+                {a.tail_number}
+              </option>
+            ))}
+          </select>
+          <AircraftChip aircraft={selectedAircraft} />
+        </div>
       )}
     </div>
   )
