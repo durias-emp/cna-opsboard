@@ -1,5 +1,6 @@
 const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-push`
-const ANON_KEY =  import.meta.env.VITE_SUPABASE_ANON_KEY
+// Edge Functions require the classic JWT anon key, not the publishable key
+const ANON_KEY =  import.meta.env.VITE_SUPABASE_ANON_JWT
 
 /**
  * Fire-and-forget — sends a push notification to the assigned person's device.
