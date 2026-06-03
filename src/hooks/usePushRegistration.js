@@ -35,37 +35,48 @@ export function usePushRegistration() {
     setRegistering(true)
     setError(null)
     try {
-      // 1. Register service worker
-      const reg = await navigator.serviceWorker.register('/sw.js')
-      await navigator.serviceWorker.ready
+      // Check if push is supported (requires home screen PWA on iOS)
+      const pushSupported =
+        'serviceWorker' in navigator &&
+        'PushManager'   in window
 
-      // 2. Request push permission + subscribe
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly:      true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC),
-      })
+      if (pushSupported) {
+        // 1. Register service worker
+        const reg = await navigator.serviceWorker.register('/sw.js')
+        await navigator.serviceWorker.ready
 
-      // 3. Save subscription to Supabase (upsert so re-registering on new phone works)
-      const { error: dbErr } = await supabase
-        .from('device_tokens')
-        .upsert(
-          { name, subscription: sub.toJSON(), updated_at: new Date().toISOString() },
-          { onConflict: 'name' }
-        )
-      if (dbErr) throw new Error(dbErr.message)
+        // 2. Request push permission + subscribe
+        if (reg.pushManager) {
+          const sub = await reg.pushManager.subscribe({
+            userVisibleOnly:      true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC),
+          })
 
-      // 4. Store identity locally — never ask again on this device
+          // 3. Save subscription to Supabase
+          const { error: dbErr } = await supabase
+            .from('device_tokens')
+            .upsert(
+              { name, subscription: sub.toJSON(), updated_at: new Date().toISOString() },
+              { onConflict: 'name' }
+            )
+          if (dbErr) throw new Error(dbErr.message)
+        }
+      }
+
+      // Always save identity locally — notifications optional
       localStorage.setItem(IDENTITY_KEY, name)
       setIdentity(name)
 
     } catch (e) {
-      // Permission denied or other error
       if (e.name === 'NotAllowedError') {
-        // Still save identity even if push is denied — useful for future
+        // User denied notifications — still identify the device
         localStorage.setItem(IDENTITY_KEY, name)
         setIdentity(name)
       } else {
-        setError(e.message ?? 'Registration failed')
+        // Any other error — still let them in, just skip push
+        console.warn('Push registration failed:', e.message)
+        localStorage.setItem(IDENTITY_KEY, name)
+        setIdentity(name)
       }
     } finally {
       setRegistering(false)

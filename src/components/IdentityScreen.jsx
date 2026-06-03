@@ -57,11 +57,19 @@ export default function IdentityScreen({ takenNames, onSelect, registering, erro
         <p className="mt-6 text-xs text-red-400 text-center max-w-xs">{error}</p>
       )}
 
+      {/* Note for regular browser (non-PWA) */}
+      {'PushManager' in window ? null : (
+        <p className="mt-8 text-[11px] text-white/25 text-center max-w-xs leading-relaxed">
+          For push notifications, add this app to your Home Screen first.
+          You can still identify yourself now.
+        </p>
+      )}
+
       {/* Skip */}
       <button
         onClick={() => onSelect(null)}
         disabled={registering}
-        className="mt-10 text-xs text-white/20 active:text-white/40 transition-colors">
+        className="mt-6 text-xs text-white/20 active:text-white/40 transition-colors">
         Skip for now
       </button>
     </div>
