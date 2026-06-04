@@ -9,6 +9,7 @@ import EmptyState from '../components/EmptyState'
 import FlightDrawer from '../components/FlightDrawer'
 import ItineraryDrawer from '../components/ItineraryDrawer'
 import ItineraryRecordsDrawer from '../components/ItineraryRecordsDrawer'
+import WeightBalanceCalculator from '../components/WeightBalanceCalculator'
 
 const IconFlight = () => (
   <img src="/helicopter.png" alt="helicopter" className="w-5 h-5 object-contain opacity-50"
@@ -472,6 +473,7 @@ export default function Flights() {
   const [itineraryOpen,    setItineraryOpen]    = useState(false)
   const [recordsOpen,      setRecordsOpen]      = useState(false)
   const [editingItinerary, setEditingItinerary] = useState(null)
+  const [wabOpen,          setWabOpen]          = useState(false)
 
   function openEditFlight(flight) {
     setEditingFlight(flight)
@@ -568,38 +570,50 @@ export default function Flights() {
         )}
 
         {/* ── Itinerary action tiles ── */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* Add New Itinerary — white tile */}
-          <button
-            onClick={() => setItineraryOpen(true)}
-            className="flex items-center gap-2.5 rounded-xl px-3 py-2.5
-                       bg-white active:scale-95 transition-transform select-none"
-          >
-            <div className="w-6 h-6 rounded-lg bg-black/10 flex items-center justify-center flex-shrink-0">
-              <svg viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth={2.5}
-                strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5"  y1="12" x2="19" y2="12" />
-              </svg>
-            </div>
-            <p className="text-xs font-bold text-black leading-tight">Add New Itinerary</p>
-          </button>
+        <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-2 gap-2">
+            {/* Add New Itinerary — white tile */}
+            <button
+              onClick={() => setItineraryOpen(true)}
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2.5
+                         bg-white active:scale-95 transition-transform select-none"
+            >
+              <div className="w-6 h-6 rounded-lg bg-black/10 flex items-center justify-center flex-shrink-0">
+                <svg viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth={2.5}
+                  strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5"  y1="12" x2="19" y2="12" />
+                </svg>
+              </div>
+              <p className="text-xs font-bold text-black leading-tight">Add New Itinerary</p>
+            </button>
 
-          {/* Itinerary Records — charcoal tile */}
+            {/* Itinerary Records — charcoal tile */}
+            <button
+              onClick={() => setRecordsOpen(true)}
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2.5
+                         bg-[#1C1C1E] border border-white/[0.07]
+                         active:scale-95 transition-transform select-none"
+            >
+              <div className="w-6 h-6 rounded-lg bg-white/[0.08] flex items-center justify-center flex-shrink-0">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}
+                  strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-white/60">
+                  <path d="M9 11l3 3L22 4" />
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                </svg>
+              </div>
+              <p className="text-xs font-bold text-white/80 leading-tight">Itinerary Records</p>
+            </button>
+          </div>
+
+          {/* Weight & Balance Calculator — full width below */}
           <button
-            onClick={() => setRecordsOpen(true)}
-            className="flex items-center gap-2.5 rounded-xl px-3 py-2.5
+            onClick={() => setWabOpen(true)}
+            className="w-full flex items-center justify-center rounded-xl px-3 py-[11px]
                        bg-[#1C1C1E] border border-white/[0.07]
                        active:scale-95 transition-transform select-none"
           >
-            <div className="w-6 h-6 rounded-lg bg-white/[0.08] flex items-center justify-center flex-shrink-0">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}
-                strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-white/60">
-                <path d="M9 11l3 3L22 4" />
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-              </svg>
-            </div>
-            <p className="text-xs font-bold text-white/80 leading-tight">Itinerary Records</p>
+            <p className="text-xs font-bold text-white/80 leading-tight">Weight & Balance Calculator</p>
           </button>
         </div>
 
@@ -743,6 +757,8 @@ export default function Flights() {
           setItineraryOpen(true)
         }}
       />
+
+      {wabOpen && <WeightBalanceCalculator onClose={() => setWabOpen(false)} />}
     </div>
   )
 }
