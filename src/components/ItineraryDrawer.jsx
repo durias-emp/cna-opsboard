@@ -3,6 +3,99 @@ import { supabase } from '../lib/supabase'
 import DatePicker from './DatePicker'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 
+// ── Phone input with country code ─────────────────────────────────────────────
+
+const DIAL_CODES = [
+  { flag: '🇸🇻', code: '+503', country: 'El Salvador'       },
+  { flag: '🇺🇸', code: '+1',   country: 'USA / Canada'      },
+  { flag: '🇲🇽', code: '+52',  country: 'Mexico'            },
+  { flag: '🇬🇹', code: '+502', country: 'Guatemala'         },
+  { flag: '🇭🇳', code: '+504', country: 'Honduras'          },
+  { flag: '🇳🇮', code: '+505', country: 'Nicaragua'         },
+  { flag: '🇨🇷', code: '+506', country: 'Costa Rica'        },
+  { flag: '🇵🇦', code: '+507', country: 'Panama'            },
+  { flag: '🇨🇴', code: '+57',  country: 'Colombia'          },
+  { flag: '🇵🇪', code: '+51',  country: 'Peru'              },
+  { flag: '🇨🇱', code: '+56',  country: 'Chile'             },
+  { flag: '🇦🇷', code: '+54',  country: 'Argentina'         },
+  { flag: '🇧🇷', code: '+55',  country: 'Brazil'            },
+  { flag: '🇩🇴', code: '+1809',country: 'Dominican Rep.'    },
+  { flag: '🇪🇸', code: '+34',  country: 'Spain'             },
+]
+
+function PhoneInput({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const ref             = useRef(null)
+
+  const dial_code = value?.dial_code ?? '+503'
+  const number    = value?.number    ?? ''
+  const selected  = DIAL_CODES.find(d => d.code === dial_code) ?? DIAL_CODES[0]
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return
+    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative flex rounded-xl overflow-visible"
+         style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+
+      {/* Country code button */}
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 pl-3 pr-2.5 py-2.5 flex-shrink-0 transition-colors active:bg-white/[0.04]"
+        style={{ borderRight: '1px solid rgba(255,255,255,0.08)' }}
+      >
+        <span className="text-base leading-none">{selected.flag}</span>
+        <span className="text-xs font-medium text-white/60">{selected.code}</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
+          strokeLinecap="round" className="w-2.5 h-2.5 text-white/25">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+
+      {/* Number input */}
+      <input
+        type="tel"
+        inputMode="tel"
+        placeholder="Phone number"
+        value={number}
+        onChange={e => onChange({ dial_code, number: e.target.value })}
+        className="flex-1 min-w-0 bg-transparent px-3 py-2.5 text-sm text-white outline-none"
+        style={{ caretColor: 'white' }}
+      />
+
+      {/* Dropdown */}
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-[60] w-56 rounded-xl overflow-hidden shadow-2xl"
+             style={{ background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.08)' }}>
+          {DIAL_CODES.map(d => (
+            <button
+              key={d.code}
+              type="button"
+              onMouseDown={e => {
+                e.preventDefault()
+                onChange({ dial_code: d.code, number })
+                setOpen(false)
+              }}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 text-left transition-colors active:bg-white/[0.07]"
+              style={{ background: d.code === dial_code ? 'rgba(255,255,255,0.06)' : 'transparent' }}
+            >
+              <span className="text-base">{d.flag}</span>
+              <span className="text-xs text-white/80 flex-1">{d.country}</span>
+              <span className="text-xs text-white/35 font-medium">{d.code}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 const FREQUENT_PAX = [
   { name: 'Francisco Cordova', weight: 150 },
   { name: 'Westley Cordova',   weight: 180 },
@@ -28,10 +121,10 @@ const EMPTY = () => ({
   ete:                '',
   fuel_on_board:      '',
   pax: [
-    { name: '', weight: '', emergency_contact: '' },
-    { name: '', weight: '', emergency_contact: '' },
-    { name: '', weight: '', emergency_contact: '' },
-    { name: '', weight: '', emergency_contact: '' },
+    { name: '', weight: '', emergency_contact: { dial_code: '+503', number: '' } },
+    { name: '', weight: '', emergency_contact: { dial_code: '+503', number: '' } },
+    { name: '', weight: '', emergency_contact: { dial_code: '+503', number: '' } },
+    { name: '', weight: '', emergency_contact: { dial_code: '+503', number: '' } },
   ],
 })
 
@@ -86,8 +179,15 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
     if (!open) return
     if (editRecord) {
       const srcPax = editRecord.pax ?? []
-      const filled = srcPax.map(p => ({ name: p.name ?? '', weight: p.weight != null ? String(p.weight) : '', emergency_contact: p.emergency_contact ?? '' }))
-      while (filled.length < 4) filled.push({ name: '', weight: '', emergency_contact: '' })
+      const filled = srcPax.map(p => ({
+        name:  p.name   ?? '',
+        weight: p.weight != null ? String(p.weight) : '',
+        // support both old string format and new object format
+        emergency_contact: typeof p.emergency_contact === 'object' && p.emergency_contact !== null
+          ? p.emergency_contact
+          : { dial_code: '+503', number: p.emergency_contact ?? '' },
+      }))
+      while (filled.length < 4) filled.push({ name: '', weight: '', emergency_contact: { dial_code: '+503', number: '' } })
       setForm({
         pilot_in_command:   editRecord.pilot_in_command   ?? '',
         copilot:            editRecord.copilot            ?? '',
@@ -496,17 +596,13 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
 
                 {/* Emergency contact — appears when name is typed */}
                 {p.name.trim() && (
-                  <div className="ml-8 relative">
+                  <div className="ml-8">
                     <label className="block text-[10px] font-semibold text-white/25 uppercase tracking-wider mb-1 ml-1">
                       Emergency Contact Number
                     </label>
-                    <input
-                      type="tel"
-                      inputMode="tel"
-                      placeholder="Phone number"
+                    <PhoneInput
                       value={p.emergency_contact}
-                      onChange={e => setPax(i, 'emergency_contact', e.target.value)}
-                      className="input-field w-full py-2 text-sm"
+                      onChange={val => setPax(i, 'emergency_contact', val)}
                     />
                   </div>
                 )}
