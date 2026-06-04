@@ -28,10 +28,10 @@ const EMPTY = () => ({
   ete:                '',
   fuel_on_board:      '',
   pax: [
-    { name: '', weight: '' },
-    { name: '', weight: '' },
-    { name: '', weight: '' },
-    { name: '', weight: '' },
+    { name: '', weight: '', emergency_contact: '' },
+    { name: '', weight: '', emergency_contact: '' },
+    { name: '', weight: '', emergency_contact: '' },
+    { name: '', weight: '', emergency_contact: '' },
   ],
 })
 
@@ -86,8 +86,8 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
     if (!open) return
     if (editRecord) {
       const srcPax = editRecord.pax ?? []
-      const filled = srcPax.map(p => ({ name: p.name ?? '', weight: p.weight != null ? String(p.weight) : '' }))
-      while (filled.length < 4) filled.push({ name: '', weight: '' })
+      const filled = srcPax.map(p => ({ name: p.name ?? '', weight: p.weight != null ? String(p.weight) : '', emergency_contact: p.emergency_contact ?? '' }))
+      while (filled.length < 4) filled.push({ name: '', weight: '', emergency_contact: '' })
       setForm({
         pilot_in_command:   editRecord.pilot_in_command   ?? '',
         copilot:            editRecord.copilot            ?? '',
@@ -406,7 +406,8 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
             <p className="label mb-3">Passengers</p>
             <div className="space-y-2.5" ref={dropdownRef}>
               {form.pax.map((p, i) => (
-                <div key={i} className="flex items-center gap-2">
+                <div key={i} className="space-y-1.5">
+                <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-white/[0.06] flex items-center justify-center flex-shrink-0">
                     <span className="text-[10px] font-bold text-white/30">{i + 1}</span>
                   </div>
@@ -491,6 +492,24 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
                       lbs
                     </span>
                   </div>
+                </div>
+
+                {/* Emergency contact — appears when name is typed */}
+                {p.name.trim() && (
+                  <div className="ml-8 relative">
+                    <label className="block text-[10px] font-semibold text-white/25 uppercase tracking-wider mb-1 ml-1">
+                      Emergency Contact Number
+                    </label>
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      placeholder="Phone number"
+                      value={p.emergency_contact}
+                      onChange={e => setPax(i, 'emergency_contact', e.target.value)}
+                      className="input-field w-full py-2 text-sm"
+                    />
+                  </div>
+                )}
                 </div>
               ))}
             </div>
