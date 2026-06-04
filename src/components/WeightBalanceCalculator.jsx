@@ -30,8 +30,8 @@ const DOORS = {
 
 // ── CG limits ─────────────────────────────────────────────────────────────────
 
-const LAT_L_LIMIT = -2.3
-const LAT_R_LIMIT =  3.5
+const LAT_L_LIMIT = -3.0   // BHT-206B3-FM-1 Figure 1-2 main body limit
+const LAT_R_LIMIT =  4.0   // BHT-206B3-FM-1 Figure 1-2 main body limit
 
 function longFwdLimit(anyFrontDoorOff) { return anyFrontDoorOff ? 111.6 : 106.0 }
 function longAftLimit(w) {
@@ -254,16 +254,18 @@ function LatCGChart({ result }) {
   const hasZF = isFinite(zeroFuel.longCG) && zeroFuel.weight > 0
   const hasAU = isFinite(allUp.longCG)    && allUp.weight    > 0
 
-  // Lateral envelope always drawn to max aft limit (114.2") — matches iBal
-  // The dots reflect actual weight; the envelope shows the full permissible range
+  // Lateral envelope — BHT-206B3-FM-1 Figure 1-2 exact coordinates
+  // Main body (108"–114.2"): -3.0" to +4.0"
+  // Left cut: -3.0" at 108" → -2.3" at 106"
+  // Right cut: +4.0" at 108" → +3.0" at 106"
   const LAT_AFT = 114.2
   const envPts = [
-    [-1.3,         106.0   ],   // Fwd limit — left (narrowed)
-    [ 2.5,         106.0   ],   // Fwd limit — right (narrowed)
-    [ LAT_R_LIMIT, 108.0   ],   // Right cut — full width at 108"
-    [ LAT_R_LIMIT, LAT_AFT ],   // Aft — right (always 114.2")
-    [ LAT_L_LIMIT, LAT_AFT ],   // Aft — left (always 114.2")
-    [ LAT_L_LIMIT, 108.0   ],   // Left cut — full width at 108"
+    [-2.3,         106.0   ],   // Fwd left  — cut ends at -2.3" (per FM label)
+    [ 3.0,         106.0   ],   // Fwd right — cut ends at +3.0"
+    [ LAT_R_LIMIT, 108.0   ],   // Right: opens to +4.0" at 108"
+    [ LAT_R_LIMIT, LAT_AFT ],   // Aft right — 114.2"
+    [ LAT_L_LIMIT, LAT_AFT ],   // Aft left  — 114.2"
+    [ LAT_L_LIMIT, 108.0   ],   // Left: opens to -3.0" at 108"
   ].map(([lat, longCG]) => `${px(lat).toFixed(1)},${py(longCG).toFixed(1)}`).join(' ')
 
   const longTicks = [106, 107, 108, 109, 110, 111, 112, 113, 114]
