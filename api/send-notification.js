@@ -46,16 +46,31 @@ function footer() {
     </td></tr>`
 }
 
+function formatEmergencyContact(ec) {
+  if (!ec) return null
+  // Support both old string format and new { dial_code, number } object
+  if (typeof ec === 'string') return ec.trim() || null
+  const num = (ec.number ?? '').trim()
+  if (!num) return null
+  return ec.dial_code ? `${ec.dial_code} ${num}` : num
+}
+
 function paxTable(list) {
   if (!list || list.length === 0) return ''
   // Handle both {weight_lbs} and {weight} key names
   const rows = list.map(p => {
-    const w = p.weight_lbs ?? p.weight ?? null
+    const w  = p.weight_lbs ?? p.weight ?? null
+    const ec = formatEmergencyContact(p.emergency_contact)
     return `
     <tr>
-      <td style="padding:5px 0;color:#111;font-size:12px">${p.name || '—'}</td>
-      <td style="padding:5px 0;color:#888;font-size:12px;text-align:right">${w ? w + ' lbs' : '—'}</td>
-    </tr>`
+      <td style="padding:6px 0 2px;color:#111;font-size:12px;font-weight:600">${p.name || '—'}</td>
+      <td style="padding:6px 0 2px;color:#888;font-size:12px;text-align:right;vertical-align:top">${w ? w + ' lbs' : '—'}</td>
+    </tr>
+    ${ec ? `<tr>
+      <td colspan="2" style="padding:0 0 6px;color:#aaa;font-size:11px">
+        Emergency contact: <span style="color:#555;font-weight:500">${ec}</span>
+      </td>
+    </tr>` : ''}`
   }).join('')
   return `
     <div style="margin-top:24px;border-top:1px solid #f0f0f0;padding-top:20px">
