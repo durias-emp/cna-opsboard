@@ -6,22 +6,32 @@ import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 // ── Phone input with country code ─────────────────────────────────────────────
 
 const DIAL_CODES = [
-  { flag: '🇸🇻', code: '+503', country: 'El Salvador'       },
-  { flag: '🇺🇸', code: '+1',   country: 'USA / Canada'      },
-  { flag: '🇲🇽', code: '+52',  country: 'Mexico'            },
-  { flag: '🇬🇹', code: '+502', country: 'Guatemala'         },
-  { flag: '🇭🇳', code: '+504', country: 'Honduras'          },
-  { flag: '🇳🇮', code: '+505', country: 'Nicaragua'         },
-  { flag: '🇨🇷', code: '+506', country: 'Costa Rica'        },
-  { flag: '🇵🇦', code: '+507', country: 'Panama'            },
-  { flag: '🇨🇴', code: '+57',  country: 'Colombia'          },
-  { flag: '🇵🇪', code: '+51',  country: 'Peru'              },
-  { flag: '🇨🇱', code: '+56',  country: 'Chile'             },
-  { flag: '🇦🇷', code: '+54',  country: 'Argentina'         },
-  { flag: '🇧🇷', code: '+55',  country: 'Brazil'            },
-  { flag: '🇩🇴', code: '+1809',country: 'Dominican Rep.'    },
-  { flag: '🇪🇸', code: '+34',  country: 'Spain'             },
+  { iso: 'sv', code: '+503', country: 'El Salvador'    },
+  { iso: 'us', code: '+1',   country: 'USA / Canada'   },
+  { iso: 'mx', code: '+52',  country: 'Mexico'         },
+  { iso: 'gt', code: '+502', country: 'Guatemala'      },
+  { iso: 'hn', code: '+504', country: 'Honduras'       },
+  { iso: 'ni', code: '+505', country: 'Nicaragua'      },
+  { iso: 'cr', code: '+506', country: 'Costa Rica'     },
+  { iso: 'pa', code: '+507', country: 'Panama'         },
+  { iso: 'co', code: '+57',  country: 'Colombia'       },
+  { iso: 'pe', code: '+51',  country: 'Peru'           },
+  { iso: 'cl', code: '+56',  country: 'Chile'          },
+  { iso: 'ar', code: '+54',  country: 'Argentina'      },
+  { iso: 'br', code: '+55',  country: 'Brazil'         },
+  { iso: 'do', code: '+1809',country: 'Dominican Rep.' },
+  { iso: 'es', code: '+34',  country: 'Spain'          },
 ]
+
+function FlagImg({ iso, className = 'w-5 h-3.5' }) {
+  return (
+    <img
+      src={`https://flagcdn.com/w40/${iso}.png`}
+      alt={iso}
+      className={`${className} object-cover rounded-[2px]`}
+    />
+  )
+}
 
 function PhoneInput({ value, onChange }) {
   const [open, setOpen] = useState(false)
@@ -50,7 +60,7 @@ function PhoneInput({ value, onChange }) {
         className="flex items-center gap-1.5 pl-3 pr-2.5 py-2.5 flex-shrink-0 transition-colors active:bg-white/[0.04]"
         style={{ borderRight: '1px solid rgba(255,255,255,0.08)' }}
       >
-        <span className="text-base leading-none">{selected.flag}</span>
+        <FlagImg iso={selected.iso} />
         <span className="text-xs font-medium text-white/60">{selected.code}</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
           strokeLinecap="round" className="w-2.5 h-2.5 text-white/25">
@@ -85,7 +95,7 @@ function PhoneInput({ value, onChange }) {
               className="w-full flex items-center gap-3 px-3.5 py-2.5 text-left transition-colors active:bg-white/[0.07]"
               style={{ background: d.code === dial_code ? 'rgba(255,255,255,0.06)' : 'transparent' }}
             >
-              <span className="text-base">{d.flag}</span>
+              <FlagImg iso={d.iso} />
               <span className="text-xs text-white/80 flex-1">{d.country}</span>
               <span className="text-xs text-white/35 font-medium">{d.code}</span>
             </button>
