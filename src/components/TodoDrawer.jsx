@@ -30,8 +30,7 @@ export const CATEGORIES = [
 export const PRIORITY = {
   urgent: { label: 'Urgent', activeStyle: { backgroundColor: 'rgba(239,68,68,0.2)',   color: '#ef4444' } },
   high:   { label: 'High',   activeStyle: { backgroundColor: 'rgba(249,115,22,0.2)',  color: '#fb923c' } },
-  medium: { label: 'Medium', activeStyle: { backgroundColor: 'rgba(59,130,246,0.2)',  color: '#60a5fa' } },
-  low:    { label: 'Low',    activeStyle: { backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' } },
+  na:     { label: 'N/A',    activeStyle: { backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' } },
 }
 
 export const STATUS_CFG = {
@@ -54,7 +53,7 @@ export default function TodoDrawer({ open, onClose, onSave, onDelete, initial })
 
   const [title,       setTitle]       = useState('')
   const [description, setDescription] = useState('')
-  const [priority,    setPriority]    = useState('medium')   // 'high' | 'medium' | 'low'
+  const [priority,    setPriority]    = useState('high')
   const [status,      setStatus]      = useState('todo')
   const [category,    setCategory]    = useState('')
   const [assignedTo,  setAssignedTo]  = useState('')
@@ -72,7 +71,7 @@ export default function TodoDrawer({ open, onClose, onSave, onDelete, initial })
     if (open) {
       setTitle(      initial?.title        ?? '')
       setDescription(initial?.description  ?? '')
-      setPriority(   (initial?.priority && initial.priority !== 'urgent') ? initial.priority : 'medium')
+      setPriority(   initial?.priority ?? 'high')
       setStatus(     initial?.status       ?? 'todo')
       setCategory(   initial?.category     ?? '')
       setAssignedTo( initial?.assigned_to  ?? '')
@@ -205,7 +204,7 @@ export default function TodoDrawer({ open, onClose, onSave, onDelete, initial })
           {/* Priority */}
           <div>
             <label className="label block mb-1.5">Priority</label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {Object.entries(PRIORITY).map(([key, cfg]) => (
                 <button key={key} onClick={() => setPriority(key)}
                   style={priority === key ? cfg.activeStyle : {}}
