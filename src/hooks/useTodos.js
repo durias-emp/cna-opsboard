@@ -1,9 +1,21 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
+// Members who can see management-only tasks
+export const MANAGEMENT_GROUP = new Set([
+  'James McBride',
+  'Javier Ascensio',
+  'Alonia Ascensio',
+  'Kelly Moreno',
+  'Diego Urias',
+])
+
 export function useTodos(aircraftId) {
   const [todos,   setTodos]   = useState([])
   const [loading, setLoading] = useState(true)
+
+  const viewer      = localStorage.getItem('cna_identity')
+  const canSeeManagement = MANAGEMENT_GROUP.has(viewer)
 
   const load = useCallback(async () => {
     if (!aircraftId || aircraftId === 'local-1') { setLoading(false); return }
@@ -84,9 +96,11 @@ export function useTodos(aircraftId) {
     })
   }
 
-  const todo       = todos.filter(t => t.status === 'todo')
-  const inProgress = todos.filter(t => t.status === 'in_progress')
-  const done       = todos.filter(t => t.status === 'done')
+  // Hide management-only tasks from non-management viewers
+  const visible    = todos.filter(t => !t.visible_to || t.visible_to === 'all' || canSeeManagement)
+  const todo       = visible.filter(t => t.status === 'todo')
+  const inProgress = visible.filter(t => t.status === 'in_progress')
+  const done       = visible.filter(t => t.status === 'done')
 
-  return { todos, todo, inProgress, done, loading, refresh: load, addTodo, updateTodo, deleteTodo, completeTodo, undoComplete }
+  return { todos: visible, todo, inProgress, done, loading, refresh: load, addTodo, updateTodo, deleteTodo, completeTodo, undoComplete, canSeeManagement }
 }

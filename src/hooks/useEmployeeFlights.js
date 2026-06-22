@@ -19,6 +19,7 @@ const ROSTER = {
     { name: 'Javier Ascensio', role: 'Head Regulator'      },
     { name: 'Alonia Ascensio', role: 'Assistant Regulator' },
     { name: 'Diego Urias',     role: 'Operations'          },
+    { name: 'Kelly Moreno',    role: 'Operations'          },
   ],
 }
 

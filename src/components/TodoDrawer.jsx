@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
+import { MANAGEMENT_GROUP } from '../hooks/useTodos'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -13,6 +14,7 @@ export const TEAM = [
   'Javier Ascensio',
   'Alonia Ascensio',
   'Diego Urias',
+  'Kelly Moreno',
 ]
 
 export const CATEGORIES = [
@@ -58,8 +60,12 @@ export default function TodoDrawer({ open, onClose, onSave, onDelete, initial })
   const [assignedTo,  setAssignedTo]  = useState('')
   const [createdBy,   setCreatedBy]   = useState('')
   const [dueDate,     setDueDate]     = useState('')
+  const [visibleTo,   setVisibleTo]   = useState(null)
   const [saving,      setSaving]      = useState(false)
   const [error,       setError]       = useState(null)
+
+  const viewer         = localStorage.getItem('cna_identity')
+  const canSetVisibility = MANAGEMENT_GROUP.has(viewer)
 
   // Populate form when opening
   useEffect(() => {
@@ -72,6 +78,7 @@ export default function TodoDrawer({ open, onClose, onSave, onDelete, initial })
       setAssignedTo( initial?.assigned_to  ?? '')
       setCreatedBy(  initial?.created_by   ?? '')
       setDueDate(    initial?.due_date     ?? '')
+      setVisibleTo(  initial?.visible_to   ?? null)
       setError(null)
     }
   }, [open, initial])
@@ -95,6 +102,7 @@ export default function TodoDrawer({ open, onClose, onSave, onDelete, initial })
         assigned_to: assignedTo || null,
         created_by:  createdBy  || null,
         due_date:    dueDate    || null,
+        visible_to:  visibleTo  || null,
       })
       onClose()
     } catch (e) {
@@ -155,7 +163,46 @@ export default function TodoDrawer({ open, onClose, onSave, onDelete, initial })
               className="input-field w-full resize-none" />
           </div>
 
-          {/* Status shortcut + Priority */}
+          {/* Visibility segmented control — management only */}
+          {canSetVisibility && (
+            <div>
+              <label className="label block mb-1.5">Visibility</label>
+              <div style={{ position: 'relative', display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: 3 }}>
+                {/* Sliding pill */}
+                <div style={{
+                  position: 'absolute', top: 3, bottom: 3,
+                  width: 'calc(50% - 3px)',
+                  left: visibleTo === 'management' ? 'calc(50%)' : 3,
+                  background: 'rgba(255,255,255,0.10)',
+                  borderRadius: 9,
+                  transition: 'left 0.22s cubic-bezier(0.4,0,0.2,1)',
+                  pointerEvents: 'none',
+                }} />
+                {[
+                  { key: null,           label: 'General',    },
+                  { key: 'management',   label: 'Management', },
+                ].map(({ key, label }) => {
+                  const active = visibleTo === key
+                  return (
+                    <div key={label} onClick={() => setVisibleTo(key)}
+                      style={{
+                        flex: 1, padding: '7px 10px', zIndex: 1, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                        fontSize: 12, fontWeight: 700, letterSpacing: '0.2px',
+                        color: active ? 'white' : 'rgba(255,255,255,0.3)',
+                        transition: 'color 0.22s',
+                        userSelect: 'none',
+                      }}
+                    >
+                      {label}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Priority */}
           <div>
             <label className="label block mb-1.5">Priority</label>
             <div className="grid grid-cols-4 gap-2">
