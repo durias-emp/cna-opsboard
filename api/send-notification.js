@@ -61,14 +61,20 @@ function paxTable(list) {
   const rows = list.map(p => {
     const w  = p.weight_lbs ?? p.weight ?? null
     const ec = formatEmergencyContact(p.emergency_contact)
+    const em = (p.email ?? '').trim() || null
     return `
     <tr>
       <td style="padding:6px 0 2px;color:#111;font-size:12px;font-weight:600">${p.name || '—'}</td>
       <td style="padding:6px 0 2px;color:#888;font-size:12px;text-align:right;vertical-align:top">${w ? w + ' lbs' : '—'}</td>
     </tr>
     ${ec ? `<tr>
-      <td colspan="2" style="padding:0 0 6px;color:#aaa;font-size:11px">
+      <td colspan="2" style="padding:0 0 3px;color:#aaa;font-size:11px">
         Emergency contact: <span style="color:#555;font-weight:500">${ec}</span>
+      </td>
+    </tr>` : ''}
+    ${em ? `<tr>
+      <td colspan="2" style="padding:0 0 6px;color:#aaa;font-size:11px">
+        Email: <span style="color:#555;font-weight:500">${em}</span>
       </td>
     </tr>` : ''}`
   }).join('')
