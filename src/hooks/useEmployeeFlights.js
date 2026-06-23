@@ -16,8 +16,8 @@ const ROSTER = {
     { name: 'Luis Soriano',    role: 'Aircraft Mechanic' },
   ],
   operations: [
-    { name: 'Javier Ascensio', role: 'Head Regulator'      },
-    { name: 'Alonia Ascensio', role: 'Assistant Regulator' },
+    { name: 'Javier Ascencio', role: 'Head Regulator'      },
+    { name: 'Alonia Ascencio', role: 'Assistant Regulator' },
     { name: 'Diego Urias',     role: 'Operations'          },
     { name: 'Kelly Moreno',    role: 'Operations'          },
   ],

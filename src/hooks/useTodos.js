@@ -4,8 +4,8 @@ import { supabase } from '../lib/supabase'
 // Members who can see management-only tasks
 export const MANAGEMENT_GROUP = new Set([
   'James McBride',
-  'Javier Ascensio',
-  'Alonia Ascensio',
+  'Javier Ascencio',
+  'Alonia Ascencio',
   'Kelly Moreno',
   'Diego Urias',
 ])

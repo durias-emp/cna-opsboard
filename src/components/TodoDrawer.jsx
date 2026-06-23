@@ -11,8 +11,8 @@ export const TEAM = [
   'Cesar Espinoza',
   'Antony Villalta',
   'Luis Soriano',
-  'Javier Ascensio',
-  'Alonia Ascensio',
+  'Javier Ascencio',
+  'Alonia Ascencio',
   'Diego Urias',
   'Kelly Moreno',
 ]
