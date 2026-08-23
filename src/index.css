@@ -16,6 +16,13 @@
     overscroll-behavior: none;
   }
 
+  /* iPhone: 100% doesn't track the real viewport (home indicator / Safari toolbar),
+     which left a dead band below the app and floated the nav mid-screen.
+     dvh follows the dynamic viewport exactly. */
+  @supports (height: 100dvh) {
+    html, body, #root { height: 100dvh; }
+  }
+
   * { box-sizing: border-box; }
 }
 

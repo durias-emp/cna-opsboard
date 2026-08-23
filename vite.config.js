@@ -16,8 +16,8 @@ export default defineConfig({
         name: 'CNA OpsBoard',
         short_name: 'OpsBoard',
         description: 'Cielo Norte Aviación Operations Dashboard',
-        theme_color: '#000000',
-        background_color: '#000000',
+        theme_color: '#0A0A0A',
+        background_color: '#0A0A0A',
         display: 'standalone',
         orientation: 'portrait',
         icons: [
