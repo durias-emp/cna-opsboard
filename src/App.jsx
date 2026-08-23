@@ -16,7 +16,6 @@ import ConnectionError from './components/ConnectionError'
 import LoginScreen from './components/LoginScreen'
 import NotLinkedScreen from './components/NotLinkedScreen'
 import { usePushRegistration } from './hooks/usePushRegistration'
-import ViewportDebug from './components/ViewportDebug'
 
 // Shown instead of the app when the aircraft row can't be loaded
 function ConnectionGate({ children }) {
@@ -41,7 +40,6 @@ function Shell() {
         </Suspense>
       </main>
       <BottomNav />
-      {location.hostname.endsWith('.trycloudflare.com') && <ViewportDebug />}
     </div>
   )
 }
