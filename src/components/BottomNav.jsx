@@ -54,6 +54,7 @@ const TABS = [
 
 export default function BottomNav() {
   return (
+    <div className="nav-dock">
     <nav className="pill-nav">
       {TABS.map(({ to, label, icon }) => (
         <NavLink
@@ -67,5 +68,6 @@ export default function BottomNav() {
         </NavLink>
       ))}
     </nav>
+    </div>
   )
 }
