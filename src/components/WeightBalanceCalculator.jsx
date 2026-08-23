@@ -63,13 +63,13 @@ function unitLabel(type, metric) {
 
 // A field is invalid when it has text that isn't a non-negative number.
 // (Empty is fine = not occupied. "abc" or "-20" is NOT silently treated as zero.)
-function invalidFields(weights) {
+export function invalidFields(weights) {
   return Object.entries(weights)
     .filter(([, v]) => String(v).trim() !== '' && !(Number.isFinite(parseFloat(v)) && parseFloat(v) >= 0))
     .map(([k]) => k)
 }
 
-function calculate(weights, doors) {
+export function calculate(weights, doors) {
   // Start from BEW, subtract removed doors
   let adjW   = BEW_WEIGHT
   let adjLM  = BEW_WEIGHT * BEW_LONG_ARM

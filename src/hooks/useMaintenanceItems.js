@@ -76,7 +76,7 @@ function computeStatus(item, remaining) {
   return STATUS.OK
 }
 
-function enrichItem(item, hobbsCurrent, cyclesCurrent) {
+export function enrichItem(item, hobbsCurrent, cyclesCurrent) {
   const hrsRemaining  = item.due_at_hours  != null ? Math.round((item.due_at_hours - hobbsCurrent) * 10) / 10 : null
   const cycsRemaining = item.due_at_cycles != null ? item.due_at_cycles - cyclesCurrent : null
   const mthsRemaining = monthsRemaining(item.due_date)
