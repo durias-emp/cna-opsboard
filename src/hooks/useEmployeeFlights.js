@@ -1,27 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { toHobbs } from '../lib/utils'
+import { useTeam } from '../context/TeamContext'
 
-// Only names and roles are hardcoded — all PII (DOB, phone, licenses, medical)
-// lives in the team_profiles table in Supabase and is loaded via dbProfiles.
-const ROSTER = {
-  pilots: [
-    { name: 'James McBride'  },
-    { name: 'Jay McMackin'   },
-    { name: 'Daniel Sandoval'},
-  ],
-  mechanics: [
-    { name: 'Cesar Espinoza',  role: 'Aircraft Mechanic' },
-    { name: 'Antony Villalta', role: 'Aircraft Mechanic' },
-    { name: 'Luis Soriano',    role: 'Aircraft Mechanic' },
-  ],
-  operations: [
-    { name: 'Javier Ascencio', role: 'Head Regulator'      },
-    { name: 'Alonia Ascencio', role: 'Assistant Regulator' },
-    { name: 'Diego Urias',     role: 'Operations'          },
-    { name: 'Kelly Moreno',    role: 'Operations'          },
-  ],
-}
+// The roster (names, groups, roles) comes from TeamContext — one source of truth.
+// This hook adds flight statistics and the PII profile fields from team_profiles.
 
 // Convert DB row (snake_case) → app shape (camelCase)
 function dbToProfile(row) {
@@ -36,6 +19,7 @@ function dbToProfile(row) {
 }
 
 export function useEmployeeFlights(aircraftId) {
+  const team = useTeam()
   const [flights,    setFlights]    = useState([])
   const [dbProfiles, setDbProfiles] = useState({}) // keyed by name
   const [loading,    setLoading]    = useState(true)
@@ -79,7 +63,7 @@ export function useEmployeeFlights(aircraftId) {
   // otherwise fall back to total_minutes (air time) for older flights
   const effectiveMins = f => f.flight_time_minutes ?? f.total_minutes ?? 0
 
-  const pilots = ROSTER.pilots.map(p => {
+  const pilots = team.pilots.map(p => {
     const myFlights = flights.filter(f => f.pilot === p.name || f.copilot === p.name)
     const totalMins = myFlights.reduce((s, f) => s + effectiveMins(f), 0)
     const monthMins = myFlights.filter(f => f.date >= monthStart).reduce((s, f) => s + effectiveMins(f), 0)
@@ -98,5 +82,5 @@ export function useEmployeeFlights(aircraftId) {
     }
   })
 
-  return { pilots, mechanics: ROSTER.mechanics, operations: ROSTER.operations, loading, dbProfiles, saveProfile }
+  return { pilots, mechanics: team.mechanics, operations: team.operations, loading, dbProfiles, saveProfile }
 }

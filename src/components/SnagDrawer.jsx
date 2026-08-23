@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAircraft } from '../context/AircraftContext'
 import DatePicker from './DatePicker'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
+import { useTeam } from '../context/TeamContext'
 
 // ── Bell 206B3 JetRanger maintenance categories ───────────────────────────────
 const MAINTENANCE_TYPES = [
@@ -21,24 +22,6 @@ const MAINTENANCE_TYPES = [
   'Other',
 ]
 
-// ── People who can report snags (pilots + mechanics) ─────────────────────────
-const REPORTERS = [
-  // Pilots
-  'James McBride',
-  'Jay McMackin',
-  'Daniel Sandoval',
-  // Mechanics
-  'Cesar Espinoza',
-  'Antony Villalta',
-  'Luis Soriano',
-]
-
-// ── Mechanics who can be assigned a snag ─────────────────────────────────────
-const MECHANICS = [
-  'Cesar Espinoza',
-  'Antony Villalta',
-  'Luis Soriano',
-]
 
 const DESCRIPTION_PLACEHOLDER =
   `Describe the snag in detail:\n• What happened\n• When it happened\n• Under what conditions (flight phase, time of day, etc.)\n• Whether it is intermittent or constant\n\nExample: "Landing light inoperative during night operation. Circuit breaker checked — normal position. Condition appeared on departure, constant throughout flight."`
@@ -51,6 +34,10 @@ function today() {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function SnagDrawer({ open, onClose, onSaved }) {
+  const team = useTeam()
+  const PILOT_NAMES = team.pilots.map(p => p.name)
+  const MECH_NAMES  = team.mechanics.map(p => p.name)
+  const OPS_NAMES   = team.operations.map(p => p.name)
   const { handleProps, panelStyle } = useDrawerSwipe(onClose)
   const { selectedAircraft } = useAircraft()
 
@@ -181,12 +168,17 @@ export default function SnagDrawer({ open, onClose, onSaved }) {
               >
                 <option value="" disabled>Select person</option>
                 <optgroup label="Pilots">
-                  {REPORTERS.slice(0, 3).map(name => (
+                  {PILOT_NAMES.map(name => (
                     <option key={name} value={name} style={{ color: 'white', backgroundColor: '#1a1a1a' }}>{name}</option>
                   ))}
                 </optgroup>
                 <optgroup label="Mechanics">
-                  {REPORTERS.slice(3).map(name => (
+                  {MECH_NAMES.map(name => (
+                    <option key={name} value={name} style={{ color: 'white', backgroundColor: '#1a1a1a' }}>{name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Operations">
+                  {OPS_NAMES.map(name => (
                     <option key={name} value={name} style={{ color: 'white', backgroundColor: '#1a1a1a' }}>{name}</option>
                   ))}
                 </optgroup>
@@ -212,7 +204,7 @@ export default function SnagDrawer({ open, onClose, onSaved }) {
                 style={{ color: assignedTo ? 'white' : 'rgba(255,255,255,0.25)' }}
               >
                 <option value="">Unassigned</option>
-                {MECHANICS.map(name => (
+                {MECH_NAMES.map(name => (
                   <option key={name} value={name} style={{ color: 'white', backgroundColor: '#1a1a1a' }}>{name}</option>
                 ))}
               </select>

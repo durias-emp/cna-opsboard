@@ -4,7 +4,8 @@ import { useEmployeeFlights } from '../hooks/useEmployeeFlights'
 import { useTodos } from '../hooks/useTodos'
 import { useTaskUpdates } from '../hooks/useTaskUpdates'
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar'
-import TodoDrawer, { TEAM } from '../components/TodoDrawer'
+import TodoDrawer from '../components/TodoDrawer'
+import { useTeam } from '../context/TeamContext'
 import RosterDrawer from '../components/RosterDrawer'
 import { supabase } from '../lib/supabase'
 import { notifyAssignment } from '../lib/notifyAssignment'
@@ -25,6 +26,7 @@ function today() {
 }
 
 function CompletionModal({ task, onConfirm, onCancel }) {
+  const { names: TEAM } = useTeam()
   const [mode,   setMode]   = useState('in_progress')
   const [date,   setDate]   = useState(today())
   const [notes,  setNotes]  = useState('')
@@ -343,6 +345,7 @@ const PRIORITY_LABEL = { urgent: 'Urgent', high: 'High', medium: 'Medium', low: 
 const STATUS_LABEL   = { todo: 'Inbox', in_progress: 'In Progress', done: 'Done' }
 
 function TaskPopup({ task, onClose, onEdit, aircraftId }) {
+  const { names: TEAM } = useTeam()
   const { updates, loading: updatesLoading, addUpdate, editUpdate } = useTaskUpdates(task.id, aircraftId)
 
   const [showAddForm, setShowAddForm] = useState(false)

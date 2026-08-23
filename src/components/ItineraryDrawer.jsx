@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import DatePicker from './DatePicker'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 import { useAircraft } from '../context/AircraftContext'
+import { useTeam } from '../context/TeamContext'
 
 // ── Phone input with country code ─────────────────────────────────────────────
 
@@ -391,11 +392,7 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
   const [paxDropdown,   setPaxDropdown]  = useState(null) // index of open dropdown
   const dropdownRef = useRef(null)
 
-  const pilots = [
-    { id: 1, name: 'James McBride' },
-    { id: 2, name: 'Jay McMackin' },
-    { id: 3, name: 'Daniel Sandoval' },
-  ]
+  const pilots = useTeam().pilots.map(p => ({ id: p.name, name: p.name }))
 
   // Reset / pre-fill form whenever drawer opens
   useEffect(() => {

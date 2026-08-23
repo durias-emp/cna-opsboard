@@ -4,14 +4,9 @@ import { formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
 import { useSnags } from '../hooks/useSnags'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
+import { useTeam } from '../context/TeamContext'
 import SnagDrawer from './SnagDrawer'
 
-// ── Mechanics who can resolve snags ──────────────────────────────────────────
-const RESOLVERS = [
-  'Cesar Espinoza',
-  'Antony Villalta',
-  'Luis Soriano',
-]
 
 // ── Status config ─────────────────────────────────────────────────────────────
 const STATUS = {
@@ -22,6 +17,7 @@ const STATUS = {
 
 // ── Snag detail / resolve panel ───────────────────────────────────────────────
 function SnagDetail({ snag, onClose, onUpdated }) {
+  const RESOLVERS = useTeam().mechanics.map(p => p.name)
   const [resolvedBy,    setResolvedBy]    = useState(snag.resolved_by    ?? '')
   const [resolvedDate,  setResolvedDate]  = useState(snag.resolved_date  ?? '')
   const [resNotes,      setResNotes]      = useState(snag.resolution_notes ?? '')

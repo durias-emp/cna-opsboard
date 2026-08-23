@@ -1,21 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
-import { MANAGEMENT_GROUP } from '../hooks/useTodos'
+import { useTeam } from '../context/TeamContext'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-export const TEAM = [
-  'James McBride',
-  'Jay McMackin',
-  'Daniel Sandoval',
-  'Cesar Espinoza',
-  'Antony Villalta',
-  'Luis Soriano',
-  'Javier Ascencio',
-  'Alonia Ascencio',
-  'Diego Urias',
-  'Kelly Moreno',
-]
 
 export const CATEGORIES = [
   'Maintenance',
@@ -64,7 +52,8 @@ export default function TodoDrawer({ open, onClose, onSave, onDelete, initial })
   const [error,       setError]       = useState(null)
 
   const viewer         = localStorage.getItem('cna_identity')
-  const canSetVisibility = MANAGEMENT_GROUP.has(viewer)
+  const { names: TEAM, managementNames } = useTeam()
+  const canSetVisibility = managementNames.has(viewer)
 
   // Populate form when opening
   useEffect(() => {

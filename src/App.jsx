@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import { AircraftProvider, useAircraft } from './context/AircraftContext'
+import { TeamProvider } from './context/TeamContext'
 import AircraftBar from './components/AircraftBar'
 import BottomNav from './components/BottomNav'
 import Dashboard from './pages/Dashboard'
@@ -32,6 +33,7 @@ export default function App() {
   }
 
   return (
+    <TeamProvider>
     <AircraftProvider>
       <ConnectionGate>
       <div className="page-shell bg-navy-950">
@@ -61,5 +63,6 @@ export default function App() {
         />
       )}
     </AircraftProvider>
+    </TeamProvider>
   )
 }

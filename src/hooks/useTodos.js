@@ -1,21 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-
-// Members who can see management-only tasks
-export const MANAGEMENT_GROUP = new Set([
-  'James McBride',
-  'Javier Ascencio',
-  'Alonia Ascencio',
-  'Kelly Moreno',
-  'Diego Urias',
-])
+import { useTeam } from '../context/TeamContext'
 
 export function useTodos(aircraftId) {
   const [todos,   setTodos]   = useState([])
   const [loading, setLoading] = useState(true)
 
+  const { managementNames } = useTeam()
   const viewer      = localStorage.getItem('cna_identity')
-  const canSeeManagement = MANAGEMENT_GROUP.has(viewer)
+  const canSeeManagement = managementNames.has(viewer)
 
   const load = useCallback(async () => {
     if (!aircraftId || aircraftId === 'local-1') { setLoading(false); return }

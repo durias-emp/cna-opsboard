@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAircraft } from '../context/AircraftContext'
+import { useTeam } from '../context/TeamContext'
 import { supabase } from '../lib/supabase'
 import DatePicker from './DatePicker'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
@@ -15,7 +16,6 @@ function parseRate(str) {
   return Number.isFinite(n) && n > 0 ? n : null
 }
 const TACH_MAX_DELTA = 10   // hours; one flight adding more than this needs explicit confirmation
-const PILOTS = ['James McBride', 'Jay McMackin', 'Daniel Sandoval']
 
 const ICAO_PRESETS = ['SALA', 'MSSS', 'MSLP', 'MGGT', 'MHTG']
 
@@ -229,6 +229,8 @@ function FuelSection({ totalMinutes, fuelStart, fuelEnd, onFuelStart, onFuelEnd,
 // ── Main drawer ────────────────────────────────────────────────────────────────
 
 export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
+  const PILOTS = useTeam().pilots.map(p => p.name)
+  const DEFAULT_PILOT = PILOTS[0] ?? ''
   const { handleProps, panelStyle } = useDrawerSwipe(onClose)
   const { selectedAircraft, refreshAircraft } = useAircraft()
   const _now = new Date()
@@ -236,7 +238,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
   const isEditing = !!editFlight
 
   const [date,          setDate]          = useState(today)
-  const [pilot,         setPilot]         = useState('James McBride')
+  const [pilot,         setPilot]         = useState(DEFAULT_PILOT)
   const [copilot,       setCopilot]       = useState('')
   const [tachMode,      setTachMode]      = useState(false)
   const [tachNew,       setTachNew]       = useState('')
@@ -317,7 +319,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       setFtModal(null); setFtHobbsNew('')
     } else {
       setDate(today)
-      setPilot('James McBride')
+      setPilot(DEFAULT_PILOT)
       setCopilot('')
       setTachMode(false); setTachNew(''); setTachModal(false)
       setLegs([emptyLeg()])

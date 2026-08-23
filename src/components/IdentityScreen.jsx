@@ -1,6 +1,7 @@
-import { TEAM } from './TodoDrawer'
+import { useTeam } from '../context/TeamContext'
 
 export default function IdentityScreen({ takenNames, onSelect, registering, error }) {
+  const { names: TEAM } = useTeam()
   return (
     <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center px-6"
          style={{ background: '#0a0a0c' }}>
