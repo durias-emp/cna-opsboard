@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/utils'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
+import { softDelete } from '../lib/softDelete'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -49,6 +50,7 @@ function ItineraryCard({ record: r, isExpanded, onToggle, onEdit, onDelete }) {
   const pax = r.pax ?? []
   const totalWeight = pax.reduce((s, p) => s + (parseFloat(p.weight) || 0), 0)
   const [deleting, setDeleting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)   // first tap asks, second tap deletes
 
   return (
     <div className="card p-0 overflow-hidden">
@@ -173,17 +175,16 @@ function ItineraryCard({ record: r, isExpanded, onToggle, onEdit, onDelete }) {
             <button
               disabled={deleting}
               onClick={async () => {
+                if (!confirmDelete) { setConfirmDelete(true); setTimeout(() => setConfirmDelete(false), 4000); return }
                 setDeleting(true)
                 await onDelete(r.id)
+                setDeleting(false); setConfirmDelete(false)
               }}
-              className="flex-1 py-2.5 rounded-xl text-xs font-semibold select-none
-                bg-white/[0.07] text-white/35
-                transition-all duration-200
-                hover:bg-red-500 hover:text-white
-                active:bg-red-500 active:text-white active:scale-[0.97]
-                disabled:opacity-40"
+              className={`flex-1 py-2.5 rounded-xl text-xs font-semibold select-none transition-all duration-200
+                active:scale-[0.97] disabled:opacity-40
+                ${confirmDelete ? 'bg-red-500 text-white' : 'bg-white/[0.07] text-white/35 hover:bg-red-500/20 hover:text-red-300'}`}
             >
-              {deleting ? 'Deleting…' : 'Delete'}
+              {deleting ? 'Deleting…' : confirmDelete ? 'Tap again to delete manifest' : 'Delete'}
             </button>
           </div>
         </div>
@@ -209,7 +210,7 @@ export default function ItineraryRecordsDrawer({ open, onClose, onEdit }) {
       .select('*')
       .order('date',         { ascending: false })
       .order('submitted_at', { ascending: false })
-    if (data) setRecords(data)
+    if (data) setRecords(data.filter(r => !r.deleted_at))   // hide soft-deleted manifests
     setLoading(false)
   }, [])
 
@@ -343,7 +344,8 @@ export default function ItineraryRecordsDrawer({ open, onClose, onEdit }) {
                 onToggle={() => setExpanded(prev => prev === r.id ? null : r.id)}
                 onEdit={onEdit}
                 onDelete={async (id) => {
-                  await supabase.from('flight_itineraries').delete().eq('id', id)
+                  const { error } = await softDelete('flight_itineraries', id)
+                  if (error) { alert(`Could not delete: ${error.message}`); return }
                   setRecords(prev => prev.filter(x => x.id !== id))
                   setExpanded(null)
                 }}

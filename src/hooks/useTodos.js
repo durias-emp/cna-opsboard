@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTeam } from '../context/TeamContext'
+import { selectLive, softDelete } from '../lib/softDelete'
 
 export function useTodos(aircraftId) {
   const [todos,   setTodos]   = useState([])
@@ -13,11 +14,10 @@ export function useTodos(aircraftId) {
   const load = useCallback(async () => {
     if (!aircraftId || aircraftId === 'local-1') { setLoading(false); return }
     setLoading(true)
-    const { data, error } = await supabase
-      .from('todos')
-      .select('*')
-      .eq('aircraft_id', aircraftId)
-      .order('created_at', { ascending: false })
+    const { data, error } = await selectLive(filtered => {
+      const q = supabase.from('todos').select('*').eq('aircraft_id', aircraftId).order('created_at', { ascending: false })
+      return filtered ? q.is('deleted_at', null) : q
+    })
 
     if (!error && data) setTodos(data)
     setLoading(false)
@@ -61,7 +61,7 @@ export function useTodos(aircraftId) {
   }
 
   async function deleteTodo(id) {
-    const { error } = await supabase.from('todos').delete().eq('id', id)
+    const { error } = await softDelete('todos', id)   // recoverable: set deleted_at = null in the table editor
     if (error) throw new Error(error.message ?? 'Failed to delete task')
 
     // Remove immediately from local state

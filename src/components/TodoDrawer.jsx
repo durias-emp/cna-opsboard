@@ -99,7 +99,9 @@ export default function TodoDrawer({ open, onClose, onSave, onDelete, initial })
     }
   }
 
+  const [confirmDelete, setConfirmDelete] = useState(false)
   async function handleDelete() {
+    if (!confirmDelete) { setConfirmDelete(true); setTimeout(() => setConfirmDelete(false), 4000); return }
     setSaving(true)
     try { await onDelete(initial.id); onClose() }
     catch (e) { setError(e.message); setSaving(false) }
@@ -279,9 +281,9 @@ export default function TodoDrawer({ open, onClose, onSave, onDelete, initial })
           {/* Delete — edit only */}
           {isEdit && (
             <button onClick={handleDelete} disabled={saving}
-              className="w-full py-3 rounded-2xl border border-red-500/20 text-red-400/70
-                         text-sm font-semibold active:bg-red-500/10 transition-colors disabled:opacity-40">
-              Delete Task
+              className={`w-full py-3 rounded-2xl border text-sm font-semibold transition-colors disabled:opacity-40
+                ${confirmDelete ? 'bg-red-500 border-red-500 text-white' : 'border-red-500/20 text-red-400/70 active:bg-red-500/10'}`}>
+              {confirmDelete ? 'Tap again to delete task' : 'Delete Task'}
             </button>
           )}
         </div>

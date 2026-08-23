@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { selectLive } from '../lib/softDelete'
 import { toHobbs, round2 } from '../lib/utils'
 
 export function useFlights(aircraftId) {
@@ -12,11 +13,10 @@ export function useFlights(aircraftId) {
       return
     }
     setLoading(true)
-    const { data, error } = await supabase
-      .from('flights')
-      .select('*')
-      .eq('aircraft_id', aircraftId)
-      .order('date', { ascending: false })
+    const { data, error } = await selectLive(filtered => {
+      const q = supabase.from('flights').select('*').eq('aircraft_id', aircraftId).order('date', { ascending: false })
+      return filtered ? q.is('deleted_at', null) : q
+    })
 
     if (!error && data) setFlights(data)
     setLoading(false)

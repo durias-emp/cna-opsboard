@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { toHobbs } from '../lib/utils'
 import { useTeam } from '../context/TeamContext'
+import { selectLive } from '../lib/softDelete'
 
 // The roster (names, groups, roles) comes from TeamContext — one source of truth.
 // This hook adds flight statistics and the PII profile fields from team_profiles.
@@ -26,7 +27,10 @@ export function useEmployeeFlights(aircraftId) {
 
   useEffect(() => {
     const flightsQ = aircraftId
-      ? supabase.from('flights').select('id, date, pilot, copilot, total_minutes, flight_time_minutes, legs').eq('aircraft_id', aircraftId).order('date', { ascending: false })
+      ? selectLive(filtered => {
+          const q = supabase.from('flights').select('id, date, pilot, copilot, total_minutes, flight_time_minutes, legs').eq('aircraft_id', aircraftId).order('date', { ascending: false })
+          return filtered ? q.is('deleted_at', null) : q
+        })
       : Promise.resolve({ data: [] })
 
     const profilesQ = supabase.from('team_profiles').select('*')

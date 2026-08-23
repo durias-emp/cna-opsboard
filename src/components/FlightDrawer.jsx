@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAircraft } from '../context/AircraftContext'
 import { useTeam } from '../context/TeamContext'
+import { RPC_MISSING } from '../lib/softDelete'
 import { supabase } from '../lib/supabase'
 import DatePicker from './DatePicker'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
@@ -414,30 +415,56 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       notes:                notes.trim() || null,
     }
 
+    // ── Preferred path: one atomic server call (flight + aircraft hours together) ──
+    // save_flight() computes hobbs = hobbs + delta from the database row, so two
+    // phones logging at once can't overwrite each other, and a dropped connection
+    // can't leave a flight saved without its hours (or vice-versa).
+    const rpcPayload = {
+      ...sharedPayload,
+      ...(isEditing ? { id: editFlight.id } : { aircraft_id: selectedAircraft.id }),
+      ...(!isEditing && tachMode && tachNew !== ''              ? { tach_reading:       ROUND(parseFloat(tachNew), 1) }     : {}),
+      ...(!isEditing && ftMethod === 'hobbs' && ftHobbsNew !== '' ? { flight_hobbs_after: ROUND(parseFloat(ftHobbsNew), 1) } : {}),
+    }
+    const { error: rpcErr } = await supabase.rpc('save_flight', { p_flight: rpcPayload })
+
+    if (rpcErr && !RPC_MISSING(rpcErr)) { setSaving(false); setError(rpcErr.message); return }
+
+    if (rpcErr && RPC_MISSING(rpcErr)) {
+      // ── Legacy path (migration not yet run): two separate writes ──
+      await legacySave(sharedPayload, cyclesNum)
+      if (legacyFailed.current) { setSaving(false); return }
+    }
+
+    setSaving(false)
+    await refreshAircraft()
+    onSaved?.()
+    onClose()
+  }
+
+  // Old two-write save, kept only until migrations/2026-08-22-flight-hours-atomic-soft-delete.sql runs.
+  const legacyFailed = useRef(false)
+  async function legacySave(sharedPayload, cyclesNum) {
+    legacyFailed.current = false
     if (isEditing) {
       const { error: err } = await supabase.from('flights').update(sharedPayload).eq('id', editFlight.id)
-      if (err) { setSaving(false); setError(err.message); return }
+      if (err) { legacyFailed.current = true; setError(err.message); return }
 
-      // Adjust Hobbs by the delta (both floored to nearest 0.1)
       const oldMins = editFlight.total_minutes ?? 0
       const delta   = toHobbs(totalMinutes) - toHobbs(oldMins)
       const cyclesDelta = cyclesNum - (editFlight.cycles ?? 0)
-
       const aircraftUpdates = {}
       if (Math.abs(delta) > 0.001)    aircraftUpdates.hobbs_current   = ROUND((selectedAircraft.hobbs_current  ?? 0) + delta)
       if (cyclesDelta !== 0)          aircraftUpdates.cycles_current  = (selectedAircraft.cycles_current ?? 0) + cyclesDelta
-      if (Object.keys(aircraftUpdates).length)
-        await supabase.from('aircraft').update(aircraftUpdates).eq('id', selectedAircraft.id)
+      if (Object.keys(aircraftUpdates).length) {
+        const { error: acErr } = await supabase.from('aircraft').update(aircraftUpdates).eq('id', selectedAircraft.id)
+        if (acErr) { legacyFailed.current = true; setError(`Flight saved but aircraft hours were NOT updated: ${acErr.message}`); return }
+      }
     } else {
-      const { error: err } = await supabase.from('flights').insert({
-        aircraft_id: selectedAircraft.id,
-        ...sharedPayload,
-      })
-      if (err) { setSaving(false); setError(err.message); return }
+      const { error: err } = await supabase.from('flights').insert({ aircraft_id: selectedAircraft.id, ...sharedPayload })
+      if (err) { legacyFailed.current = true; setError(err.message); return }
 
       const aircraftUpdates = {}
       if (tachMode && tachNew !== '') {
-        // Set hobbs to the exact tach reading — this is ground truth
         aircraftUpdates.hobbs_current = ROUND(parseFloat(tachNew), 1)
       } else if (totalMinutes > 0) {
         aircraftUpdates.hobbs_current = ROUND((selectedAircraft.hobbs_current ?? 0) + toHobbs(totalMinutes))
@@ -445,16 +472,11 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       if (cyclesNum > 0) aircraftUpdates.cycles_current = (selectedAircraft.cycles_current ?? 0) + cyclesNum
       if (ftMethod === 'hobbs' && ftHobbsNew !== '')
         aircraftUpdates.flight_hobbs_current = ROUND(parseFloat(ftHobbsNew), 1)
-      if (Object.keys(aircraftUpdates).length)
-        await supabase.from('aircraft').update(aircraftUpdates).eq('id', selectedAircraft.id)
-
-      // Email is now sent via Supabase DB webhook on INSERT — no client call needed
+      if (Object.keys(aircraftUpdates).length) {
+        const { error: acErr } = await supabase.from('aircraft').update(aircraftUpdates).eq('id', selectedAircraft.id)
+        if (acErr) { legacyFailed.current = true; setError(`Flight saved but aircraft hours were NOT updated: ${acErr.message}`); return }
+      }
     }
-
-    setSaving(false)
-    await refreshAircraft()
-    onSaved?.()
-    onClose()
   }
 
   function exportFlightCSV() {
@@ -559,16 +581,24 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
     if (!editFlight || saving) return
     setSaving(true)
 
-    const { error: err } = await supabase.from('flights').delete().eq('id', editFlight.id)
-    if (err) { setSaving(false); setError(err.message); return }
+    // Preferred: soft-delete + hours adjustment in one transaction (recoverable with restore_flight)
+    const { error: rpcErr } = await supabase.rpc('delete_flight', { p_id: editFlight.id })
+    if (rpcErr && !RPC_MISSING(rpcErr)) { setSaving(false); setError(rpcErr.message); return }
 
-    const oldMins   = editFlight.total_minutes ?? 0
-    const oldCycles = editFlight.cycles ?? 0
-    const aircraftUpdates = {}
-    if (oldMins > 0)   aircraftUpdates.hobbs_current  = ROUND((selectedAircraft.hobbs_current  ?? 0) - toHobbs(oldMins))
-    if (oldCycles > 0) aircraftUpdates.cycles_current = (selectedAircraft.cycles_current ?? 0) - oldCycles
-    if (Object.keys(aircraftUpdates).length)
-      await supabase.from('aircraft').update(aircraftUpdates).eq('id', selectedAircraft.id)
+    if (rpcErr && RPC_MISSING(rpcErr)) {
+      // Legacy path (migration not yet run): hard delete, then adjust aircraft
+      const { error: err } = await supabase.from('flights').delete().eq('id', editFlight.id)
+      if (err) { setSaving(false); setError(err.message); return }
+      const oldMins   = editFlight.total_minutes ?? 0
+      const oldCycles = editFlight.cycles ?? 0
+      const aircraftUpdates = {}
+      if (oldMins > 0)   aircraftUpdates.hobbs_current  = ROUND((selectedAircraft.hobbs_current  ?? 0) - toHobbs(oldMins))
+      if (oldCycles > 0) aircraftUpdates.cycles_current = (selectedAircraft.cycles_current ?? 0) - oldCycles
+      if (Object.keys(aircraftUpdates).length) {
+        const { error: acErr } = await supabase.from('aircraft').update(aircraftUpdates).eq('id', selectedAircraft.id)
+        if (acErr) { setSaving(false); setError(`Flight deleted but aircraft hours were NOT adjusted: ${acErr.message}`); return }
+      }
+    }
 
     setSaving(false)
     await refreshAircraft()
