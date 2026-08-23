@@ -1,15 +1,16 @@
-import { useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { AircraftProvider, useAircraft } from './context/AircraftContext'
 import { TeamProvider, useTeam } from './context/TeamContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import AircraftBar from './components/AircraftBar'
 import BottomNav from './components/BottomNav'
-import Dashboard from './pages/Dashboard'
-import Flights from './pages/Flights'
-import Maintenance from './pages/Maintenance'
-import Fuel from './pages/Fuel'
-import Employees from './pages/Employees'
+// Each page is its own chunk so the first paint doesn't download the whole app
+const Dashboard   = lazy(() => import('./pages/Dashboard'))
+const Flights     = lazy(() => import('./pages/Flights'))
+const Maintenance = lazy(() => import('./pages/Maintenance'))
+const Fuel        = lazy(() => import('./pages/Fuel'))
+const Employees   = lazy(() => import('./pages/Employees'))
 import IdentityScreen from './components/IdentityScreen'
 import ConnectionError from './components/ConnectionError'
 import LoginScreen from './components/LoginScreen'
@@ -28,6 +29,7 @@ function Shell() {
     <div className="page-shell bg-navy-950">
       <AircraftBar />
       <main className="flex-1 overflow-hidden flex flex-col">
+        <Suspense fallback={<div className="flex-1" />}>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/flights" element={<Flights />} />
@@ -35,6 +37,7 @@ function Shell() {
           <Route path="/fuel" element={<Fuel />} />
           <Route path="/employees" element={<Employees />} />
         </Routes>
+        </Suspense>
       </main>
       <BottomNav />
     </div>
