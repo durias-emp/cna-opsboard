@@ -8,3 +8,7 @@ dist
 
 backups/
 supabase/.temp/
+
+# Audit deliverables — do not publish while the repo is public
+AUDIT.md
+FIXLIST.md

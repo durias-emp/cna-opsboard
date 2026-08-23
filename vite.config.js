@@ -15,7 +15,7 @@ export default defineConfig({
       manifest: {
         name: 'CNA OpsBoard',
         short_name: 'OpsBoard',
-        description: 'Canadian Northland Air Operations Dashboard',
+        description: 'Cielo Norte Aviación Operations Dashboard',
         theme_color: '#000000',
         background_color: '#000000',
         display: 'standalone',
