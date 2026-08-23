@@ -14,12 +14,14 @@ export function useTank() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase
+    // Full history: totals, averages and per-supplier stats are computed from
+    // this list, so it must not be capped (it was limited to 50 rows before).
+    const { data, error } = await supabase
       .from('tank_fillups')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(50)
 
+    if (error) console.error('Tank load error:', error.message)
     setFillups(data ?? [])
     setLoading(false)
   }, [])

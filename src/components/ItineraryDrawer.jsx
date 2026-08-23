@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import DatePicker from './DatePicker'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
+import { useAircraft } from '../context/AircraftContext'
 
 // ── Phone input with country code ─────────────────────────────────────────────
 
@@ -211,8 +212,6 @@ const FREQUENT_PAX = [
   { name: 'Westley Cordova',   weight: 180 },
 ]
 
-const AIRCRAFT_TYPE = 'Bell 206B3 JetRanger'
-const REGISTRATION  = 'YS-CNA'
 
 function todayLocal() {
   const d = new Date()
@@ -383,6 +382,7 @@ const IconClose = () => (
 
 // ── Main drawer ────────────────────────────────────────────────────────────────
 export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = null }) {
+  const { selectedAircraft } = useAircraft()
   const { handleProps, panelStyle } = useDrawerSwipe(onClose)
   const [form,          setForm]         = useState(EMPTY())
   const [saving,        setSaving]       = useState(false)
@@ -476,8 +476,8 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
 
     setSaving(true)
     const payload = {
-      aircraft_type:       AIRCRAFT_TYPE,
-      registration:        REGISTRATION,
+      aircraft_type:       selectedAircraft?.make_model  ?? null,
+      registration:        selectedAircraft?.tail_number ?? null,
       pilot_in_command:    form.pilot_in_command,
       copilot:             form.copilot || null,
       date:                form.date,
@@ -527,7 +527,7 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
         <div className="flex items-center justify-between px-4 pt-1 pb-3 border-b border-white/[0.06] flex-shrink-0">
           <div>
             <p className="text-base font-bold text-white">{editRecord ? 'Edit Itinerary' : 'Flight Itinerary'}</p>
-            <p className="text-[11px] text-white/35 mt-0.5">{REGISTRATION} · {AIRCRAFT_TYPE}</p>
+            <p className="text-[11px] text-white/35 mt-0.5">{selectedAircraft?.tail_number} · {selectedAircraft?.make_model}</p>
           </div>
           <button
             onClick={onClose}
