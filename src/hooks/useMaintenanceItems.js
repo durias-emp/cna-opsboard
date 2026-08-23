@@ -31,10 +31,22 @@ function isDateOverdue(dueDateStr) {
   return !isNaN(due) && due < new Date()
 }
 
-// Parses "TRACK:acRef:ohRef" notes into reference offsets, or null if malformed
-function parseTrackRefs(notes) {
-  if (!notes?.startsWith('TRACK:')) return null
-  const [, acStr, ohStr] = notes.split(':')
+// Explicit columns (migrations/2026-08-22-maintenance-status-columns.sql) win.
+// Until that migration has been run the columns are undefined and we fall back to
+// the legacy note prefixes ("N/A…", "TRACK:acRef:ohRef") so nothing changes on deploy.
+function isNotApplicable(item) {
+  if (item.is_not_applicable !== undefined) return item.is_not_applicable === true
+  return !!item.notes?.startsWith('N/A')
+}
+
+function trackRefs(item) {
+  if (item.track_ac_ref !== undefined) {
+    const acRef = parseFloat(item.track_ac_ref)
+    const ohRef = parseFloat(item.track_oh_ref)
+    return Number.isFinite(acRef) && Number.isFinite(ohRef) ? { acRef, ohRef } : null
+  }
+  if (!item.notes?.startsWith('TRACK:')) return null
+  const [, acStr, ohStr] = item.notes.split(':')
   const acRef = parseFloat(acStr)
   const ohRef = parseFloat(ohStr)
   if (isNaN(acRef) || isNaN(ohRef)) return null
@@ -42,7 +54,7 @@ function parseTrackRefs(notes) {
 }
 
 function computeStatus(item, remaining) {
-  if (item.notes?.startsWith('N/A')) return STATUS.NOT_APPLICABLE
+  if (isNotApplicable(item)) return STATUS.NOT_APPLICABLE
   if (item.limit_type === 'ON_CONDITION') return STATUS.ON_CONDITION
 
   const { hrsRemaining, cycsRemaining, mthsRemaining } = remaining
@@ -71,10 +83,10 @@ function enrichItem(item, hobbsCurrent, cyclesCurrent) {
 
   const status = computeStatus(item, { hrsRemaining, cycsRemaining, mthsRemaining })
 
-  // Live running totals for ON_CONDITION tracking items (notes: "TRACK:acRef:ohRef")
+  // Live running totals for ON_CONDITION tracking items
   let trackAcHours = null
   let trackOhHours = null
-  const refs = parseTrackRefs(item.notes)
+  const refs = trackRefs(item)
   if (refs && item.last_complied_hours != null) {
     const flownSince = hobbsCurrent - item.last_complied_hours
     trackAcHours = Math.round((refs.acRef + flownSince) * 10) / 10
