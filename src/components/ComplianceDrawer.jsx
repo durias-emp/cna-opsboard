@@ -44,7 +44,15 @@ export default function ComplianceDrawer({ open, onClose, item, hobbsCurrent, cy
     const e = {}
     if (!form.work_order_number?.trim()) e.wo = 'Required'
     if (!form.complied_date)             e.date = 'Required'
+
+    const hrs = parseFloat(form.complied_hours)
     if (!form.complied_hours)            e.hours = 'Required'
+    else if (isNaN(hrs) || hrs < 0)      e.hours = 'Invalid number'
+
+    if (needsCycles && form.complied_cycles) {
+      const cyc = parseInt(form.complied_cycles, 10)
+      if (isNaN(cyc) || cyc < 0) e.cycles = 'Invalid number'
+    }
     return e
   }
 
@@ -55,48 +63,21 @@ export default function ComplianceDrawer({ open, onClose, item, hobbsCurrent, cy
     setSaving(true)
 
     const compliedHours  = parseFloat(form.complied_hours)
-    const compliedCycles = form.complied_cycles ? parseInt(form.complied_cycles) : null
+    const compliedCycles = form.complied_cycles ? parseInt(form.complied_cycles, 10) : null
 
-    // 1. Insert compliance log
-    const { error: logErr } = await supabase
-      .from('maintenance_compliance_log')
-      .insert([{
-        maintenance_item_id: item.id,
-        aircraft_id:         item.aircraft_id,
-        work_order_number:   form.work_order_number.trim(),
-        complied_date:       form.complied_date,
-        complied_hours:      compliedHours,
-        complied_cycles:     compliedCycles,
-        notes:               form.notes.trim() || null,
-      }])
+    // Atomic: inserts the compliance log AND rolls the item forward in one
+    // transaction (log_compliance Postgres function). All-or-nothing.
+    const { error: rpcErr } = await supabase.rpc('log_compliance', {
+      p_item_id:         item.id,
+      p_aircraft_id:     item.aircraft_id,
+      p_work_order:      form.work_order_number.trim(),
+      p_complied_date:   form.complied_date,
+      p_complied_hours:  compliedHours,
+      p_complied_cycles: compliedCycles,
+      p_notes:           form.notes.trim() || null,
+    })
 
-    if (logErr) { setSaving(false); setErrors({ _: logErr.message }); return }
-
-    // 2. Recalculate due values and update the item
-    function newDueDate(months) {
-      if (!months) return null
-      const d = new Date(form.complied_date + 'T12:00:00')
-      d.setMonth(d.getMonth() + months)
-      return d.toISOString().slice(0, 10)
-    }
-
-    const updates = {
-      last_complied_date:   form.complied_date,
-      last_complied_hours:  compliedHours,
-      last_complied_cycles: compliedCycles,
-      updated_at:           new Date().toISOString(),
-    }
-    if (item.calendar_interval_months) {
-      updates.due_date = newDueDate(item.calendar_interval_months)
-    }
-    if (item.hours_interval) {
-      updates.due_at_hours = Math.round((compliedHours + item.hours_interval) * 10) / 10
-    }
-    if (item.cycles_interval && compliedCycles) {
-      updates.due_at_cycles = compliedCycles + item.cycles_interval
-    }
-
-    await supabase.from('maintenance_items').update(updates).eq('id', item.id)
+    if (rpcErr) { setSaving(false); setErrors({ _: rpcErr.message }); return }
 
     setSaving(false)
     setSuccess(true)
@@ -192,7 +173,10 @@ export default function ComplianceDrawer({ open, onClose, item, hobbsCurrent, cy
 
             {needsCycles && (
               <div>
-                <p className="text-[11px] text-white/40 mb-1.5">Cycles at Compliance</p>
+                <p className="text-[11px] text-white/40 mb-1.5">
+                  Cycles at Compliance
+                  {errors.cycles && <span className="ml-1.5 text-white/50">— {errors.cycles}</span>}
+                </p>
                 <div className="relative">
                   <input
                     type="text"

@@ -3,6 +3,10 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  server: {
+    host: true,                               // also reachable on LAN IP
+    allowedHosts: ['.trycloudflare.com'],     // allow Cloudflare quick-tunnel URLs
+  },
   plugins: [
     react(),
     VitePWA({
