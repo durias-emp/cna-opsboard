@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom'
-import { AircraftProvider } from './context/AircraftContext'
+import { AircraftProvider, useAircraft } from './context/AircraftContext'
 import AircraftBar from './components/AircraftBar'
 import BottomNav from './components/BottomNav'
 import Dashboard from './pages/Dashboard'
@@ -8,7 +8,15 @@ import Maintenance from './pages/Maintenance'
 import Fuel from './pages/Fuel'
 import Employees from './pages/Employees'
 import IdentityScreen from './components/IdentityScreen'
+import ConnectionError from './components/ConnectionError'
 import { usePushRegistration } from './hooks/usePushRegistration'
+
+// Shown instead of the app when the aircraft row can't be loaded
+function ConnectionGate({ children }) {
+  const { error, loading, refreshAircraft } = useAircraft()
+  if (error && !loading) return <ConnectionError message={error} onRetry={refreshAircraft} />
+  return children
+}
 
 export default function App() {
   const { needsSetup, takenNames, register, registering, error } = usePushRegistration()
@@ -25,6 +33,7 @@ export default function App() {
 
   return (
     <AircraftProvider>
+      <ConnectionGate>
       <div className="page-shell bg-navy-950">
         <AircraftBar />
 
@@ -40,6 +49,7 @@ export default function App() {
 
         <BottomNav />
       </div>
+      </ConnectionGate>
 
       {/* One-time identity setup — only shown on first open of a new device */}
       {needsSetup && (

@@ -1,13 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseUrl     = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
+// Fail loudly. A build with missing env vars must never start against a
+// placeholder server and look like it works.
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase env vars not set. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env')
+  throw new Error(
+    'CNA OpsBoard: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are not set. ' +
+    'Add them to .env (local) or Vercel → Environment Variables (production).'
+  )
 }
 
-export const supabase = createClient(
-  supabaseUrl ?? 'https://placeholder.supabase.co',
-  supabaseAnonKey ?? 'placeholder'
-)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
