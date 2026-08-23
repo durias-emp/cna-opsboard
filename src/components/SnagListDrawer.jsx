@@ -39,6 +39,10 @@ function SnagDetail({ snag, onClose, onUpdated }) {
     }
     setError(null)
     setSaving(true)
+    const resolvedHoursNum = resolvedHours ? parseFloat(resolvedHours) : null
+    if (resolvedHours && !(Number.isFinite(resolvedHoursNum) && resolvedHoursNum >= 0)) {
+      setSaving(false); setError('Aircraft hours must be a number'); return
+    }
 
     const { error: err } = await supabase
       .from('snags')
@@ -47,7 +51,7 @@ function SnagDetail({ snag, onClose, onUpdated }) {
         resolved_by:      resolvedBy,
         resolved_date:    resolvedDate,
         resolution_notes: resNotes.trim(),
-        resolved_hours:   resolvedHours ? parseFloat(resolvedHours) : null,
+        resolved_hours:   resolvedHoursNum,
       })
       .eq('id', snag.id)
 

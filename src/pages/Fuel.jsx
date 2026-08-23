@@ -380,7 +380,7 @@ function JerryCanSection({ cans, loading, setLevel, totalCurrentGal, totalCapaci
                     ].map(opt => (
                       <button
                         key={opt.key}
-                        onClick={() => setLevel(can, opt.val)}
+                        onClick={() => setLevel(can, opt.val).catch(err => alert(err.message))}
                         className={`px-3 py-2 select-none transition-colors
                           ${level === opt.key
                             ? 'bg-white text-black'

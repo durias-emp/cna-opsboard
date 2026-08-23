@@ -19,13 +19,21 @@ export function useJerryCans() {
 
   async function setLevel(can, gallons) {
     const next = parseFloat(gallons)
-    setCans(prev =>
-      prev.map(c => c.id === can.id ? { ...c, current_gallons: next } : c)
-    )
-    await supabase
+    const max  = can.capacity_gallons ?? Infinity
+    if (!Number.isFinite(next) || next < 0 || next > max) {
+      throw new Error(`Level must be between 0 and ${max} gal`)
+    }
+    const previous = can.current_gallons
+    setCans(prev => prev.map(c => c.id === can.id ? { ...c, current_gallons: next } : c))
+    const { error } = await supabase
       .from('jerry_cans')
       .update({ current_gallons: next })
       .eq('id', can.id)
+    if (error) {
+      // roll the optimistic update back so the screen never shows a level the DB doesn't have
+      setCans(prev => prev.map(c => c.id === can.id ? { ...c, current_gallons: previous } : c))
+      throw new Error(error.message)
+    }
   }
 
   const totalCurrentGal  = cans.reduce((s, c) => s + parseFloat(c.current_gallons),  0)

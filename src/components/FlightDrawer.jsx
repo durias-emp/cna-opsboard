@@ -9,6 +9,12 @@ const ROUND = (n, decimals = 2) => Math.round(n * 10 ** decimals) / 10 ** decima
 // Hobbs meters tick every 6 minutes → floor to nearest 0.1
 const toHobbs = (minutes) => Math.round(minutes / 6) / 10
 
+// Parses a typed rate like "1,350.00"; returns null (never a silent default) when invalid.
+function parseRate(str) {
+  const n = parseFloat(String(str ?? '').replace(/,/g, ''))
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+const TACH_MAX_DELTA = 10   // hours; one flight adding more than this needs explicit confirmation
 const PILOTS = ['James McBride', 'Jay McMackin', 'Daniel Sandoval']
 
 const ICAO_PRESETS = ['SALA', 'MSSS', 'MSLP', 'MGGT', 'MHTG']
@@ -256,6 +262,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
 
   // ── Revenue receipt state ───────────────────────────────────────────────────
   const [receiptRate,     setReceiptRate]     = useState('1,350.00')
+  const [tachConfirmBig,  setTachConfirmBig]  = useState(false)   // typo guard for large tach deltas
   const [receiptParty,    setReceiptParty]    = useState('')
   const [receiptCategory, setReceiptCategory] = useState('Flight Hours')
   const [receiptEditing,  setReceiptEditing]  = useState(false)
@@ -385,7 +392,10 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
     setError(null)
     setSaving(true)
 
-    const cyclesNum = parseInt(cycles) || 0
+    const cyclesNum = cycles === '' ? 0 : parseInt(cycles, 10)
+    if (isNaN(cyclesNum) || cyclesNum < 0 || String(cyclesNum) !== String(cycles).trim()) {
+      setSaving(false); setError('Cycles must be a whole number (0 or more)'); return
+    }
 
     const sharedPayload = {
       date,
@@ -447,7 +457,8 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
 
   function exportFlightCSV() {
     const hobbsHours = toHobbs(ftMins ?? 0)
-    const rate       = parseFloat(receiptRate.replace(/,/g, '')) || 1350
+    const rate       = parseRate(receiptRate)
+    if (rate == null) { setError('Rate must be a number greater than 0'); return }
     const amount     = Math.round(hobbsHours * rate * 100) / 100
 
     const firstLeg = legs[0]
@@ -509,7 +520,8 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
     setSendingMonies(true)
     try {
       const hobbsHours  = toHobbs(ftMins ?? 0)
-      const rate        = parseFloat(receiptRate.replace(/,/g, '')) || 1350
+      const rate        = parseRate(receiptRate)
+      if (rate == null) { setError('Rate must be a number greater than 0'); return }
       const amount      = Math.round(hobbsHours * rate * 100) / 100
       const payload     = {
         amount,
@@ -613,6 +625,17 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
                 New reading must be greater than current air time
               </p>
             )}
+            {/* Typo guard: a single flight adding more than TACH_MAX_DELTA hours is almost certainly a mistyped digit */}
+            {tachNew !== '' && !isNaN(parseFloat(tachNew)) && parseFloat(tachNew) - (selectedAircraft?.hobbs_current ?? 0) > TACH_MAX_DELTA && (
+              <label className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/25 rounded-xl px-4 py-3 mb-4 cursor-pointer">
+                <input type="checkbox" checked={tachConfirmBig} onChange={e => setTachConfirmBig(e.target.checked)}
+                  className="mt-0.5 accent-red-500" />
+                <span className="text-xs text-red-300">
+                  This adds <b>{ROUND(parseFloat(tachNew) - (selectedAircraft?.hobbs_current ?? 0), 1).toFixed(1)} h</b> in one flight
+                  (more than {TACH_MAX_DELTA} h). Tick to confirm the reading is correct.
+                </span>
+              </label>
+            )}
 
             {/* Buttons */}
             <div className="flex gap-3">
@@ -625,7 +648,8 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
                 Cancel
               </button>
               <button
-                disabled={tachNew === '' || isNaN(parseFloat(tachNew)) || parseFloat(tachNew) <= (selectedAircraft?.hobbs_current ?? 0)}
+                disabled={tachNew === '' || isNaN(parseFloat(tachNew)) || parseFloat(tachNew) <= (selectedAircraft?.hobbs_current ?? 0)
+                  || (parseFloat(tachNew) - (selectedAircraft?.hobbs_current ?? 0) > TACH_MAX_DELTA && !tachConfirmBig)}
                 onClick={() => { setTachMode(true); setTachModal(false) }}
                 className="flex-1 py-2.5 rounded-xl bg-white hover:bg-white/90 active:bg-white/80
                            text-sm font-semibold text-navy-950
@@ -991,7 +1015,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
           {/* Revenue Receipt — only shown when flight time is recorded */}
           {ftMins != null && ftMins > 0 && (() => {
             const hobbsHours   = toHobbs(ftMins)
-            const rate         = parseFloat(receiptRate.replace(/,/g, '')) || 1350
+            const rate         = parseRate(receiptRate) ?? 0
             const amount       = Math.round(hobbsHours * rate * 100) / 100
 
             return (

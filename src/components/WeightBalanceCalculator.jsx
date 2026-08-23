@@ -61,6 +61,14 @@ function unitLabel(type, metric) {
 
 // ── W&B Calculation ────────────────────────────────────────────────────────────
 
+// A field is invalid when it has text that isn't a non-negative number.
+// (Empty is fine = not occupied. "abc" or "-20" is NOT silently treated as zero.)
+function invalidFields(weights) {
+  return Object.entries(weights)
+    .filter(([, v]) => String(v).trim() !== '' && !(Number.isFinite(parseFloat(v)) && parseFloat(v) >= 0))
+    .map(([k]) => k)
+}
+
 function calculate(weights, doors) {
   // Start from BEW, subtract removed doors
   let adjW   = BEW_WEIGHT
@@ -110,8 +118,10 @@ function calculate(weights, doors) {
   const fwdLim = longFwdLimit(frontDoorsOff)
 
   const hasData = items.length > 0 || fuelLbs > 0
+  const invalid = invalidFields(weights)
 
   return {
+    invalid,
     adjBEW:  { weight: adjW,   longArm: BEW_LONG_ARM, latArm: BEW_LAT_ARM, longMom: adjLM,  latMom: adjLaM  },
     removedDoors,
     items,
@@ -121,6 +131,7 @@ function calculate(weights, doors) {
     limits: { fwdLim, frontDoorsOff, zfAft: longAftLimit(zfW), auAft: longAftLimit(auW) },
     status: {
       hasData,
+      hasInvalid:  invalid.length > 0,
       overweight:  auW > MAX_TOW,
       zfLongOK:    isFinite(zfLongCG) && zfLongCG >= fwdLim && zfLongCG <= longAftLimit(zfW),
       zfLatOK:     isFinite(zfLatCG)  && zfLatCG  >= LAT_L_LIMIT && zfLatCG <= LAT_R_LIMIT,
@@ -361,7 +372,7 @@ export default function WeightBalanceCalculator({ onClose }) {
   const result = useMemo(() => calculate(weights, doors), [weights, doors])
   const { status, zeroFuel, allUp, limits } = result
 
-  const overallOK = !status.overweight && status.zfLongOK && status.zfLatOK && status.auLongOK && status.auLatOK
+  const overallOK = !status.hasInvalid && !status.overweight && status.zfLongOK && status.zfLatOK && status.auLongOK && status.auLatOK
 
   const wU = unitLabel('weight', metric)
   const aU = unitLabel('arm', metric)
@@ -466,6 +477,7 @@ export default function WeightBalanceCalculator({ onClose }) {
                       value={weights[s.id]}
                       onChange={e => setW(s.id, e.target.value)}
                       className="input-field w-full text-sm text-right pr-9"
+                      style={result.invalid.includes(s.id) ? { borderColor: '#ef4444', background: 'rgba(239,68,68,0.08)' } : undefined}
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-white/30 pointer-events-none">
                       {metric ? 'kg' : 'lbs'}
@@ -487,6 +499,7 @@ export default function WeightBalanceCalculator({ onClose }) {
                     value={weights.fuel}
                     onChange={e => setW('fuel', e.target.value)}
                     className="input-field w-full text-sm text-right pr-10"
+                    style={result.invalid.includes('fuel') ? { borderColor: '#ef4444', background: 'rgba(239,68,68,0.08)' } : undefined}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-white/30 pointer-events-none">
                     USG
@@ -496,8 +509,17 @@ export default function WeightBalanceCalculator({ onClose }) {
             </div>
           </div>
 
+          {/* ── Invalid input blocks every result ── */}
+          {result.status.hasInvalid && (
+            <div className="rounded-xl px-4 py-3 flex items-center gap-3"
+                 style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+              <p className="text-sm font-bold" style={{ color: '#f87171' }}>Fix the highlighted weight{result.invalid.length > 1 ? 's' : ''}</p>
+              <p className="text-[10px]" style={{ color: 'rgba(248,113,113,0.6)' }}>Not a valid number — no result is shown until it is corrected.</p>
+            </div>
+          )}
+
           {/* ── Results ── */}
-          {result.status.hasData && (
+          {result.status.hasData && !result.status.hasInvalid && (
             <>
               {/* W&B Table */}
               <div>
@@ -619,7 +641,7 @@ export default function WeightBalanceCalculator({ onClose }) {
             </>
           )}
 
-          {!result.status.hasData && (
+          {!result.status.hasData && !result.status.hasInvalid && (
             <div className="rounded-xl px-4 py-8 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
               <p className="text-white/25 text-sm">Enter weights above to calculate</p>
               <p className="text-white/15 text-xs mt-1">Graphs will appear here</p>

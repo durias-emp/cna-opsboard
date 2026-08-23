@@ -465,6 +465,8 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
     if (!form.pilot_in_command) e.pilot = 'Required'
     if (!form.route.trim())     e.route = 'Required'
     if (form.pax[0].name.trim() && !form.pax[0].email.trim()) e.pax0email = 'Required'
+    if (!form.date) e.date = 'Required'
+    if (form.fuel_on_board && !(Number.isFinite(parseFloat(form.fuel_on_board)) && parseFloat(form.fuel_on_board) >= 0)) e.fuel = 'Must be a number'
     return e
   }
 
@@ -626,7 +628,9 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
 
             {/* Date */}
             <div>
-              <p className="text-[11px] text-white/40 mb-1.5">Date</p>
+              <p className="text-[11px] text-white/40 mb-1.5">
+                Date{errors.date && <span className="ml-1.5 text-white/50">— {errors.date}</span>}
+              </p>
               <DatePicker value={form.date} onChange={v => set('date', v)} className="w-full" />
             </div>
           </div>
@@ -711,7 +715,9 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
           <div className="card">
             <p className="label mb-3">Fuel</p>
             <div>
-              <p className="text-[11px] text-white/40 mb-1.5">Fuel on Board at Departure</p>
+              <p className="text-[11px] text-white/40 mb-1.5">
+                Fuel on Board at Departure{errors.fuel && <span className="ml-1.5 text-white/50">— {errors.fuel}</span>}
+              </p>
               <div className="relative">
                 <input
                   type="text"
@@ -719,7 +725,7 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
                   placeholder="0.0"
                   value={form.fuel_on_board}
                   onChange={e => set('fuel_on_board', e.target.value)}
-                  className="input-field w-full pr-16"
+                  className={`input-field w-full pr-16 ${errors.fuel ? 'border-white/30' : ''}`}
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-white/25 pointer-events-none">
                   US gal
