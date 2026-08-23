@@ -23,6 +23,18 @@
     html, body, #root { height: 100dvh; }
   }
 
+  /* iOS standalone PWA: pin the app to the screen. Without this, opening and
+     closing the keyboard (any drawer input) can leave the WebKit viewport
+     shifted, showing a dead black band at the bottom with the nav floating
+     above it — the exact bug this app and the owner's other PWAs have shown.
+     A fixed body can't be pushed around by the keyboard or rubber-banding. */
+  body {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    overflow: hidden;
+  }
+
   * { box-sizing: border-box; }
 }
 
