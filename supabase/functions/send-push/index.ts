@@ -23,6 +23,20 @@ serve(async (req) => {
   }
 
   try {
+    // Hardening (2026-08-22): when the REQUIRE_USER secret is 'true', the caller must
+    // be a signed-in Supabase user — the public anon JWT alone is rejected, so
+    // outsiders can't push arbitrary notification text to staff phones.
+    if (Deno.env.get('REQUIRE_USER') === 'true') {
+      const authHeader = req.headers.get('authorization') ?? ''
+      const jwt = authHeader.replace(/^Bearer\s+/i, '')
+      const authClient = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY')!)
+      const { data: userData, error: userErr } = await authClient.auth.getUser(jwt)
+      if (userErr || !userData?.user) {
+        return new Response(JSON.stringify({ error: 'Sign in required' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+    }
+
     const { assignee, title, due_date, assigned_by } = await req.json()
 
     if (!assignee || !title) {

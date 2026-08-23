@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAircraft } from '../context/AircraftContext'
 import { useTeam } from '../context/TeamContext'
 import { RPC_MISSING } from '../lib/softDelete'
+import { getAccessToken } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import DatePicker from './DatePicker'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
@@ -284,6 +285,9 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
     setConfirmDelete(false)
     setSentToMonies(false)
     setSendingMonies(false)
+    // One idempotency key per drawer session: a double-tap or a retry after a
+    // network error can never post the same revenue twice.
+    moniesKey.current = isEditing && editFlight ? `flight:${editFlight.id}` : crypto.randomUUID()
 
     if (isEditing && editFlight) {
       setDate(editFlight.date ?? today)
@@ -443,6 +447,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
 
   // Old two-write save, kept only until migrations/2026-08-22-flight-hours-atomic-soft-delete.sql runs.
   const legacyFailed = useRef(false)
+  const moniesKey = useRef(null)
   async function legacySave(sharedPayload, cyclesNum) {
     legacyFailed.current = false
     if (isEditing) {
@@ -558,11 +563,16 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
         category:    receiptCategory,
         status:      'pending',
       }
+      const token = await getAccessToken()   // null while login is disabled
       const resp = await fetch('/api/create-monies-transaction', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(payload),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ ...payload, idempotency_key: moniesKey.current }),
       })
+      if (resp.status === 409) { setSentToMonies(true); return }   // already sent — treat as success
       if (!resp.ok) {
         let errMsg = `HTTP ${resp.status}`
         try { const j = await resp.json(); errMsg = j.error || errMsg } catch {}

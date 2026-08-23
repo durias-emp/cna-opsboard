@@ -29,5 +29,6 @@ export function deriveTeam(roster) {
     operations:      byGroup('operations'),
     names:           active.map(m => m.name),
     managementNames: new Set(active.filter(m => m.management).map(m => m.name)),
+    byEmail:         email => active.find(m => m.email && email && m.email.toLowerCase() === email.toLowerCase()) ?? null,
   }
 }

@@ -19,6 +19,7 @@ function rowsToRoster(rows) {
       name:       r.name,
       group:      r.team_group,
       role:       r.role ?? null,
+      email:      r.email ?? null,
       management: r.is_management === true,
       active:     r.is_active !== false,
     }))

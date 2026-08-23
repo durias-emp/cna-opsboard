@@ -6,6 +6,7 @@ import { useTaskUpdates } from '../hooks/useTaskUpdates'
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar'
 import TodoDrawer from '../components/TodoDrawer'
 import { useTeam } from '../context/TeamContext'
+import { useAuth } from '../context/AuthContext'
 import RosterDrawer from '../components/RosterDrawer'
 import { supabase } from '../lib/supabase'
 import { notifyAssignment } from '../lib/notifyAssignment'
@@ -743,6 +744,7 @@ function StatChip({ value, label, accent, active, onClick }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function Employees() {
+  const auth = useAuth()
   const { selectedAircraft } = useAircraft()
   const { pilots, mechanics, operations, loading: rosterLoading, dbProfiles, saveProfile } =
     useEmployeeFlights(selectedAircraft?.id)
@@ -820,7 +822,12 @@ export default function Employees() {
       <div className="flex items-center justify-between px-4 pt-5 pb-4">
         <div>
           <h1 className="page-title">Team</h1>
-          <p className="text-xs text-white/35 mt-0.5">Cielo Norte Aviación</p>
+          <p className="text-xs text-white/35 mt-0.5">
+            Cielo Norte Aviación
+            {auth.enabled && auth.email && (
+              <> · <button onClick={auth.signOut} className="underline underline-offset-2 text-white/40 active:text-white/70">Sign out</button></>
+            )}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button
