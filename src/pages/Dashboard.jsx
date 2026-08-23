@@ -5,6 +5,7 @@ import { useAircraft } from '../context/AircraftContext'
 import { useFlights } from '../hooks/useFlights'
 import { useMaintenance, FLUID_TYPES } from '../hooks/useMaintenance'
 import { useMaintenanceItems } from '../hooks/useMaintenanceItems'
+import { useEmployeeFlights } from '../hooks/useEmployeeFlights'
 import StatCard from '../components/StatCard'
 import SectionHeader from '../components/SectionHeader'
 import FlightDrawer from '../components/FlightDrawer'
@@ -235,6 +236,8 @@ export default function Dashboard() {
   const [maintDrawerOpen,     setMaintDrawerOpen]     = useState(false)
   const [hobbsHistoryOpen,    setHobbsHistoryOpen]    = useState(false)
   const tank = useTank()
+  const { pilots, mechanics, operations } = useEmployeeFlights(selectedAircraft?.id)
+  const teamSize = pilots.length + mechanics.length + operations.length
 
   const hobbs   = selectedAircraft?.hobbs_current
   const cycles  = selectedAircraft?.cycles_current
@@ -306,8 +309,10 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="label mb-1">Team</p>
-                <p className="text-xl font-bold text-white leading-none">6</p>
-                <p className="text-[11px] text-slate-500 mt-1">3 pilots · 3 mechanics</p>
+                <p className="text-xl font-bold text-white leading-none">{teamSize}</p>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  {pilots.length} pilots · {mechanics.length} mechanics · {operations.length} ops
+                </p>
               </div>
             </div>
             <MaintStatusCard maintItems={maintItems} onClick={() => navigate('/maintenance')} />
