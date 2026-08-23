@@ -6,7 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#0A0A0A" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- "black" (not "black-translucent"): this iOS 26 build double-counts the
+         status bar with translucent — it overlays the top AND shortens the window,
+         leaving a dead 59pt band at the bottom. With "black" the window starts
+         below the status bar and its bottom reaches the real screen edge.
+         The app is black behind the clock either way, so the look is identical. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="OpsBoard" />
     <title>CNA OpsBoard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
