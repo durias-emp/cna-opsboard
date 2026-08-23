@@ -4,6 +4,26 @@ const FROM = 'CNA OpsBoard <ops@cielonorteaviacion.com>'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
+// HTML-escape one string. Everything user-entered is interpolated into the email
+// body, so every string in the record is escaped ONCE, up front, by deepEscape().
+function esc(v) {
+  return String(v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
+// Recursively escape every string value in an object/array (numbers, booleans, null untouched).
+function deepEscape(v) {
+  if (typeof v === 'string') return esc(v)
+  if (Array.isArray(v))      return v.map(deepEscape)
+  if (v && typeof v === 'object') {
+    const out = {}
+    for (const [k, val] of Object.entries(v)) out[k] = deepEscape(val)
+    return out
+  }
+  return v
+}
+
 function formatDate(iso) {
   if (!iso) return '—'
   return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', {
@@ -207,39 +227,29 @@ export default async function handler(req, res) {
 
   const body = req.body ?? {}
 
-  // ── Detect call source ──────────────────────────────────────────────────────
-  // Supabase DB webhook: body has { type, table, record, schema }
-  // Legacy client call:  body has { type, data }
-  const isWebhook = !!body.record
+  // Only the Supabase DB webhook may call this endpoint. The old unauthenticated
+  // { type, data } client path was removed on 2026-08-22 (see AUDIT.md Phase 4).
+  const secret = req.headers['x-webhook-secret']
+  if (!process.env.WEBHOOK_SECRET || secret !== process.env.WEBHOOK_SECRET.trim()) {
+    console.error('[webhook] Unauthorized — secret mismatch')
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+  if (!body.record) return res.status(400).json({ error: 'Expected a database webhook payload' })
 
-  if (isWebhook) {
-    // Validate secret so only Supabase can call this path
-    const secret = req.headers['x-webhook-secret']
-    if (!process.env.WEBHOOK_SECRET || secret !== process.env.WEBHOOK_SECRET.trim()) {
-      console.error('[webhook] Unauthorized — secret mismatch')
-      return res.status(401).json({ error: 'Unauthorized' })
-    }
+  // Map Supabase table name → notification type
+  const tableMap = { flights: 'flight_log', flight_itineraries: 'itinerary' }
+  const type = tableMap[body.table]
+  if (!type) {
+    console.error('[webhook] Unknown table:', body.table)
+    return res.status(400).json({ error: 'Unknown table' })
+  }
+  // Only fire on INSERT (not UPDATE/DELETE)
+  if (body.type !== 'INSERT') {
+    return res.status(200).json({ ok: true, skipped: 'not an insert' })
   }
 
-  let type, data
-  if (isWebhook) {
-    // Map Supabase table name → notification type
-    const tableMap = { flights: 'flight_log', flight_itineraries: 'itinerary' }
-    type = tableMap[body.table]
-    data = body.record
-    if (!type) {
-      console.error('[webhook] Unknown table:', body.table)
-      return res.status(400).json({ error: 'Unknown table' })
-    }
-    // Only fire on INSERT (not UPDATE/DELETE)
-    if (body.type !== 'INSERT') {
-      return res.status(200).json({ ok: true, skipped: 'not an insert' })
-    }
-  } else {
-    // Legacy client call
-    type = body.type
-    data = body.data
-  }
+  // Escape every user-entered string before it touches HTML
+  const data = deepEscape(body.record)
 
   if (!type || !data) return res.status(400).json({ error: 'Missing type or data' })
 
