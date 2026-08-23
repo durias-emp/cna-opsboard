@@ -26,3 +26,19 @@ Diego (non-technical, directs development). Keep explanations plain-language, ev
 
 ## Things that live only in the Supabase dashboard (not in this repo)
 DB webhook `flights`/`flight_itineraries` INSERT → `/api/send-notification` (header `x-webhook-secret`); RLS policies on most tables; Edge Function deployment for `send-push`. If you change those, write down what you did in `migrations/` or here.
+
+## iOS PWA full-screen recipe (hard-won — do not regress)
+The "dead band at the bottom" saga was solved in AVIARA APP after a three-day
+on-device investigation (see AVIARA `src/main.jsx` viewport comments and commits
+12f5728..e7c733f). Findings, all device-verified:
+- `apple-mobile-web-app-status-bar-style` must be **`black`, never `black-translucent`** —
+  translucent triggers an iOS container bug: the web view is sized one status bar
+  short and the bottom band is OS-owned, unreachable by ANY css (inset:0, vh, dvh).
+- The visible bar is painted from **theme-color**, which iOS samples at launch from
+  the start_url document. Keep it identical to the app background (#0A0A0A) and
+  never rewrite it from a head script (parse-time prefers-color-scheme lies).
+- These choices are **baked into the home-screen icon at install time** — after
+  changing them, the icon must be deleted and re-added or nothing changes.
+- Shell CSS: `100dvh` + `body{position:fixed;inset:0}` + visualViewport re-anchor
+  on keyboard close (src/main.jsx). Bottom nav rides a fade-to-black dock pinned
+  to bottom:0 so no seam shows regardless of window sizing.
