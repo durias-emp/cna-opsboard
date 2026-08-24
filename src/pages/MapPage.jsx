@@ -1,78 +1,161 @@
-import { useMemo, useRef, useState } from 'react'
-import { MapContainer, TileLayer, CircleMarker, Marker, Tooltip, useMapEvents } from 'react-leaflet'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import * as maplibregl from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
 import { useWaypoints } from '../hooks/useWaypoints'
 import { formatDMS } from '../lib/geo'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 
-// Same engine and basemap as AVIARA (Leaflet + Carto), none of the heavy
-// layers. dark_matter matches the app's Tesla-dark skin out of the box.
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-const ATTRIB = '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-
-const SALVADOR_CENTER = [13.72, -88.95]
-
-const customIcon = L.divIcon({
-  className: '',
-  html: `<div style="width:14px;height:14px;border-radius:50%;background:#2CB9BD;border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,0.6)"></div>`,
-  iconSize: [14, 14],
-  iconAnchor: [7, 7],
-})
-
-// Long-press (mobile) / right-click (desktop) → propose a new waypoint
-function LongPressCapture({ onPick }) {
-  useMapEvents({ contextmenu(e) { onPick(e.latlng) } })
-  return null
+// AVIARA's exact motor and map: MapLibre GL with OpenFreeMap vector tiles,
+// dark style. (In AVIARA, CARTO raster only skins the far-out globe below
+// zoom 5 — OpsBoard never leaves chart-reading zooms, so it is pure
+// OpenFreeMap here.) Style fetched once per session; AVIARA learned the
+// style server rate-limits repeat fetches.
+const STYLE_DARK = 'https://tiles.openfreemap.org/styles/dark'
+let stylePromise = null
+function loadStyle() {
+  if (!stylePromise) {
+    stylePromise = fetch(STYLE_DARK)
+      .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json() })
+      .catch(() => STYLE_DARK)   // MapLibre retries the URL its own way
+  }
+  return stylePromise
 }
+
+const SALVADOR_CENTER = [-88.95, 13.72]   // [lng, lat]
+const LONG_PRESS_MS = 450
+
+const toFeature = w => ({
+  type: 'Feature',
+  geometry: { type: 'Point', coordinates: [w.lng, w.lat] },
+  properties: { id: w.id, code: w.code ?? '', name: w.name, kind: w.kind },
+})
+const fc = list => ({ type: 'FeatureCollection', features: list.map(toFeature) })
 
 export default function MapPage() {
   const { waypoints, dbReady, addWaypoint, deactivateWaypoint } = useWaypoints()
-  const [selected, setSelected] = useState(null)      // waypoint detail sheet
-  const [draft,    setDraft]    = useState(null)      // { lat, lng } for the create sheet
+  const [selected, setSelected] = useState(null)
+  const [draft,    setDraft]    = useState(null)
+  const [ready,    setReady]    = useState(false)
+
+  const containerRef = useRef(null)
+  const mapRef = useRef(null)
+  const waypointsRef = useRef(waypoints)
+  waypointsRef.current = waypoints
 
   const aip     = useMemo(() => waypoints.filter(w => w.source === 'aip'), [waypoints])
   const customs = useMemo(() => waypoints.filter(w => w.source !== 'aip'), [waypoints])
 
+  // ── Map lifecycle ──
+  useEffect(() => {
+    let map, cancelled = false
+    loadStyle().then(style => {
+      if (cancelled) return
+      map = new maplibregl.Map({
+        container: containerRef.current,
+        style,
+        center: SALVADOR_CENTER,
+        zoom: 8.5,
+        attributionControl: { compact: true },
+      })
+      mapRef.current = map
+
+      map.on('load', () => {
+        map.addSource('aip',    { type: 'geojson', data: fc([]) })
+        map.addSource('custom', { type: 'geojson', data: fc([]) })
+
+        map.addLayer({
+          id: 'aip-dots', type: 'circle', source: 'aip',
+          paint: {
+            'circle-radius': ['case', ['==', ['get', 'kind'], 'heliport'], 3.5, 4.5],
+            'circle-color': '#5B616B',
+            'circle-stroke-color': '#9BA1A8',
+            'circle-stroke-width': 1.2,
+            'circle-opacity': 0.9,
+          },
+        })
+        map.addLayer({
+          id: 'aip-labels', type: 'symbol', source: 'aip',
+          minzoom: 7.5,
+          layout: {
+            'text-field': ['coalesce', ['get', 'code'], ''],
+            'text-font': ['Noto Sans Regular'],
+            'text-size': 10,
+            'text-offset': [0, 1.1],
+            'text-anchor': 'top',
+          },
+          paint: { 'text-color': 'rgba(255,255,255,0.45)' },
+        })
+        map.addLayer({
+          id: 'custom-dots', type: 'circle', source: 'custom',
+          paint: {
+            'circle-radius': 6,
+            'circle-color': '#2CB9BD',
+            'circle-stroke-color': '#FFFFFF',
+            'circle-stroke-width': 2,
+          },
+        })
+        map.addLayer({
+          id: 'custom-labels', type: 'symbol', source: 'custom',
+          minzoom: 6,
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-font': ['Noto Sans Regular'],
+            'text-size': 11,
+            'text-offset': [0, 1.2],
+            'text-anchor': 'top',
+          },
+          paint: { 'text-color': '#56D3D6' },
+        })
+        setReady(true)
+      })
+
+      // Tap a marker → detail sheet
+      const pick = e => {
+        const f = e.features?.[0]
+        if (!f) return
+        const w = waypointsRef.current.find(x => String(x.id) === String(f.properties.id))
+        if (w) setSelected(w)
+      }
+      map.on('click', 'aip-dots', pick)
+      map.on('click', 'custom-dots', pick)
+      map.on('mouseenter', 'aip-dots',    () => { map.getCanvas().style.cursor = 'pointer' })
+      map.on('mouseleave', 'aip-dots',    () => { map.getCanvas().style.cursor = '' })
+      map.on('mouseenter', 'custom-dots', () => { map.getCanvas().style.cursor = 'pointer' })
+      map.on('mouseleave', 'custom-dots', () => { map.getCanvas().style.cursor = '' })
+
+      // Desktop right-click → new waypoint
+      map.on('contextmenu', e => setDraft({ lat: e.lngLat.lat, lng: e.lngLat.lng }))
+
+      // Mobile long-press → new waypoint (MapLibre has no touch contextmenu)
+      let pressTimer = null, pressAt = null
+      map.on('touchstart', e => {
+        if (e.originalEvent.touches.length !== 1) return
+        pressAt = e.lngLat
+        pressTimer = setTimeout(() => setDraft({ lat: pressAt.lat, lng: pressAt.lng }), LONG_PRESS_MS)
+      })
+      const cancelPress = () => { clearTimeout(pressTimer); pressTimer = null }
+      map.on('touchmove', cancelPress)
+      map.on('touchend', cancelPress)
+      map.on('move', cancelPress)
+    })
+
+    return () => { cancelled = true; mapRef.current = null; map?.remove() }
+  }, [])
+
+  // ── Keep sources in sync with waypoint data ──
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready) return
+    map.getSource('aip')?.setData(fc(aip))
+    map.getSource('custom')?.setData(fc(customs))
+  }, [aip, customs, ready])
+
   return (
     <div className="flex-1 relative">
-      {/* isolation: keeps Leaflet's internal z-indexes (200-700) inside this box
-          so app overlays (sheets z-70, identity z-200) always paint above the map */}
-      <div className="absolute inset-0 z-0" style={{ isolation: 'isolate' }}>
-      <MapContainer
-        center={SALVADOR_CENTER}
-        zoom={9}
-        className="absolute inset-0"
-        style={{ background: '#171717' }}
-        zoomControl={false}
-        attributionControl={true}
-      >
-        <TileLayer url={TILE_URL} attribution={ATTRIB} subdomains="abcd" />
-        <LongPressCapture onPick={ll => setDraft({ lat: ll.lat, lng: ll.lng })} />
-
-        {aip.map(w => (
-          <CircleMarker
-            key={w.id}
-            center={[w.lat, w.lng]}
-            radius={w.kind === 'heliport' ? 4 : 5}
-            pathOptions={{
-              color: '#9BA1A8', weight: 1.5,
-              fillColor: w.kind === 'heliport' ? '#9BA1A8' : '#5B616B', fillOpacity: 0.85,
-            }}
-            eventHandlers={{ click: () => setSelected(w) }}
-          >
-            {w.code && <Tooltip direction="top" offset={[0, -6]}>{w.code}</Tooltip>}
-          </CircleMarker>
-        ))}
-
-        {customs.map(w => (
-          <Marker key={w.id} position={[w.lat, w.lng]} icon={customIcon}
-            eventHandlers={{ click: () => setSelected(w) }}>
-            <Tooltip direction="top" offset={[0, -8]}>{w.name}</Tooltip>
-          </Marker>
-        ))}
-      </MapContainer>
-      </div>
+      {/* isolation: keeps the map's stacking inside this box so app overlays
+          (sheets, identity, action sheets) always paint above it */}
+      <div ref={containerRef} className="absolute inset-0 z-0"
+        style={{ isolation: 'isolate', background: '#171717' }} />
 
       {/* Floating title + hint */}
       <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none px-4 pt-3"
