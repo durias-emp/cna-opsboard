@@ -100,29 +100,14 @@
   /* ── Tesla-style hero ── */
   .hero-stage {
     position: relative;
-    padding: 1.25rem 1.25rem 1.75rem;
-    /* faint livery-teal ambience behind the aircraft */
-    background: radial-gradient(ellipse 62% 48% at 50% 52%, rgba(44, 185, 189, 0.10), transparent 70%);
+    padding: 0.75rem 0.25rem 0.5rem;
   }
   .hero-heli {
     display: block;
-    width: min(100%, 29rem);
+    width: min(100%, 34rem);
     margin: 0 auto;
-    filter: drop-shadow(0 22px 22px rgba(0, 0, 0, 0.45));
     user-select: none;
     -webkit-user-drag: none;
-  }
-  /* soft floor ellipse under the skids */
-  .hero-stage::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: 0.55rem;
-    transform: translateX(-50%);
-    width: 58%;
-    height: 1.1rem;
-    border-radius: 50%;
-    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55), transparent 70%);
   }
 
   .hero-icon-btn {
