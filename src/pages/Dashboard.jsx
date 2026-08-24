@@ -63,15 +63,18 @@ function hobbsLastUpdated(flights) {
 // large; scroll down and a compact frosted bar with a smaller crest stays stuck
 // to the top (iOS large-title behavior, logo edition).
 function CrestHeader({ tailNumber, switcherItems }) {
-  const sentinel = useRef(null)
-  const [compact, setCompact] = useState(false)
+  const anchor = useRef(null)
+  // 0 = at rest (large crest, no bar), 1 = fully compact — driven directly by
+  // scroll position so the crest shrinks under the finger like the tab bar.
+  const [p, setP] = useState(0)
 
   useEffect(() => {
-    const el = sentinel.current
-    if (!el) return
-    const io = new IntersectionObserver(([e]) => setCompact(!e.isIntersecting), { threshold: 0 })
-    io.observe(el)
-    return () => io.disconnect()
+    const scroller = anchor.current?.parentElement
+    if (!scroller) return
+    const onScroll = () => setP(Math.min(Math.max(scroller.scrollTop / 56, 0), 1))
+    scroller.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => scroller.removeEventListener('scroll', onScroll)
   }, [])
 
   const chipBody = onClick => (
@@ -94,32 +97,29 @@ function CrestHeader({ tailNumber, switcherItems }) {
     ? <PullDownMenu items={switcherItems} align="right" trigger={toggle => chipBody(toggle)} />
     : chipBody(null)
 
+  const blur = p > 0.02 ? `blur(${Math.round(20 * p)}px) saturate(${100 + Math.round(80 * p)}%)` : 'none'
+
   return (
     <>
-      {/* Sticky compact bar — small crest, chip rides along */}
+      {/* Crest bar — always pinned; shrinks and gains frosted glass as you scroll */}
       <div
-        className={`fixed top-0 left-0 right-0 z-[60] transition-opacity duration-200
-                    ${compact ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className="fixed top-0 left-0 right-0 z-[60] pointer-events-none"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
-          background: 'rgba(23,23,23,0.94)',
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          background: `rgba(23,23,23,${(0.94 * p).toFixed(3)})`,
+          backdropFilter: blur,
+          WebkitBackdropFilter: blur,
         }}
       >
-        <div className="relative flex items-center justify-center py-2.5">
-          <img src="/cna-mark-white.png" alt="CNA" className="h-4 opacity-90 select-none" draggable="false" />
-          <div className="absolute right-3 scale-90">{chip}</div>
+        <div className="flex items-center justify-center" style={{ padding: `${0.8 - 0.2 * p}rem 0` }}>
+          <img src="/cna-mark-white.png" alt="CNA" className="opacity-90 select-none" draggable="false"
+            style={{ height: `${1.5 - 0.5 * p}rem` }} />
         </div>
       </div>
 
-      <div ref={sentinel} aria-hidden className="h-px" />
-
-      {/* Large crest row */}
-      <div className="relative flex items-center justify-center pt-4 pb-1 px-4">
-        <img src="/cna-mark-white.png" alt="CNA" className="h-6 opacity-90 select-none" draggable="false" />
-        <div className="absolute right-4">{chip}</div>
+      {/* In-flow row — holds the aircraft pill, which scrolls away with the page */}
+      <div ref={anchor} className="relative flex items-center justify-end pt-4 pb-1 px-4" style={{ minHeight: '3.1rem' }}>
+        {chip}
       </div>
     </>
   )
