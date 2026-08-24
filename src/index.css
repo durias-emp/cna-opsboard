@@ -39,52 +39,40 @@
 }
 
 @layer components {
-  /* ── Bottom nav dock ──
-     Full-width, pinned to the very bottom edge, fading to the page background.
-     The pill rides inside it. This reads like a native tab bar: no content is
-     ever visible sliding under the pill, no seam at the screen edge — even on
-     iOS 26 builds that mis-size the standalone window, the region below the
-     pill is one continuous black surface. */
+  /* ── Bottom nav — iOS-standard tab bar on a fade-to-black dock ──
+     Five equal columns, icon over an 10px label, active state is tint only:
+     no bubbles, no size changes, nothing to knock it off balance. */
   .nav-dock {
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
     z-index: 50;
-    display: flex;
-    justify-content: center;
-    padding: 1.25rem 1rem calc(env(safe-area-inset-bottom, 0px) + 0.4rem);
+    padding: 1.5rem 0.5rem calc(env(safe-area-inset-bottom, 0px) + 0.35rem);
     background: linear-gradient(to top,
       var(--bg-base) 0%,
-      var(--bg-base) 55%,
-      rgba(10, 10, 10, 0) 100%);
-    pointer-events: none;           /* the fade never blocks taps on content */
+      var(--bg-base) 62%,
+      rgba(23, 23, 23, 0) 100%);
+    pointer-events: none;
   }
 
   .pill-nav {
-    @apply flex items-center gap-0.5
-           bg-navy-800/95 backdrop-blur-xl
-           border border-white/[0.08]
-           rounded-full px-2 py-2
-           shadow-[0_8px_32px_rgba(0,0,0,0.6)];
-    width: max-content;
-    max-width: calc(100vw - 2rem);
-    pointer-events: auto;           /* the pill itself is tappable */
+    @apply flex items-stretch w-full max-w-md mx-auto;
+    pointer-events: auto;
   }
 
   .nav-btn {
-    @apply flex flex-col items-center justify-center gap-0.5
-           rounded-full px-1 py-2
-           text-[10px] font-medium text-white/30
-           transition-all duration-200 select-none;
-    min-width: 62px;
+    @apply flex-1 flex flex-col items-center justify-center gap-1
+           py-1 text-[10px] font-medium text-white/35
+           transition-colors duration-150 select-none;
   }
 
   .nav-btn.active {
-    @apply bg-white/10 text-white;
+    @apply text-white;
   }
 
-  .nav-btn img { opacity: 0.3; }
+  .nav-btn svg, .nav-btn img { width: 1.5rem; height: 1.5rem; }
+  .nav-btn img { opacity: 0.35; }
   .nav-btn.active img { opacity: 1; }
 
   /* ── Layout shell ── */
