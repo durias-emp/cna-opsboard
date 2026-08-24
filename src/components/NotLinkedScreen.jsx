@@ -5,7 +5,7 @@ export default function NotLinkedScreen() {
   const { email, signOut } = useAuth()
   return (
     <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center px-8 text-center"
-         style={{ background: '#0a0a0c' }}>
+         style={{ background: '#171717' }}>
       <p className="text-base font-bold text-white">This login isn't linked to a team member</p>
       <p className="text-sm text-white/40 mt-2 max-w-xs">
         <span className="text-white/70">{email}</span> signed in, but no one on the roster has that email.

@@ -249,156 +249,116 @@ export default function Dashboard() {
     { label: 'Maint.',     color: 'bg-white/10 text-white', icon: <IconWrench />, onClick: () => setMaintDrawerOpen(true) },
   ]
 
+  const overdueCount = maintItems.overdue.length
+  const dueSoonCount = maintItems.dueSoon.length
+  const nextDue = maintItems.items
+    .filter(i => i.hrsRemaining != null && i.hrsRemaining > 0)
+    .sort((a, b) => a.hrsRemaining - b.hrsRemaining)[0] ?? null
+  const lastFlight = flights[0] ?? null
+
   return (
     <div className="flex-1 overflow-y-auto nav-clearance">
-      <div className="px-4 pt-5 pb-2">
-        <h1 className="page-title">Dashboard</h1>
-        <p className="text-xs text-white/40 mt-0.5">
-          {selectedAircraft
-            ? `${selectedAircraft.tail_number} · ${selectedAircraft.make_model}`
-            : 'Select an aircraft to begin'}
-        </p>
+
+      {/* ── Hero — the aircraft is the interface ── */}
+      <div className="px-5 pt-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-[26px] font-bold text-white leading-tight tracking-tight">
+              {selectedAircraft?.tail_number ?? '—'}
+            </h1>
+            <p className="text-[13px] text-white/40 mt-0.5 font-medium">
+              {hobbs != null && <>{hobbs.toLocaleString()} h</>}
+              {cycles != null && <span className="text-white/25"> · {cycles.toLocaleString()} cyc</span>}
+              <span className="text-white/25"> · Parked</span>
+            </p>
+          </div>
+          <img src="/cna-logo.png" alt="CNA" className="h-5 mt-1.5 opacity-40" />
+        </div>
+      </div>
+
+      <button onClick={() => setHobbsHistoryOpen(true)} className="hero-stage block w-full select-none">
+        <img src="/heli-hero.png" alt={selectedAircraft?.make_model ?? 'Bell 206B3 JetRanger'}
+          className="hero-heli" draggable="false" />
+      </button>
+
+      {/* Quick verbs — icon row under the aircraft */}
+      <div className="flex justify-center gap-3 px-5 -mt-1 mb-5">
+        <button className="hero-icon-btn" aria-label="Log flight" onClick={() => setFlightDrawerOpen(true)}>
+          <IconFlight />
+        </button>
+        <button className="hero-icon-btn" aria-label="Fuel tank" onClick={() => setTankDrawerOpen(true)}>
+          <IconFuel />
+        </button>
+        <button className="hero-icon-btn" aria-label="Log maintenance service" onClick={() => setMaintDrawerOpen(true)}>
+          <IconWrench />
+        </button>
+        <button className="hero-icon-btn" aria-label="Flights and itineraries" onClick={() => navigate('/flights')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+          </svg>
+        </button>
       </div>
 
       <div className="px-4 pb-6 space-y-5">
-        {/* Hobbs banner */}
-        {hobbs != null && (
-          <div
-            className="card border-white/[0.08] flex items-center justify-between cursor-pointer active:opacity-75 transition-opacity select-none"
-            onClick={() => setHobbsHistoryOpen(true)}
-          >
-            <div>
-              <p className="label mb-1">Air Time</p>
-              <p className="text-4xl font-bold text-white tracking-tight">
-                {hobbs.toLocaleString()}
-                <span className="text-base text-white/40 font-normal ml-1.5">h</span>
+
+        {/* ── Status rows ── */}
+        <div className="trow-group">
+
+          <button className="trow" onClick={() => navigate('/maintenance')}>
+            <span className={`w-1 self-stretch rounded-full flex-shrink-0 ${overdueCount > 0 ? 'bg-red-500/80' : dueSoonCount > 0 ? 'bg-amber-400/70' : 'bg-white/10'}`} />
+            <div className="min-w-0">
+              <p className="text-[14px] font-semibold text-white">Maintenance</p>
+              <p className="text-[12px] text-white/40 mt-0.5 truncate">
+                {overdueCount > 0
+                  ? `${overdueCount} overdue · ${dueSoonCount} due soon`
+                  : nextDue
+                    ? `Next: ${nextDue.description}`
+                    : 'All items OK'}
               </p>
-              {cycles != null && (
-                <p className="text-sm text-white/35 mt-1 font-medium">
-                  {cycles.toLocaleString()}
-                  <span className="text-xs font-normal text-white/25 ml-1">cycles</span>
-                </p>
-              )}
             </div>
-            <div className="flex flex-col items-end gap-1">
-              <span className="badge badge-green">Active</span>
-              <p className="text-[11px] text-white/25 mt-1">{hobbsLastUpdated(flights)}</p>
-              <p className="text-[10px] text-white/20 mt-0.5">Tap for history ›</p>
-            </div>
-          </div>
-        )}
+            <span className="ml-auto text-[13px] text-white/45 tabular-nums flex-shrink-0">
+              {overdueCount > 0 ? `${overdueCount + dueSoonCount} items` : nextDue ? `in ${nextDue.hrsRemaining.toFixed(1)} h` : ''}
+            </span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="chev w-4 h-4"><path d="M9 18l6-6-6-6" /></svg>
+          </button>
 
-        {/* 2×2 stat grid */}
-        <div>
-          <SectionHeader title="This month" />
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard icon={<IconFlight />} label="Flights"         value={stats.allHours ?? stats.monthHours} sub={stats.total ? `${stats.total} flight${stats.total > 1 ? 's' : ''}` : 'No flights yet'} onClick={() => navigate('/flights')} />
-            <div
-              className="stat-card cursor-pointer active:opacity-80 transition-opacity select-none"
-              onClick={() => navigate('/employees')}
-            >
-              <div className="icon-box w-9 h-9 bg-navy-700">
-                <span className="text-slate-400">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
-                </span>
-              </div>
-              <div>
-                <p className="label mb-1">Team</p>
-                <p className="text-xl font-bold text-white leading-none">{teamSize}</p>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  {pilots.length} pilots · {mechanics.length} mechanics · {operations.length} ops
+          <button className="trow" onClick={() => navigate('/fuel')}>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between">
+                <p className="text-[14px] font-semibold text-white">Fuel tank</p>
+                <p className="text-[13px] text-white/45 tabular-nums">
+                  {tank.currentLevel != null ? `${tank.currentLevel} gal · ${Math.round(tank.fillPercent * 100)}%` : '—'}
                 </p>
               </div>
-            </div>
-            <MaintStatusCard maintItems={maintItems} onClick={() => navigate('/maintenance')} />
-            <TankMiniCard tank={tank} onClick={() => navigate('/fuel')} />
-          </div>
-        </div>
-
-        {/* Quick actions */}
-        <div>
-          <SectionHeader title="Quick actions" />
-          <div className="grid grid-cols-3 gap-2">
-            {QUICK_ACTIONS.map(({ label, color, icon, onClick }) => (
-              <button
-                key={label}
-                onClick={onClick}
-                className="flex flex-col items-center gap-2 py-3 rounded-2xl
-                           bg-navy-800 border border-white/[0.06]
-                           active:scale-95 transition-transform select-none"
-              >
-                <span className={`icon-box w-10 h-10 rounded-xl ${color}`}>{icon}</span>
-                <span className="text-[10px] font-medium text-white/40 text-center leading-tight">{label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Maintenance overview */}
-        <div>
-          <SectionHeader title="Maintenance" action={{ label: 'View all', onClick: () => navigate('/maintenance') }} />
-          <div className="card space-y-4">
-
-            {/* Grease timer compact */}
-            <div
-              className="flex items-center justify-between cursor-pointer"
-              onClick={() => navigate('/maintenance')}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center flex-shrink-0">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}
-                    strokeLinecap="round" className="w-4 h-4 text-white/50">
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-white">Grease interval</p>
-                  <p className="text-[10px] text-white/35 mt-0.5">
-                    {maint.grease.hoursSince != null
-                      ? `${maint.grease.hoursSince.toFixed(1)}h flown since last`
-                      : 'No grease log yet'}
-                  </p>
-                </div>
+              <div className="h-[3px] rounded-full bg-white/[0.08] overflow-hidden mt-2.5">
+                <div className="h-full rounded-full bg-accent transition-all duration-700"
+                  style={{ width: `${(tank.fillPercent ?? 0) * 100}%` }} />
               </div>
-              {maint.grease.overdue ? (
-                <span className="badge bg-white text-black text-[10px]">OVERDUE</span>
-              ) : maint.grease.warning ? (
-                <span className="badge bg-white/10 text-white text-[10px] animate-pulse">Due soon</span>
-              ) : maint.grease.hoursLeft != null ? (
-                <span className="text-xs text-white/40">{maint.grease.hoursLeft.toFixed(1)}h left</span>
-              ) : null}
             </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="chev w-4 h-4"><path d="M9 18l6-6-6-6" /></svg>
+          </button>
 
-            {/* Grease progress bar */}
-            <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden -mt-2">
-              <div className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: `${(1 - (maint.grease.progress ?? 0)) * 100}%`,
-                  backgroundColor: maint.grease.overdue
-                    ? 'rgba(255,255,255,0.9)'
-                    : 'rgba(255,255,255,0.35)',
-                }} />
+          <button className="trow" onClick={() => navigate('/flights')}>
+            <div className="min-w-0">
+              <p className="text-[14px] font-semibold text-white">Flights</p>
+              <p className="text-[12px] text-white/40 mt-0.5">
+                {stats.total ? `${stats.allHours ?? stats.monthHours} this month · ${stats.total} flights` : 'No flights yet'}
+                {lastFlight && ` · last ${formatDate(lastFlight.date)}`}
+              </p>
             </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="chev w-4 h-4 ml-auto"><path d="M9 18l6-6-6-6" /></svg>
+          </button>
 
-            {/* Fluid status dots */}
-            <div className="flex items-center gap-4 pt-1 border-t border-white/[0.05]">
-              {Object.entries(FLUID_TYPES).map(([type, { short }]) => {
-                const s = maint.getFluidStatus(type)
-                return (
-                  <div key={type} className="flex items-center gap-1.5">
-                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.last ? 'bg-white/60' : 'bg-white/15'}`} />
-                    <span className="text-[10px] text-white/40">{short}</span>
-                  </div>
-                )
-              })}
+          <button className="trow" onClick={() => navigate('/employees')}>
+            <div className="min-w-0">
+              <p className="text-[14px] font-semibold text-white">Team</p>
+              <p className="text-[12px] text-white/40 mt-0.5">
+                {teamSize} people · {pilots.length} pilots · {mechanics.length} mechanics · {operations.length} ops
+              </p>
             </div>
-          </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="chev w-4 h-4 ml-auto"><path d="M9 18l6-6-6-6" /></svg>
+          </button>
         </div>
 
         {/* Recent flights */}

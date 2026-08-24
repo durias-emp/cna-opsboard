@@ -3,7 +3,7 @@
 export default function ConnectionError({ message, onRetry }) {
   return (
     <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center px-8 text-center"
-         style={{ background: '#0a0a0c' }}>
+         style={{ background: '#171717' }}>
       <div className="w-14 h-14 rounded-full bg-white/[0.06] flex items-center justify-center mb-5">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}
           strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7 text-white/40">

@@ -4,7 +4,7 @@ export default function IdentityScreen({ takenNames, onSelect, registering, erro
   const { names: TEAM } = useTeam()
   return (
     <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center px-6"
-         style={{ background: '#0a0a0c' }}>
+         style={{ background: '#171717' }}>
 
       {/* Logo */}
       <img src="/cna-logo.png" alt="CNA" className="w-16 h-16 object-contain mb-8 opacity-90" />

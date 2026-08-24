@@ -4,8 +4,8 @@
 
 @layer base {
   :root {
-    --bg-base: #0A0A0A;
-    --accent: #FFFFFF;
+    --bg-base: #171717;
+    --accent: #2CB9BD;
   }
 
   html, body, #root {
@@ -96,6 +96,51 @@
   .nav-clearance {
     padding-bottom: calc(5rem + env(safe-area-inset-bottom));
   }
+
+  /* ── Tesla-style hero ── */
+  .hero-stage {
+    position: relative;
+    padding: 1.25rem 1.25rem 1.75rem;
+    /* faint livery-teal ambience behind the aircraft */
+    background: radial-gradient(ellipse 62% 48% at 50% 52%, rgba(44, 185, 189, 0.10), transparent 70%);
+  }
+  .hero-heli {
+    display: block;
+    width: min(100%, 29rem);
+    margin: 0 auto;
+    filter: drop-shadow(0 22px 22px rgba(0, 0, 0, 0.45));
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  /* soft floor ellipse under the skids */
+  .hero-stage::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 0.55rem;
+    transform: translateX(-50%);
+    width: 58%;
+    height: 1.1rem;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55), transparent 70%);
+  }
+
+  .hero-icon-btn {
+    @apply flex items-center justify-center rounded-2xl bg-white/[0.05]
+           text-white/55 active:bg-white/[0.12] active:text-white
+           transition-colors select-none;
+    width: 4rem;
+    height: 3.25rem;
+  }
+
+  /* ── Tesla-style list rows ── */
+  .trow {
+    @apply w-full flex items-center gap-3.5 px-4 py-4 text-left
+           bg-navy-800 active:bg-navy-700 transition-colors select-none;
+  }
+  .trow + .trow { border-top: 1px solid rgba(255, 255, 255, 0.05); }
+  .trow-group { @apply rounded-2xl overflow-hidden; }
+  .trow .chev { @apply ml-auto text-white/20 flex-shrink-0; }
 
   /* ── Cards ── */
   .card {
