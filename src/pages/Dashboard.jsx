@@ -259,21 +259,21 @@ export default function Dashboard() {
   return (
     <div className="flex-1 overflow-y-auto nav-clearance">
 
+      {/* ── Brand crest — centered above everything, mark only ── */}
+      <div className="flex justify-center pt-4 pb-1">
+        <img src="/cna-mark-white.png" alt="CNA" className="h-6 opacity-90 select-none" draggable="false" />
+      </div>
+
       {/* ── Hero — the aircraft is the interface ── */}
-      <div className="px-5 pt-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-[26px] font-bold text-white leading-tight tracking-tight">
-              {selectedAircraft?.tail_number ?? '—'}
-            </h1>
-            <p className="text-[13px] text-white/40 mt-0.5 font-medium">
-              {hobbs != null && <>{hobbs.toLocaleString()} h</>}
-              {cycles != null && <span className="text-white/25"> · {cycles.toLocaleString()} cyc</span>}
-              <span className="text-white/25"> · Parked</span>
-            </p>
-          </div>
-          <img src="/cna-logo.png" alt="CNA" className="h-5 mt-1.5 opacity-40" />
-        </div>
+      <div className="px-5 pt-2">
+        <h1 className="text-[26px] font-bold text-white leading-tight tracking-tight">
+          {selectedAircraft?.tail_number ?? '—'}
+        </h1>
+        <p className="text-[13px] text-white/40 mt-0.5 font-medium">
+          {hobbs != null && <>{hobbs.toLocaleString()} h</>}
+          {cycles != null && <span className="text-white/25"> · {cycles.toLocaleString()} cyc</span>}
+          <span className="text-white/25"> · Parked</span>
+        </p>
       </div>
 
       <button onClick={() => setHobbsHistoryOpen(true)} className="hero-stage block w-full select-none">
