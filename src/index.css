@@ -71,8 +71,10 @@
     @apply text-white;
   }
 
-  .nav-btn svg, .nav-btn img { width: 1.5rem; height: 1.5rem; }
-  .nav-btn img { opacity: 0.35; }
+  .nav-btn svg { width: 1.5rem; height: 1.5rem; }
+  /* the helicopter glyph is 2:1 wide — give it a wider box so its visual
+     weight matches the square stroke icons */
+  .nav-btn img { width: 2.1rem; height: 1.5rem; object-fit: contain; opacity: 0.35; }
   .nav-btn.active img { opacity: 1; }
 
   /* ── Layout shell ── */
