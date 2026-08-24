@@ -164,11 +164,6 @@ export default function Dashboard() {
             </button>
           )}
         />
-        <p className="text-[13px] text-white/40 mt-0.5 font-medium">
-          {hobbs != null && <>{hobbs.toLocaleString()} h</>}
-          {cycles != null && <span className="text-white/25"> · {cycles.toLocaleString()} cyc</span>}
-          <span className="text-white/25"> · Parked</span>
-        </p>
       </div>
 
       <button onClick={() => setHobbsHistoryOpen(true)} className="hero-stage block w-full select-none">
@@ -194,6 +189,14 @@ export default function Dashboard() {
               <p className="vital-sub">
                 {stats.total ? `+${stats.allHours ?? stats.monthHours} this month` : 'No flights yet'}
               </p>
+              {cycles != null && (
+                <p className="vital-sub mt-1">
+                  {cycles.toLocaleString()} cyc
+                  {lastFlight?.cycles > 0 && (
+                    <span className="text-green-400 font-semibold"> +{lastFlight.cycles}</span>
+                  )}
+                </p>
+              )}
             </button>
 
             {/* Secondary stats */}
