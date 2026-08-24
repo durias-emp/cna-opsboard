@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useWaypoints } from '../hooks/useWaypoints'
@@ -32,6 +33,7 @@ const toFeature = w => ({
 const fc = list => ({ type: 'FeatureCollection', features: list.map(toFeature) })
 
 export default function MapPage() {
+  const navigate = useNavigate()
   const { waypoints, dbReady, addWaypoint, deactivateWaypoint } = useWaypoints()
   const [selected, setSelected] = useState(null)
   const [draft,    setDraft]    = useState(null)
@@ -59,6 +61,9 @@ export default function MapPage() {
       })
       mapRef.current = map
       if (import.meta.env.DEV) window.__map = map
+
+      // AVIARA's 3D globe: re-apply on every style load (setStyle resets it)
+      map.on('style.load', () => map.setProjection({ type: 'globe' }))
 
       map.on('load', () => {
         map.addSource('aip',    { type: 'geojson', data: fc([]) })
@@ -161,13 +166,22 @@ export default function MapPage() {
       <div ref={containerRef} className="z-0"
         style={{ position: 'absolute', inset: 0, isolation: 'isolate', background: '#171717' }} />
 
-      {/* Floating title + hint */}
-      <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none px-4 pt-3"
+      {/* Floating back button + hint */}
+      <div className="absolute top-0 left-0 right-0 z-10 flex items-center gap-3 px-4"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}>
-        <div className="inline-block rounded-2xl px-3.5 py-2"
+        <button onClick={() => navigate(-1)} aria-label="Back"
+          className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0
+                     active:scale-95 transition-transform"
+          style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+                   boxShadow: '0 2px 12px rgba(0,0,0,0.35)' }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth={2.5}
+            strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 -ml-0.5">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+        <div className="rounded-2xl px-3.5 py-2 pointer-events-none"
           style={{ background: 'rgba(23,23,23,0.82)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
-          <p className="text-[15px] font-semibold text-white leading-none">Map</p>
-          <p className="text-[11px] text-white/40 mt-1 leading-none">Hold anywhere to add a waypoint</p>
+          <p className="text-[11px] text-white/45 leading-none">Hold anywhere to add a waypoint</p>
         </div>
       </div>
 

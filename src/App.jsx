@@ -29,7 +29,7 @@ function Shell() {
   const { pathname } = useLocation()
   return (
     <div className="page-shell bg-navy-950">
-      {pathname !== '/' && <AircraftBar />}
+      {pathname !== '/' && pathname !== '/map' && <AircraftBar />}
       <main className="flex-1 overflow-hidden flex flex-col">
         <Suspense fallback={<div className="flex-1" />}>
         <Routes>
