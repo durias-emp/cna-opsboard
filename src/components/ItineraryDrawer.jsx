@@ -384,7 +384,7 @@ const IconClose = () => (
 // ── Main drawer ────────────────────────────────────────────────────────────────
 export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = null }) {
   const { selectedAircraft } = useAircraft()
-  const { handleProps, panelStyle } = useDrawerSwipe(onClose)
+  const { handleProps, panelProps, panelStyle } = useDrawerSwipe(onClose)
   const [form,          setForm]         = useState(EMPTY())
   const [saving,        setSaving]       = useState(false)
   const [success,       setSuccess]      = useState(false)
@@ -513,7 +513,7 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
       />
 
       {/* Panel */}
-      <div className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`} style={panelStyle}>
+      <div className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`} style={panelStyle} {...panelProps}>
 
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab" {...handleProps}>

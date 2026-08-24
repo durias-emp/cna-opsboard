@@ -38,7 +38,7 @@ export default function SnagDrawer({ open, onClose, onSaved }) {
   const PILOT_NAMES = team.pilots.map(p => p.name)
   const MECH_NAMES  = team.mechanics.map(p => p.name)
   const OPS_NAMES   = team.operations.map(p => p.name)
-  const { handleProps, panelStyle } = useDrawerSwipe(onClose)
+  const { handleProps, panelProps, panelStyle } = useDrawerSwipe(onClose)
   const { selectedAircraft } = useAircraft()
 
   const [date,        setDate]        = useState('')
@@ -120,7 +120,7 @@ export default function SnagDrawer({ open, onClose, onSaved }) {
       />
 
       {/* Panel */}
-      <div className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`} style={panelStyle}>
+      <div className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`} style={panelStyle} {...panelProps}>
 
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab" {...handleProps}>

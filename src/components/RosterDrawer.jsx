@@ -335,7 +335,7 @@ function MemberCard({ member, onProfileClick, onCall }) {
 // ── Roster Drawer ─────────────────────────────────────────────────────────────
 
 export default function RosterDrawer({ open, onClose, pilots, mechanics, operations, loading, getProfile, onSave }) {
-  const { handleProps, panelStyle } = useDrawerSwipe(onClose)
+  const { handleProps, panelProps, panelStyle } = useDrawerSwipe(onClose)
   const [profile, setProfile] = useState(null)
 
   function openProfile(person, isPilot) {
@@ -349,7 +349,7 @@ export default function RosterDrawer({ open, onClose, pilots, mechanics, operati
         onClick={onClose}
       />
 
-      <div className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`} style={panelStyle}>
+      <div className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`} style={panelStyle} {...panelProps}>
 
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab" {...handleProps}>

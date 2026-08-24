@@ -43,7 +43,7 @@ function buildLedger(flights, currentHobbs) {
 }
 
 export default function HobbsHistoryDrawer({ open, onClose, flights, currentHobbs, tailNumber }) {
-  const { handleProps, panelStyle } = useDrawerSwipe(onClose)
+  const { handleProps, panelProps, panelStyle } = useDrawerSwipe(onClose)
 
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''

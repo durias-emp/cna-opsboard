@@ -234,7 +234,7 @@ function FuelSection({ totalMinutes, fuelStart, fuelEnd, onFuelStart, onFuelEnd,
 export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
   const PILOTS = useTeam().pilots.map(p => p.name)
   const DEFAULT_PILOT = PILOTS[0] ?? ''
-  const { handleProps, panelStyle } = useDrawerSwipe(onClose)
+  const { handleProps, panelProps, panelStyle } = useDrawerSwipe(onClose)
   const { selectedAircraft, refreshAircraft } = useAircraft()
   const _now = new Date()
   const today = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`
@@ -729,7 +729,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
 
 
       {/* Panel */}
-      <div className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`} style={panelStyle}>
+      <div className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`} style={panelStyle} {...panelProps}>
 
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab" {...handleProps}>

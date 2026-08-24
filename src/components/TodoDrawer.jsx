@@ -36,7 +36,7 @@ function today() {
 // ── Drawer — create or edit a single task ─────────────────────────────────────
 
 export default function TodoDrawer({ open, onClose, onSave, onDelete, initial }) {
-  const { handleProps, panelStyle } = useDrawerSwipe(onClose)
+  const { handleProps, panelProps, panelStyle } = useDrawerSwipe(onClose)
 
   const isEdit = !!initial?.id
 
@@ -114,7 +114,7 @@ export default function TodoDrawer({ open, onClose, onSave, onDelete, initial })
         onClick={onClose}
       />
 
-      <div className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`} style={panelStyle}>
+      <div className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`} style={panelStyle} {...panelProps}>
 
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab" {...handleProps}>

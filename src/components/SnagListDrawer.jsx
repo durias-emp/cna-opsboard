@@ -286,7 +286,7 @@ function SnagCard({ snag, onClick }) {
 
 // ── Main drawer ───────────────────────────────────────────────────────────────
 export default function SnagListDrawer({ open, onClose }) {
-  const { handleProps, panelStyle } = useDrawerSwipe(onClose)
+  const { handleProps, panelProps, panelStyle } = useDrawerSwipe(onClose)
   const { selectedAircraft } = useAircraft()
   const { open: openSnags, inProgress, resolved, loading, refresh } = useSnags(selectedAircraft?.id)
 
@@ -309,7 +309,7 @@ export default function SnagListDrawer({ open, onClose }) {
       />
 
       {/* Panel */}
-      <div className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`} style={panelStyle}>
+      <div className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`} style={panelStyle} {...panelProps}>
 
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab" {...handleProps}>

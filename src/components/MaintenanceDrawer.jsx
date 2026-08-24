@@ -13,7 +13,7 @@ const TYPES = [
 ]
 
 export default function MaintenanceDrawer({ open, onClose, onSaved, defaultType }) {
-  const { handleProps, panelStyle } = useDrawerSwipe(onClose)
+  const { handleProps, panelProps, panelStyle } = useDrawerSwipe(onClose)
   const { selectedAircraft } = useAircraft()
 
   const [activeType, setActiveType] = useState(defaultType ?? 'engine_oil')
@@ -89,7 +89,7 @@ export default function MaintenanceDrawer({ open, onClose, onSaved, defaultType 
       />
 
       {/* Panel */}
-      <div className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`} style={panelStyle}>
+      <div className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`} style={panelStyle} {...panelProps}>
 
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab" {...handleProps}>

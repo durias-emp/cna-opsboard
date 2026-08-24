@@ -15,7 +15,7 @@ const IconClose = () => (
 )
 
 export default function ComplianceDrawer({ open, onClose, item, hobbsCurrent, cyclesCurrent, onSaved }) {
-  const { handleProps, panelStyle } = useDrawerSwipe(onClose)
+  const { handleProps, panelProps, panelStyle } = useDrawerSwipe(onClose)
   const [form,    setForm]    = useState({})
   const [saving,  setSaving]  = useState(false)
   const [success, setSuccess] = useState(false)
@@ -95,7 +95,7 @@ export default function ComplianceDrawer({ open, onClose, item, hobbsCurrent, cy
         className={`drawer-overlay ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
-      <div className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`} style={panelStyle}>
+      <div className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`} style={panelStyle} {...panelProps}>
 
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab" {...handleProps}>

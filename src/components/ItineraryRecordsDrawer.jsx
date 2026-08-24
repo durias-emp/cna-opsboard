@@ -200,7 +200,7 @@ function ItineraryCard({ record: r, isExpanded, onToggle, onEdit, onDelete }) {
 // ── Main drawer ────────────────────────────────────────────────────────────────
 
 export default function ItineraryRecordsDrawer({ open, onClose, onEdit }) {
-  const { handleProps, panelStyle } = useDrawerSwipe(onClose)
+  const { handleProps, panelProps, panelStyle } = useDrawerSwipe(onClose)
   const [records,      setRecords]      = useState([])
   const [loading,      setLoading]      = useState(true)
   const [search,       setSearch]       = useState('')

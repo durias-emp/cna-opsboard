@@ -257,9 +257,28 @@
   .drawer-panel {
     @apply fixed bottom-0 left-0 right-0 z-[70]
            bg-navy-800 rounded-t-3xl
-           transition-transform duration-300 ease-out
            flex flex-col;
     max-height: 92dvh;
+    /* the iOS sheet spring curve */
+    transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  /* pull-to-close needs the inner list to stop chaining at its top */
+  .drawer-panel .overflow-y-auto { overscroll-behavior: contain; }
+
+  /* ── Page recede: when any sheet is open the app scales back like an iOS
+        card stack. Pure CSS via :has() — covers every drawer automatically. ── */
+  .page-shell {
+    transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), border-radius 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+    transform-origin: 50% 0;
+  }
+  body:has(.drawer-overlay.opacity-100) .page-shell {
+    transform: scale(0.955) translateY(6px);
+    border-radius: 16px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .drawer-panel, .page-shell { transition-duration: 0.01ms; }
   }
 }
 
