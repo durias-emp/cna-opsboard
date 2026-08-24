@@ -38,7 +38,7 @@ export default function MapPage() {
   const [ready,    setReady]    = useState(false)
   // TEMP diagnostics — remove once the phone renders the map
   const [diag, setDiag] = useState([])
-  const note = msg => setDiag(d => [...d.slice(-11), msg])
+  const note = msg => setDiag(d => (d[d.length - 1] === msg ? d : [...d.slice(-15), msg]))
 
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -77,12 +77,23 @@ export default function MapPage() {
       } catch (e) { note(`Map() THREW: ${e.message}`); return }
       mapRef.current = map
       note('map constructed')
-      map.on('error', e => note(`map error: ${e.error?.message ?? e.error ?? 'unknown'}`))
-      map.on('styledata', () => note('styledata received'))
+      map.on('error', e => note(`ERR: ${e.error?.message ?? e.error ?? 'unknown'}`))
       map.once('render', () => note(`first render, canvas ${map.getCanvas().width}x${map.getCanvas().height}`))
+      map.getCanvas().addEventListener('webglcontextlost', () => note('ERR: WEBGL CONTEXT LOST'))
 
       map.on('load', () => {
         note('map LOAD fired')
+        // Magenta wash: if the user can see pink, the canvas composites fine
+        map.addLayer({ id: 'debug-wash', type: 'background',
+          paint: { 'background-color': '#ff00ff', 'background-opacity': 0.25 } })
+        setTimeout(() => {
+          map.resize()
+          const cv = map.getCanvas(), cs = getComputedStyle(cv)
+          note(`post-resize: buf ${cv.width}x${cv.height}, css ${cs.width}x${cs.height}`)
+          note(`canvas vis=${cs.visibility} disp=${cs.display} op=${cs.opacity} pos=${cs.position}`)
+          note(`container now ${containerRef.current?.clientWidth}x${containerRef.current?.clientHeight}`)
+          try { note(map.painter.context.gl.isContextLost() ? 'ERR: gl context lost' : 'gl context live') } catch {}
+        }, 400)
         map.addSource('aip',    { type: 'geojson', data: fc([]) })
         map.addSource('custom', { type: 'geojson', data: fc([]) })
 
