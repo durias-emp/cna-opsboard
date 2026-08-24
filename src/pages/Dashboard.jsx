@@ -361,29 +361,31 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Recent flights */}
-        <div className="card">
-          <SectionHeader title="Recent flights" action={{ label: 'See all', onClick: () => navigate('/flights') }} />
+        {/* Recent flights — finance-style tiles */}
+        <div>
+          <div className="flex items-baseline justify-between px-1 mb-2.5">
+            <p className="text-[13px] font-semibold text-white/45">Recent flights</p>
+            <button className="text-[13px] font-semibold text-accent active:opacity-70" onClick={() => navigate('/flights')}>See all</button>
+          </div>
           {recentFlights.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 gap-2">
+            <div className="tile-group flex flex-col items-center justify-center py-8 gap-2">
               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/25">
                 <IconFlight />
               </div>
               <p className="text-xs text-white/25">No flights yet</p>
             </div>
           ) : (
-            <div className="space-y-0">
-              {recentFlights.map((f, i) => (
-                <div
-                  key={f.id}
-                  className={`flex items-center justify-between py-2.5
-                    ${i < recentFlights.length - 1 ? 'border-b border-white/[0.05]' : ''}`}
-                >
-                  <div>
-                    <p className="text-xs font-semibold text-white">{flightRoute(f)}</p>
-                    <p className="text-[10px] text-white/30">{formatDate(f.date)}</p>
+            <div className="tile-group">
+              {recentFlights.map(f => (
+                <div key={f.id} className="tile" onClick={() => navigate('/flights')}>
+                  <div className="tile-icon"><IconFlight /></div>
+                  <div className="tile-body">
+                    <div className="min-w-0">
+                      <p className="tile-title">{flightRoute(f)}</p>
+                      <p className="tile-sub">{formatDate(f.date)}</p>
+                    </div>
+                    <p className="tile-value">{formatDuration(f.total_minutes)}</p>
                   </div>
-                  <p className="text-xs text-white/50">{formatDuration(f.total_minutes)}</p>
                 </div>
               ))}
             </div>

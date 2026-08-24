@@ -130,12 +130,11 @@
 
   /* ── Cards ── */
   .card {
-    @apply bg-navy-800 rounded-2xl border border-white/[0.06] p-4
-           shadow-[0_1px_0_rgba(255,255,255,0.04)];
+    @apply bg-navy-800 rounded-2xl p-4;
   }
 
   .card-sm {
-    @apply bg-navy-800 rounded-xl border border-white/[0.06] p-3;
+    @apply bg-navy-800 rounded-xl p-3;
   }
 
   /* ── Stat cards ── */
@@ -149,7 +148,7 @@
   }
 
   .page-title {
-    @apply text-xl font-bold text-white;
+    @apply text-[26px] font-bold text-white tracking-tight;
   }
 
   /* ── FAB action button ── */
@@ -176,10 +175,27 @@
            text-[10px] font-semibold;
   }
 
-  .badge-green  { @apply bg-white/10 text-white; }
-  .badge-yellow { @apply bg-white/10 text-slate-300; }
-  .badge-red    { @apply bg-white/10 text-slate-300; }
+  .badge-green  { @apply bg-accent/15 text-accent-light; }
+  .badge-yellow { @apply bg-amber-400/10 text-amber-300/90; }
+  .badge-red    { @apply bg-red-500/15 text-red-300; }
   .badge-slate  { @apply bg-white/5 text-slate-400; }
+
+  /* ── Finance-style list tiles: icon squircle, bold title over muted date,
+        bold value, inset separators that start after the icon ── */
+  .tile-group { @apply bg-navy-800 rounded-2xl overflow-hidden; }
+  .tile { @apply flex items-center gap-3.5 pl-4 pr-0 cursor-pointer select-none; }
+  .tile:active { @apply bg-white/[0.03]; }
+  .tile-icon {
+    @apply w-11 h-11 rounded-2xl bg-white/[0.07] text-white/70
+           flex items-center justify-center flex-shrink-0;
+  }
+  .tile-body {
+    @apply flex-1 min-w-0 flex items-center justify-between gap-3 py-4 pr-4;
+  }
+  .tile:not(:first-child) .tile-body { border-top: 1px solid rgba(255, 255, 255, 0.06); }
+  .tile-title { @apply text-[15px] font-semibold text-white leading-tight truncate; }
+  .tile-sub   { @apply text-[12.5px] text-white/40 mt-1 leading-tight truncate; }
+  .tile-value { @apply text-[15px] font-semibold text-white flex-shrink-0 tabular-nums; }
 
   /* ── List row ── */
   .list-row {
@@ -193,7 +209,7 @@
 
   /* ── Form inputs ── */
   .input-field {
-    @apply bg-white/[0.06] border border-white/[0.08] rounded-xl
+    @apply bg-white/[0.06] border border-transparent rounded-xl
            px-4 py-3 text-white outline-none
            focus:border-white/25 transition-colors
            placeholder:text-white/20;

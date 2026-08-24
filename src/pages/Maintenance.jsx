@@ -420,21 +420,6 @@ export default function Maintenance() {
           </button>
         </div>
 
-        {/* Helicopter blueprint — screen blend makes black bg transparent.
-            clip-path trims the bottom-right Gemini watermark. */}
-        <div className="w-4/5 mx-auto mt-4 mb-6"
-          style={{ backgroundColor: '#0A0A0A', isolation: 'isolate' }}>
-          <img
-            src="/Bell206 Jetranger.png"
-            alt="Bell 206 blueprint"
-            className="w-full object-contain select-none pointer-events-none"
-            style={{
-              opacity: 0.32,
-              mixBlendMode: 'screen',
-              clipPath: 'inset(0 0 10% 0)',
-            }}
-          />
-        </div>
       </div>
 
       {/* ── 3 Summary cards ── */}
@@ -443,7 +428,7 @@ export default function Maintenance() {
         {/* Overdue */}
         <button
           onClick={() => handleSummaryTap('overdue')}
-          className="rounded-2xl bg-white/[0.05] border border-red-400/20 p-3.5 text-left active:scale-95 transition-transform select-none"
+          className="rounded-2xl bg-navy-800 p-3.5 text-left active:bg-navy-700 transition-colors select-none"
         >
           <p className="text-2xl font-bold text-red-400 leading-none">{maintItems.overdue.length}</p>
           <p className="text-[11px] font-semibold text-red-400/70 mt-1.5 uppercase tracking-wide">Overdue</p>
@@ -452,7 +437,7 @@ export default function Maintenance() {
         {/* Due Soon */}
         <button
           onClick={() => handleSummaryTap('due_soon')}
-          className="rounded-2xl bg-white/[0.05] border border-amber-400/20 p-3.5 text-left active:scale-95 transition-transform select-none"
+          className="rounded-2xl bg-navy-800 p-3.5 text-left active:bg-navy-700 transition-colors select-none"
         >
           <p className="text-2xl font-bold text-amber-400 leading-none">{maintItems.dueSoon.length}</p>
           <p className="text-[11px] font-semibold text-amber-400/70 mt-1.5 uppercase tracking-wide">Due Soon</p>
@@ -461,7 +446,7 @@ export default function Maintenance() {
         {/* OK */}
         <button
           onClick={() => handleSummaryTap('ok')}
-          className="rounded-2xl bg-white/[0.05] border border-emerald-400/20 p-3.5 text-left active:scale-95 transition-transform select-none"
+          className="rounded-2xl bg-navy-800 p-3.5 text-left active:bg-navy-700 transition-colors select-none"
         >
           <p className="text-2xl font-bold text-emerald-400 leading-none">{maintItems.ok.length}</p>
           <p className="text-[11px] font-semibold text-emerald-400/70 mt-1.5 uppercase tracking-wide">OK</p>

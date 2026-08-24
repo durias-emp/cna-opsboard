@@ -39,9 +39,9 @@ function TankGauge({ currentLevel, fillPercent, last, onAdd, onWithdraw }) {
   const isMedium = !isEmpty && fillPercent >= 0.25 && fillPercent < 0.6
 
   const ringColor = isEmpty  ? 'rgba(255,255,255,0.08)'
-    : isLow   ? 'rgba(255,255,255,0.9)'
-    : isMedium ? 'rgba(255,255,255,0.6)'
-    : 'rgba(255,255,255,0.35)'
+    : isLow   ? 'rgba(248,113,113,0.9)'
+    : isMedium ? 'rgba(44,185,189,0.65)'
+    : 'rgba(44,185,189,0.9)'
 
   return (
     <div className="card">
@@ -267,9 +267,9 @@ function JerryCanSection({ cans, loading, setLevel, totalCurrentGal, totalCapaci
   const circ   = 2 * Math.PI * r
   const offset = circ * (1 - fillPercent)
 
-  const ringColor = isLow    ? 'rgba(255,255,255,0.9)'
-    : isMedium ? 'rgba(255,255,255,0.6)'
-    : 'rgba(255,255,255,0.35)'
+  const ringColor = isLow    ? 'rgba(248,113,113,0.9)'
+    : isMedium ? 'rgba(44,185,189,0.65)'
+    : 'rgba(44,185,189,0.9)'
 
   return (
     <>
@@ -406,7 +406,7 @@ function JerryCanSection({ cans, loading, setLevel, totalCurrentGal, totalCapaci
 function TotalFacilityCard({ tankLevel, canTotal }) {
   const total     = (tankLevel ?? 0) + canTotal
   const fillRatio = TOTAL_FACILITY_CAPACITY > 0 ? Math.min(total / TOTAL_FACILITY_CAPACITY, 1) : 0
-  const barColor  = fillRatio < 0.25 ? 'bg-white/80' : fillRatio < 0.6 ? 'bg-white/50' : 'bg-white/30'
+  const barColor  = fillRatio < 0.25 ? 'bg-red-400/80' : 'bg-accent'
 
   return (
     <div className="card">
