@@ -17,7 +17,8 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        // Apple's system font (SF Pro on iOS/macOS) — the native look
+        sans: ['-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
     },
   },
