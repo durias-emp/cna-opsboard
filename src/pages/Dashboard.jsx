@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toHobbs, formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
@@ -226,6 +226,62 @@ function MaintStatusCard({ maintItems, onClick }) {
   )
 }
 
+// Home header: CNA crest centered with the aircraft status chip. At rest it's
+// large; scroll down and a compact frosted bar with a smaller crest stays stuck
+// to the top (iOS large-title behavior, logo edition).
+function CrestHeader({ tailNumber }) {
+  const sentinel = useRef(null)
+  const [compact, setCompact] = useState(false)
+
+  useEffect(() => {
+    const el = sentinel.current
+    if (!el) return
+    const io = new IntersectionObserver(([e]) => setCompact(!e.isIntersecting), { threshold: 0 })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
+  const chip = (
+    <div className="flex items-center gap-2 bg-white/[0.07] rounded-full px-3 py-1.5">
+      <span className="relative flex w-1.5 h-1.5 flex-shrink-0">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+        <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-green-400" />
+      </span>
+      <span className="text-xs font-semibold text-white">{tailNumber ?? '—'}</span>
+    </div>
+  )
+
+  return (
+    <>
+      {/* Sticky compact bar — small crest, chip rides along */}
+      <div
+        className={`fixed top-0 left-0 right-0 z-[60] transition-opacity duration-200
+                    ${compact ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        style={{
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          background: 'rgba(23,23,23,0.94)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <div className="relative flex items-center justify-center py-2.5">
+          <img src="/cna-mark-white.png" alt="CNA" className="h-4 opacity-90 select-none" draggable="false" />
+          <div className="absolute right-3 scale-90">{chip}</div>
+        </div>
+      </div>
+
+      <div ref={sentinel} aria-hidden className="h-px" />
+
+      {/* Large crest row */}
+      <div className="relative flex items-center justify-center pt-4 pb-1 px-4">
+        <img src="/cna-mark-white.png" alt="CNA" className="h-6 opacity-90 select-none" draggable="false" />
+        <div className="absolute right-4">{chip}</div>
+      </div>
+    </>
+  )
+}
+
 export default function Dashboard() {
   const { aircraft, selectedAircraft, setSelectedAircraft } = useAircraft()
   const { flights, stats, fuelStats, refresh } = useFlights(selectedAircraft?.id)
@@ -260,10 +316,7 @@ export default function Dashboard() {
   return (
     <div className="flex-1 overflow-y-auto nav-clearance">
 
-      {/* ── Brand crest — centered above everything, mark only ── */}
-      <div className="flex justify-center pt-4 pb-1">
-        <img src="/cna-mark-white.png" alt="CNA" className="h-6 opacity-90 select-none" draggable="false" />
-      </div>
+      <CrestHeader tailNumber={selectedAircraft?.tail_number} />
 
       {/* ── Hero — the aircraft is the interface ── */}
       <div className="px-5 pt-2">
