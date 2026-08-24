@@ -16,6 +16,14 @@ if (typeof window !== 'undefined' && window.visualViewport) {
   })
 }
 
+// Dev only: evict any previously-installed dev service worker. It intercepted
+// every fetch (including MapLibre's tile requests from worker threads) and
+// silently starved them — the black-map bug. Production uses its own SW.
+if (import.meta.env.DEV && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()))
+  if (window.caches) caches.keys().then(keys => keys.forEach(k => caches.delete(k)))
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>

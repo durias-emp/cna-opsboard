@@ -12,10 +12,6 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'cna-logo.png', 'helicopter.png'],
-      // Serve the real manifest through the dev server too — without it, an
-      // Add-to-Home-Screen install from the phone-preview tunnel runs on legacy
-      // Apple meta tags only, the path iOS 26 mis-sizes (59pt-short window).
-      devOptions: { enabled: true },
       manifest: {
         id: '/',
         start_url: '/',
