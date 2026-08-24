@@ -56,7 +56,9 @@
     z-index: 50;
     display: flex;
     justify-content: center;
-    padding: 0 1rem calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
+    /* sit low like Instagram: tuck into the home-indicator zone rather than
+       stacking a full gap on top of it */
+    padding: 0 1rem max(calc(env(safe-area-inset-bottom, 0px) - 0.55rem), 0.4rem);
     background: transparent;
     pointer-events: none;
   }
