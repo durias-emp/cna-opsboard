@@ -127,7 +127,7 @@ function ItemCard({ item, onLogCompliance }) {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full bg-white/[0.06] text-white/40 border border-white/[0.08]">
+          <span className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full bg-white/[0.06] text-white/40">
             {s.label}
           </span>
           <span className="text-white/20"><IconChevron open={expanded} /></span>
@@ -136,7 +136,7 @@ function ItemCard({ item, onLogCompliance }) {
 
       {/* Expanded detail */}
       {expanded && (
-        <div className="px-4 pb-4 space-y-3 border-t border-white/[0.06]">
+        <div className="px-4 pb-4 space-y-3 border-t border-white/[0.05]">
 
           {/* Clocks row */}
           <div className="grid grid-cols-3 gap-2 pt-3">
@@ -297,7 +297,7 @@ function FluidCard({ type, status, onAdd }) {
   const label = FLUID_TYPES[type].label
 
   return (
-    <div className="rounded-2xl bg-white/[0.04] border border-white/[0.06] px-4 py-3 flex items-center justify-between">
+    <div className="rounded-2xl bg-white/[0.04] px-4 py-3 flex items-center justify-between">
       <div>
         <p className="text-sm font-semibold text-white">{label}</p>
         {last ? (
@@ -466,7 +466,7 @@ export default function Maintenance() {
             placeholder="Search maintenance items…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-white/[0.06] border border-white/[0.08] rounded-2xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:border-white/20"
+            className="w-full bg-white/[0.06] rounded-2xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:border-white/20"
           />
           {search && (
             <button
@@ -515,7 +515,7 @@ export default function Maintenance() {
 
                 {groups.overdue.length === 0 && groups.dueSoon.length === 0 &&
                  groups.ok.length === 0 && groups.onCondition.length === 0 && (
-                  <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center py-12">
+                  <div className="rounded-2xl bg-white/[0.03] flex items-center justify-center py-12">
                     <p className="text-xs text-white/25">No items in this category</p>
                   </div>
                 )}
@@ -546,7 +546,7 @@ export default function Maintenance() {
             )}
 
             {/* Grease */}
-            <div className="rounded-2xl bg-white/[0.04] border border-white/[0.06] px-4 py-3 flex items-center justify-between">
+            <div className="rounded-2xl bg-white/[0.04] px-4 py-3 flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-white">Grease — All Points</p>
                 {maint.grease?.last ? (

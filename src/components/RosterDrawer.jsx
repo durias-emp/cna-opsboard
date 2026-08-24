@@ -72,7 +72,7 @@ function ProfileModal({ person, isPilot, onClose, onSave }) {
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center px-5">
       <div className="absolute inset-0 bg-black/70" onClick={editing ? undefined : onClose} />
-      <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.10] shadow-2xl overflow-hidden"
+      <div className="relative w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden"
            style={{ background: '#0e0e10', maxHeight: '90vh', overflowY: 'auto' }}>
 
         {/* Header */}
@@ -96,7 +96,7 @@ function ProfileModal({ person, isPilot, onClose, onSave }) {
             {!editing ? (
               <>
                 <button onClick={() => setEditing(true)}
-                  className="text-[11px] text-white/40 hover:text-white/70 bg-white/[0.06] border border-white/[0.08]
+                  className="text-[11px] text-white/40 hover:text-white/70 bg-white/[0.06]
                              rounded-lg px-3 py-1.5 transition-colors">Edit</button>
                 <button onClick={onClose}
                   className="w-7 h-7 rounded-full bg-white/[0.07] flex items-center justify-center
@@ -108,7 +108,7 @@ function ProfileModal({ person, isPilot, onClose, onSave }) {
             ) : (
               <>
                 <button onClick={handleCancel}
-                  className="text-[11px] text-white/40 hover:text-white/70 bg-white/[0.06] border border-white/[0.08]
+                  className="text-[11px] text-white/40 hover:text-white/70 bg-white/[0.06]
                              rounded-lg px-3 py-1.5 transition-colors">Cancel</button>
                 <button onClick={handleSave} disabled={saving}
                   className="text-[11px] font-semibold text-black bg-white hover:bg-white/90
@@ -173,7 +173,7 @@ function ProfileModal({ person, isPilot, onClose, onSave }) {
           </div>
 
           {(isPilot || (draft.licenses && draft.licenses.length > 0)) && (
-            <div className="space-y-3 border-t border-white/[0.06] pt-5">
+            <div className="space-y-3 border-t border-white/[0.05] pt-5">
               <p className="text-[10px] text-white/25 uppercase tracking-widest">
                 {isPilot ? 'Pilot Credentials' : 'Credentials'}
               </p>
@@ -199,7 +199,7 @@ function ProfileModal({ person, isPilot, onClose, onSave }) {
                       </div>
                     ) : (
                       <div key={i} className="flex items-center justify-between
-                                              bg-white/[0.04] rounded-xl px-3.5 py-2.5 border border-white/[0.06]">
+                                              bg-white/[0.04] rounded-xl px-3.5 py-2.5">
                         <span className="text-[11px] text-white/40">{lic.label}</span>
                         <span className="text-sm font-bold text-white tabular-nums">{lic.number || '—'}</span>
                       </div>
@@ -324,7 +324,7 @@ function MemberCard({ member, onProfileClick, onCall }) {
       </div>
       {onCall && (
         <span className="flex-shrink-0 text-[9px] font-bold uppercase tracking-widest
-                         bg-white/[0.06] text-white/50 border border-white/[0.10] px-2.5 py-1 rounded-full">
+                         bg-white/[0.06] text-white/50 px-2.5 py-1 rounded-full">
           On Call
         </span>
       )}

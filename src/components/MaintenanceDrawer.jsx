@@ -194,7 +194,7 @@ export default function MaintenanceDrawer({ open, onClose, onSaved, defaultType 
 
         {/* Footer */}
         <div
-          className="flex-shrink-0 border-t border-white/[0.06] px-5 pt-4 pb-4"
+          className="flex-shrink-0 border-t border-white/[0.05] px-5 pt-4 pb-4"
           style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
         >
           <button onClick={handleSave} disabled={saving}

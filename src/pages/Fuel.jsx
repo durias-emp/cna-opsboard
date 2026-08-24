@@ -348,7 +348,7 @@ function JerryCanSection({ cans, loading, setLevel, totalCurrentGal, totalCapaci
         <div className="fixed inset-0 z-[60] flex items-end" onClick={() => setShowModal(false)}>
           <div className="absolute inset-0 bg-black/60" />
           <div
-            className="relative w-full rounded-t-2xl border-t border-white/[0.08] p-5 pb-10 space-y-3"
+            className="relative w-full rounded-t-2xl border-t border-white/[0.05] p-5 pb-10 space-y-3"
             style={{ background: '#111113' }}
             onClick={e => e.stopPropagation()}
           >
@@ -372,7 +372,7 @@ function JerryCanSection({ cans, loading, setLevel, totalCurrentGal, totalCapaci
                     <p className="text-[10px] text-white/30 capitalize mt-0.5">{can.material} · {cap} gal</p>
                   </div>
                   {/* Segmented toggle */}
-                  <div className="flex rounded-xl overflow-hidden border border-white/[0.08] text-[10px] font-bold">
+                  <div className="flex rounded-xl overflow-hidden text-[10px] font-bold">
                     {[
                       { key: 'empty', label: 'Empty', val: 0 },
                       { key: 'half',  label: 'Half',  val: parseFloat((cap / 2).toFixed(1)) },
@@ -557,9 +557,9 @@ export default function Fuel() {
 
         {/* ── Divider ── */}
         <div className="flex items-center gap-3">
-          <div className="flex-1 border-t border-white/[0.06]" />
+          <div className="flex-1 border-t border-white/[0.05]" />
           <span className="text-[10px] text-white/20 uppercase tracking-widest">Flight consumption</span>
-          <div className="flex-1 border-t border-white/[0.06]" />
+          <div className="flex-1 border-t border-white/[0.05]" />
         </div>
 
         {/* ── Flight fuel stats ── */}
@@ -629,7 +629,7 @@ export default function Fuel() {
           <div className="fixed inset-0 z-[60] flex items-end" onClick={() => setMonthModal(false)}>
             <div className="absolute inset-0 bg-black/60" />
             <div
-              className="relative w-full rounded-t-2xl border-t border-white/[0.08] p-5 pb-10 max-h-[75vh] overflow-y-auto"
+              className="relative w-full rounded-t-2xl border-t border-white/[0.05] p-5 pb-10 max-h-[75vh] overflow-y-auto"
               style={{ background: '#111113' }}
               onClick={e => e.stopPropagation()}
             >
@@ -669,7 +669,7 @@ export default function Fuel() {
         <div className="fixed inset-0 z-[60] flex items-end" onClick={() => setAvgModal(false)}>
           <div className="absolute inset-0 bg-black/60" />
           <div
-            className="relative w-full rounded-t-2xl border-t border-white/[0.08] p-5 pb-10 max-h-[75vh] overflow-y-auto"
+            className="relative w-full rounded-t-2xl border-t border-white/[0.05] p-5 pb-10 max-h-[75vh] overflow-y-auto"
             style={{ background: '#111113' }}
             onClick={e => e.stopPropagation()}
           >
@@ -711,7 +711,7 @@ export default function Fuel() {
         <div className="fixed inset-0 z-[60] flex items-end" onClick={() => setSpentModal(false)}>
           <div className="absolute inset-0 bg-black/60" />
           <div
-            className="relative w-full rounded-t-2xl border-t border-white/[0.08] p-5 pb-10 max-h-[75vh] overflow-y-auto"
+            className="relative w-full rounded-t-2xl border-t border-white/[0.05] p-5 pb-10 max-h-[75vh] overflow-y-auto"
             style={{ background: '#111113' }}
             onClick={e => e.stopPropagation()}
           >

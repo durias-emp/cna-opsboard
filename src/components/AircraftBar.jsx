@@ -51,7 +51,7 @@ export default function AircraftBar() {
 function AircraftChip({ aircraft }) {
   if (!aircraft) return null
   return (
-    <div className="flex items-center gap-2 bg-white/[0.07] border border-white/[0.08]
+    <div className="flex items-center gap-2 bg-white/[0.07]
                     rounded-full px-3 py-1.5">
       <span className="relative flex w-1.5 h-1.5 flex-shrink-0">
         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />

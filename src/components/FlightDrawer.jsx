@@ -115,7 +115,7 @@ function PassengerRow({ passenger, onChange, onRemove, showRemove, dropdownOpen,
         </button>
         {/* Frequent passengers dropdown */}
         {dropdownOpen && (
-          <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl overflow-hidden border border-white/[0.08] bg-[#1c1c1e] shadow-xl">
+          <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl overflow-hidden bg-[#1c1c1e] shadow-xl">
             {FREQUENT_PAX.map(fp => (
               <button
                 key={fp.name}
@@ -165,7 +165,7 @@ function PassengerRow({ passenger, onChange, onRemove, showRemove, dropdownOpen,
 
 function FuelSection({ totalMinutes, fuelStart, fuelEnd, onFuelStart, onFuelEnd, fuelConsumed, gallonsPerHour }) {
   return (
-    <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/[0.06] space-y-4">
+    <div className="bg-white/[0.04] rounded-2xl p-4 space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">Fuel Tracker</p>
         {totalMinutes > 0 ? (
@@ -628,7 +628,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       {tachModal && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center px-6">
           <div className="absolute inset-0 bg-black/60" onClick={() => setTachModal(false)} />
-          <div className="relative w-full max-w-sm bg-navy-800 rounded-2xl border border-white/[0.10] p-6 shadow-2xl">
+          <div className="relative w-full max-w-sm bg-navy-800 rounded-2xl p-6 shadow-2xl">
             <h3 className="text-base font-bold text-white mb-1">Tachometer Reading</h3>
             <p className="text-xs text-white/35 mb-5">Enter the new air time shown on the tach after landing</p>
 
@@ -684,7 +684,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
               <button
                 onClick={() => { setTachModal(false); setTachNew('') }}
                 className="flex-1 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] active:bg-white/[0.10]
-                           border border-white/[0.08] text-sm text-white/50 hover:text-white/80 active:text-white/80
+                           text-sm text-white/50 hover:text-white/80 active:text-white/80
                            transition-all"
               >
                 Cancel
@@ -797,7 +797,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
             <button
               type="button"
               onClick={() => setCopilot(PILOTS.find(p => p !== pilot) ?? '')}
-              className="w-full flex items-center justify-center gap-2 text-sm text-white/50 hover:text-white/80 bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.08] rounded-xl py-2.5 transition-all"
+              className="w-full flex items-center justify-center gap-2 text-sm text-white/50 hover:text-white/80 bg-white/[0.06] hover:bg-white/[0.10] rounded-xl py-2.5 transition-all"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
                 <path d="M12 5v14M5 12h14" />
@@ -857,7 +857,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
               <button
                 onClick={() => setFtModal(ftMethod === 'saved' ? 'timer' : ftMethod)}
                 className="w-full text-left bg-white/[0.04] rounded-xl px-3.5 py-3.5
-                           border border-white/[0.06] active:bg-white/[0.07] transition-colors select-none"
+                           active:bg-white/[0.07] transition-colors select-none"
               >
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] text-white/30 uppercase tracking-widest">
@@ -867,7 +867,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
                 </div>
               </button>
             ) : (
-              <div className="flex rounded-2xl overflow-hidden border border-white/[0.08]">
+              <div className="flex rounded-2xl overflow-hidden">
                 {[
                   { key: 'engine', label: 'Engine Starter' },
                   { key: 'hobbs',  label: 'Hobbs'          },
@@ -891,7 +891,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
 
           {/* Air Time */}
           {tachMode ? (
-            <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/[0.06] space-y-3">
+            <div className="bg-white/[0.04] rounded-2xl p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">Tachometer</p>
                 <button
@@ -938,7 +938,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
           )}
 
           {/* Cycles */}
-          <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/[0.06]">
+          <div className="bg-white/[0.04] rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">Engine Cycles</p>
               <span className="text-[11px] text-white/25">Engine starts this flight</span>
@@ -957,7 +957,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
           </div>
 
           {/* Passenger Manifest */}
-          <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/[0.06] space-y-3">
+          <div className="bg-white/[0.04] rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">Passenger Manifest</p>
               {(() => {
@@ -995,7 +995,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
                 <button
                   onClick={addPassenger}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl
-                             border border-white/[0.08] text-[11px] font-medium text-white/30
+                             text-[11px] font-medium text-white/30
                              active:bg-white/5 transition-colors select-none"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
@@ -1061,7 +1061,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
             const amount       = Math.round(hobbsHours * rate * 100) / 100
 
             return (
-              <div className="rounded-2xl overflow-hidden border border-white/[0.10]"
+              <div className="rounded-2xl overflow-hidden"
                    style={{ background: 'linear-gradient(160deg,#17171a,#111113)' }}>
 
                 {/* Receipt header */}
@@ -1203,7 +1203,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
                 <div className="px-5 pb-5">
                   {sentToMonies ? (
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 py-3 rounded-xl bg-white/[0.06] border border-white/[0.08]
+                      <div className="flex-1 py-3 rounded-xl bg-white/[0.06]
                                       flex items-center justify-center gap-2">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
                           strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-emerald-400">
@@ -1213,7 +1213,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
                       </div>
                       <button
                         onClick={() => setSentToMonies(false)}
-                        className="py-3 px-3 rounded-xl bg-white/[0.06] border border-white/[0.08]
+                        className="py-3 px-3 rounded-xl bg-white/[0.06]
                                    text-[11px] text-white/40 active:opacity-60 select-none"
                       >
                         Resend
@@ -1254,7 +1254,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
 
         {/* Footer */}
         <div
-          className="flex-shrink-0 border-t border-white/[0.06] px-5 pt-4 pb-4 space-y-3"
+          className="flex-shrink-0 border-t border-white/[0.05] px-5 pt-4 pb-4 space-y-3"
           style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
         >
           <button
@@ -1316,7 +1316,7 @@ function FlightEngineModal({ onCancel, onConfirm }) {
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center px-5">
       <div className="absolute inset-0 bg-black/70" onClick={onCancel} />
-      <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.10] shadow-2xl overflow-hidden"
+      <div className="relative w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden"
            style={{ background: '#0e0e10' }}>
         <div className="px-6 pt-6 pb-4" style={{ background: 'linear-gradient(160deg,#17171a,#111113)' }}>
           <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Flight Time</p>
@@ -1346,7 +1346,7 @@ function FlightEngineModal({ onCancel, onConfirm }) {
           )}
           <div className="flex gap-3 pt-1">
             <button onClick={onCancel}
-              className="flex-1 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.08] text-sm text-white/50">
+              className="flex-1 py-2.5 rounded-xl bg-white/[0.06] text-sm text-white/50">
               Cancel
             </button>
             <button disabled={!isValid} onClick={() => onConfirm(mins)}
@@ -1372,7 +1372,7 @@ function FlightHobbsModal({ currentHobbs, onCancel, onConfirm }) {
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center px-5">
       <div className="absolute inset-0 bg-black/70" onClick={onCancel} />
-      <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.10] shadow-2xl overflow-hidden"
+      <div className="relative w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden"
            style={{ background: '#0e0e10' }}>
         <div className="px-6 pt-6 pb-4" style={{ background: 'linear-gradient(160deg,#17171a,#111113)' }}>
           <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Flight Time</p>
@@ -1382,7 +1382,7 @@ function FlightHobbsModal({ currentHobbs, onCancel, onConfirm }) {
           <div className="space-y-3">
             <div>
               <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Current</p>
-              <div className="bg-white/[0.04] rounded-xl px-4 h-14 border border-white/[0.06] flex items-center justify-center">
+              <div className="bg-white/[0.04] rounded-xl px-4 h-14 flex items-center justify-center">
                 <p className="text-2xl font-bold text-white/40 tabular-nums font-mono tracking-widest">{display}</p>
               </div>
             </div>
@@ -1404,7 +1404,7 @@ function FlightHobbsModal({ currentHobbs, onCancel, onConfirm }) {
           )}
           <div className="flex gap-3 pt-1">
             <button onClick={onCancel}
-              className="flex-1 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.08] text-sm text-white/50">
+              className="flex-1 py-2.5 rounded-xl bg-white/[0.06] text-sm text-white/50">
               Cancel
             </button>
             <button disabled={!isValid} onClick={() => onConfirm(deltaMins, newVal)}
@@ -1449,13 +1449,13 @@ function FlightTimerModal({ onCancel, onConfirm, initialMins }) {
   const isValid   = hasInput && totalMins > 0 && mm < 60
 
   const digitBox = 'w-16 h-16 rounded-xl text-3xl font-bold text-white text-center tabular-nums ' +
-    'bg-white/[0.06] border border-white/[0.10] focus:border-white/30 focus:bg-white/[0.09] ' +
+    'bg-white/[0.06] focus:border-white/30 focus:bg-white/[0.09] ' +
     'outline-none transition-colors caret-white'
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center px-5">
       <div className="absolute inset-0 bg-black/70" onClick={onCancel} />
-      <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.10] shadow-2xl overflow-hidden"
+      <div className="relative w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden"
            style={{ background: '#0e0e10' }}>
         <div className="px-6 pt-6 pb-4" style={{ background: 'linear-gradient(160deg,#17171a,#111113)' }}>
           <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Flight Time</p>
@@ -1490,7 +1490,7 @@ function FlightTimerModal({ onCancel, onConfirm, initialMins }) {
 
           <div className="flex gap-3 pt-1">
             <button onClick={onCancel}
-              className="flex-1 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.08] text-sm text-white/50">
+              className="flex-1 py-2.5 rounded-xl bg-white/[0.06] text-sm text-white/50">
               Cancel
             </button>
             <button disabled={!isValid} onClick={() => onConfirm(totalMins)}
@@ -1551,7 +1551,7 @@ function IcaoField({ value, onChange, onConfirm }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 z-50 rounded-2xl border border-white/[0.10]
+        <div className="absolute right-0 top-full mt-1.5 z-50 rounded-2xl
                         shadow-2xl p-2.5 w-[164px]"
              style={{ background: '#1c1c1e' }}>
           {!custom ? (
@@ -1660,7 +1660,7 @@ function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTac
   }
 
   return (
-    <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/[0.06] space-y-3">
+    <div className="bg-white/[0.04] rounded-2xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">
           {showIndex ? `Leg ${index + 1}` : 'Air Time'}
@@ -1742,7 +1742,7 @@ function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTac
           <>
             <button
               onClick={openAdjust}
-              className="w-full text-left rounded-xl border border-white/[0.08] bg-white/[0.04]
+              className="w-full text-left rounded-xl bg-white/[0.04]
                          active:bg-white/[0.07] transition-colors px-3.5 py-3 select-none"
             >
               <div className="flex items-center justify-between">
@@ -1767,7 +1767,7 @@ function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTac
 
             {/* Adjust mini modal */}
             {adjustOpen && (
-              <div className="rounded-xl border border-white/[0.10] bg-white/[0.06] p-4 space-y-3">
+              <div className="rounded-xl bg-white/[0.06] p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] text-white/40 uppercase tracking-widest">Adjust Air Time</p>
                   <span className="text-[10px] text-white/25">Calculated: {toHobbs(rawMins).toFixed(1)}h</span>
@@ -1789,13 +1789,13 @@ function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTac
                 <div className="flex gap-2">
                   {isAdjusted && (
                     <button onClick={resetAdjust}
-                      className="flex-1 py-2.5 rounded-xl border border-white/[0.08] text-xs text-white/40
+                      className="flex-1 py-2.5 rounded-xl text-xs text-white/40
                                  active:bg-white/[0.07] transition-colors select-none">
                       Reset
                     </button>
                   )}
                   <button onClick={() => setAdjustOpen(false)}
-                    className="flex-1 py-2.5 rounded-xl border border-white/[0.08] text-xs text-white/40
+                    className="flex-1 py-2.5 rounded-xl text-xs text-white/40
                                active:bg-white/[0.07] transition-colors select-none">
                     Cancel
                   </button>
@@ -1818,7 +1818,7 @@ function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTac
               onClick={onAddLeg}
               className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl
                          bg-white/[0.06] hover:bg-white/[0.10] active:bg-white/[0.10]
-                         border border-white/[0.08]
+                        
                          text-xs font-medium text-white/50 hover:text-white/80 active:text-white/80
                          transition-all select-none"
             >
@@ -1835,7 +1835,7 @@ function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTac
               disabled={rawMins > 0}
               className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl
                          bg-white/[0.06] hover:bg-white/[0.10] active:bg-white/[0.10]
-                         border border-white/[0.08]
+                        
                          text-xs font-medium text-white/50 hover:text-white/80 active:text-white/80
                          transition-all select-none
                          disabled:opacity-30 disabled:pointer-events-none"
@@ -1872,7 +1872,7 @@ function LegConfirmModal({ calculatedMins, calculatedLabel, currentMins, from, t
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center px-5">
       <div className="absolute inset-0 bg-black/70" onClick={onCancel} />
-      <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.10] shadow-2xl overflow-hidden"
+      <div className="relative w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden"
            style={{ background: '#0e0e10' }}>
 
         {/* ── Route card ── */}
@@ -1906,7 +1906,7 @@ function LegConfirmModal({ calculatedMins, calculatedLabel, currentMins, from, t
           </div>
 
           {/* Divider */}
-          <div className="border-t border-white/[0.07] my-4" />
+          <div className=" border-t border-white/[0.05] my-4" />
 
           {/* Calculated air time pill */}
           <div className="flex items-center justify-between">
@@ -1967,7 +1967,7 @@ function LegConfirmModal({ calculatedMins, calculatedLabel, currentMins, from, t
             <button
               onClick={onUseCalculated}
               className="flex-1 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] active:bg-white/[0.10]
-                         border border-white/[0.08] text-sm text-white/50 hover:text-white/80 active:text-white/80
+                         text-sm text-white/50 hover:text-white/80 active:text-white/80
                          transition-all"
             >
               Use Calculated

@@ -324,7 +324,7 @@ function FlightDetailSheet({ flight, open, onClose }) {
             <p className="label mb-3">{legs.length > 1 ? `${legs.length} Legs` : 'Flight leg'}</p>
             <div className="space-y-2">
               {legs.map((leg, i) => (
-                <div key={i} className="bg-white/[0.04] rounded-2xl p-4 border border-white/[0.06]">
+                <div key={i} className="bg-white/[0.04] rounded-2xl p-4">
                   {legs.length > 1 && (
                     <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Leg {i + 1}</p>
                   )}
@@ -371,7 +371,7 @@ function FlightDetailSheet({ flight, open, onClose }) {
           {flight.pilot && (
             <div>
               <p className="label mb-3">Pilot</p>
-              <div className="bg-white/[0.04] rounded-2xl px-4 py-3 border border-white/[0.06]">
+              <div className="bg-white/[0.04] rounded-2xl px-4 py-3">
                 <p className="text-sm font-semibold text-white">{flight.pilot}</p>
               </div>
             </div>
@@ -381,7 +381,7 @@ function FlightDetailSheet({ flight, open, onClose }) {
           {flight.passengers?.length > 0 && (
             <div>
               <p className="label mb-3">Passenger manifest</p>
-              <div className="bg-white/[0.04] rounded-2xl border border-white/[0.06] overflow-hidden">
+              <div className="bg-white/[0.04] rounded-2xl overflow-hidden">
                 {flight.passengers.map((p, i) => (
                   <div key={i}
                     className={`flex items-center justify-between px-4 py-3
@@ -394,7 +394,7 @@ function FlightDetailSheet({ flight, open, onClose }) {
                 ))}
                 {/* Total weight */}
                 {flight.passengers.some(p => p.weight_lbs != null) && (
-                  <div className="flex items-center justify-between px-4 py-2.5 border-t border-white/[0.08] bg-white/[0.02]">
+                  <div className="flex items-center justify-between px-4 py-2.5 border-t border-white/[0.05] bg-white/[0.02]">
                     <p className="label">Total weight</p>
                     <p className="text-xs font-bold text-white">
                       {flight.passengers.reduce((s, p) => s + (p.weight_lbs ?? 0), 0)} lb
@@ -409,7 +409,7 @@ function FlightDetailSheet({ flight, open, onClose }) {
           {hasFuel && (
             <div>
               <p className="label mb-3">Fuel</p>
-              <div className="bg-white/[0.04] rounded-2xl p-4 border border-white/[0.06]">
+              <div className="bg-white/[0.04] rounded-2xl p-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="label mb-1">Start</p>
@@ -446,7 +446,7 @@ function FlightDetailSheet({ flight, open, onClose }) {
           {flight.notes && (
             <div>
               <p className="label mb-3">Notes</p>
-              <div className="bg-white/[0.04] rounded-2xl px-4 py-3 border border-white/[0.06]">
+              <div className="bg-white/[0.04] rounded-2xl px-4 py-3">
                 <p className="text-sm text-white/70 leading-relaxed">{flight.notes}</p>
               </div>
             </div>

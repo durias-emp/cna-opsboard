@@ -208,7 +208,7 @@ export default function ComplianceDrawer({ open, onClose, item, hobbsCurrent, cy
         </div>
 
         {/* Footer */}
-        <div className="flex-shrink-0 px-4 pt-3 border-t border-white/[0.06]"
+        <div className="flex-shrink-0 px-4 pt-3 border-t border-white/[0.05]"
           style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
           <button
             onClick={handleSave}

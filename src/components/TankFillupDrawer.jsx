@@ -248,7 +248,7 @@ export default function TankFillupDrawer({ open, onClose, onSaved, lastGallonsAf
               {/* Total cost */}
               {totalCost !== null && (
                 <div className="flex items-center justify-between px-4 py-3 rounded-2xl
-                                bg-white/[0.04] border border-white/[0.06]">
+                                bg-white/[0.04]">
                   <p className="text-xs text-white/40">Total cost</p>
                   <p className="text-sm font-bold text-white">
                     ${totalCost.toFixed(2)} <span className="text-xs font-normal text-white/40">USD</span>
@@ -276,7 +276,7 @@ export default function TankFillupDrawer({ open, onClose, onSaved, lastGallonsAf
 
         {/* Footer */}
         <div
-          className="flex-shrink-0 border-t border-white/[0.06] px-5 pt-4 pb-4"
+          className="flex-shrink-0 border-t border-white/[0.05] px-5 pt-4 pb-4"
           style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
         >
           <button

@@ -581,7 +581,7 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
               <button
                 type="button"
                 onClick={() => set('copilot', pilots.find(p => p.name !== form.pilot_in_command)?.name ?? pilots[0]?.name ?? '')}
-                className="w-full flex items-center justify-center gap-2 text-sm text-white/50 hover:text-white/80 bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.08] rounded-xl py-2.5 transition-all"
+                className="w-full flex items-center justify-center gap-2 text-sm text-white/50 hover:text-white/80 bg-white/[0.06] hover:bg-white/[0.10] rounded-xl py-2.5 transition-all"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
                   <path d="M12 5v14M5 12h14" />
@@ -789,7 +789,7 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
                     </button>
                     {/* Dropdown */}
                     {paxDropdown === i && (
-                      <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl overflow-hidden border border-white/[0.08] bg-[#1c1c1e] shadow-xl">
+                      <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl overflow-hidden bg-[#1c1c1e] shadow-xl">
                         {FREQUENT_PAX.map(fp => (
                           <button
                             key={fp.name}
@@ -878,7 +878,7 @@ export default function ItineraryDrawer({ open, onClose, onSaved, editRecord = n
         </div>
 
         {/* Footer CTA */}
-        <div className="flex-shrink-0 px-4 pt-3 border-t border-white/[0.06]"
+        <div className="flex-shrink-0 px-4 pt-3 border-t border-white/[0.05]"
           style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
           <button
             onClick={handleSave}

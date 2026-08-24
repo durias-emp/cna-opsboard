@@ -289,7 +289,7 @@ export default function TodoDrawer({ open, onClose, onSave, onDelete, initial })
         </div>
 
         {/* Footer */}
-        <div className="flex-shrink-0 border-t border-white/[0.06] px-5 pt-4"
+        <div className="flex-shrink-0 border-t border-white/[0.05] px-5 pt-4"
           style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
           <button onClick={handleSave} disabled={saving || !title.trim()}
             className="w-full py-3.5 rounded-2xl bg-white text-black font-bold text-sm

@@ -88,7 +88,7 @@ export default function HobbsHistoryDrawer({ open, onClose, flights, currentHobb
           </button>
         </div>
 
-        <div className="border-t border-white/[0.06] flex-shrink-0" />
+        <div className=" border-t border-white/[0.05] flex-shrink-0" />
 
         {/* Ledger */}
         <div

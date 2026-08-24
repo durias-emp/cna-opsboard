@@ -51,7 +51,7 @@ function CompletionModal({ task, onConfirm, onCancel }) {
   return (
     <div className="fixed inset-0 z-[90] flex items-end justify-center px-4 pb-8">
       <div className="absolute inset-0 bg-black/60" onClick={onCancel} />
-      <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.08]
+      <div className="relative w-full max-w-sm rounded-2xl
                       shadow-2xl overflow-hidden space-y-4 p-5"
            style={{ background: '#111113' }}>
 
@@ -286,7 +286,7 @@ function CalendarEventPopup({ event, onClose }) {
   return (
     <div className="fixed inset-0 z-[95] flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.08] shadow-2xl overflow-hidden flex"
+      <div className="relative w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden flex"
            style={{ background: '#111113' }}>
 
         {/* Left accent — calendar blue */}
@@ -396,7 +396,7 @@ function TaskPopup({ task, onClose, onEdit, aircraftId }) {
   return (
     <div className="fixed inset-0 z-[95] flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.08] shadow-2xl overflow-hidden flex flex-col"
+      <div className="relative w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden flex flex-col"
            style={{ background: '#111113', maxHeight: '88vh' }}>
 
         {/* Strip + scrollable body */}
@@ -471,7 +471,7 @@ function TaskPopup({ task, onClose, onEdit, aircraftId }) {
             </div>
 
             {/* ── Updates thread ── */}
-            <div className="border-t border-white/[0.06] pt-4 space-y-3">
+            <div className=" border-t border-white/[0.05] pt-4 space-y-3">
               <p className="text-[11px] font-semibold text-white/25 uppercase tracking-wider">
                 Updates{updates.length > 0 ? ` · ${updates.length}` : ''}
               </p>
@@ -579,7 +579,7 @@ function TaskPopup({ task, onClose, onEdit, aircraftId }) {
         </div>
 
         {/* Footer */}
-        <div className="flex-shrink-0 px-5 pb-5 pt-3 border-t border-white/[0.06] grid grid-cols-2 gap-3">
+        <div className="flex-shrink-0 px-5 pb-5 pt-3 border-t border-white/[0.05] grid grid-cols-2 gap-3">
           <button onClick={onClose}
             className="py-3 rounded-2xl border border-white/10 text-white/40 text-sm font-semibold
                        active:bg-white/[0.05] transition-colors">
@@ -697,7 +697,7 @@ function MiniCalendar({ todos, onTaskTap, onEventTap }) {
 
                 {/* Task divider when both exist */}
                 {gcEvents.length > 0 && tasks.length > 0 && (
-                  <div className="border-t border-white/[0.06] my-0.5" />
+                  <div className=" border-t border-white/[0.05] my-0.5" />
                 )}
 
                 {/* Tasks */}
