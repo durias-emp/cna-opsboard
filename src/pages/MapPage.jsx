@@ -36,9 +36,6 @@ export default function MapPage() {
   const [selected, setSelected] = useState(null)
   const [draft,    setDraft]    = useState(null)
   const [ready,    setReady]    = useState(false)
-  // TEMP diagnostics — remove once the phone renders the map
-  const [diag, setDiag] = useState([])
-  const note = msg => setDiag(d => (d[d.length - 1] === msg ? d : [...d.slice(-15), msg]))
 
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -51,49 +48,19 @@ export default function MapPage() {
   // ── Map lifecycle ──
   useEffect(() => {
     let map, cancelled = false
-
-    // TEMP diagnostics
-    try {
-      const c = document.createElement('canvas')
-      const gl = c.getContext('webgl2') || c.getContext('webgl')
-      note(gl ? `webgl OK (${gl.constructor.name})` : 'webgl UNAVAILABLE')
-    } catch (e) { note(`webgl threw: ${e.message}`) }
-    const el = containerRef.current
-    note(`container ${el?.clientWidth}x${el?.clientHeight}`)
-    note(`maplibre v${maplibregl.getVersion ? maplibregl.getVersion() : (maplibregl.version ?? '?')}`)
-    note(navigator.serviceWorker?.controller ? 'SW CONTROLLING page' : 'no SW controlling')
-
     loadStyle().then(style => {
       if (cancelled) return
-      note(typeof style === 'string' ? 'style: fetch FAILED, using URL' : `style: json OK (${style.layers?.length} layers)`)
-      try {
-        map = new maplibregl.Map({
-          container: containerRef.current,
-          style,
-          center: SALVADOR_CENTER,
-          zoom: 8.5,
-          attributionControl: { compact: true },
-        })
-      } catch (e) { note(`Map() THREW: ${e.message}`); return }
+      map = new maplibregl.Map({
+        container: containerRef.current,
+        style,
+        center: SALVADOR_CENTER,
+        zoom: 8.5,
+        attributionControl: { compact: true },
+      })
       mapRef.current = map
-      note('map constructed')
-      map.on('error', e => note(`ERR: ${e.error?.message ?? e.error ?? 'unknown'}`))
-      map.once('render', () => note(`first render, canvas ${map.getCanvas().width}x${map.getCanvas().height}`))
-      map.getCanvas().addEventListener('webglcontextlost', () => note('ERR: WEBGL CONTEXT LOST'))
+      if (import.meta.env.DEV) window.__map = map
 
       map.on('load', () => {
-        note('map LOAD fired')
-        // Magenta wash: if the user can see pink, the canvas composites fine
-        map.addLayer({ id: 'debug-wash', type: 'background',
-          paint: { 'background-color': '#ff00ff', 'background-opacity': 0.25 } })
-        setTimeout(() => {
-          map.resize()
-          const cv = map.getCanvas(), cs = getComputedStyle(cv)
-          note(`post-resize: buf ${cv.width}x${cv.height}, css ${cs.width}x${cs.height}`)
-          note(`canvas vis=${cs.visibility} disp=${cs.display} op=${cs.opacity} pos=${cs.position}`)
-          note(`container now ${containerRef.current?.clientWidth}x${containerRef.current?.clientHeight}`)
-          try { note(map.painter.context.gl.isContextLost() ? 'ERR: gl context lost' : 'gl context live') } catch {}
-        }, 400)
         map.addSource('aip',    { type: 'geojson', data: fc([]) })
         map.addSource('custom', { type: 'geojson', data: fc([]) })
 
@@ -188,8 +155,11 @@ export default function MapPage() {
     <div className="flex-1 relative">
       {/* isolation: keeps the map's stacking inside this box so app overlays
           (sheets, identity, action sheets) always paint above it */}
-      <div ref={containerRef} className="absolute inset-0 z-0"
-        style={{ isolation: 'isolate', background: '#171717' }} />
+      {/* position/inset are inline because maplibre-gl.css sets
+          .maplibregl-map { position: relative } on this node at init, which
+          out-cascades the Tailwind class and collapses the box to 0 height */}
+      <div ref={containerRef} className="z-0"
+        style={{ position: 'absolute', inset: 0, isolation: 'isolate', background: '#171717' }} />
 
       {/* Floating title + hint */}
       <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none px-4 pt-3"
@@ -199,14 +169,6 @@ export default function MapPage() {
           <p className="text-[15px] font-semibold text-white leading-none">Map</p>
           <p className="text-[11px] text-white/40 mt-1 leading-none">Hold anywhere to add a waypoint</p>
         </div>
-      </div>
-
-      {/* TEMP diagnostics readout — remove once the map renders on device */}
-      <div className="absolute left-2 right-2 z-10 pointer-events-none rounded-lg px-2 py-1.5"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)', background: 'rgba(0,0,0,0.75)' }}>
-        {diag.map((m, i) => (
-          <p key={i} className="text-[10px] font-mono leading-snug text-lime-300">{m}</p>
-        ))}
       </div>
 
       {selected && (
