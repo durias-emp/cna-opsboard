@@ -4,152 +4,18 @@ import { toHobbs, formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
 import PullDownMenu from '../components/PullDownMenu'
 import { useFlights } from '../hooks/useFlights'
-import { useMaintenance, FLUID_TYPES } from '../hooks/useMaintenance'
 import { useMaintenanceItems } from '../hooks/useMaintenanceItems'
 import { useEmployeeFlights } from '../hooks/useEmployeeFlights'
-import StatCard from '../components/StatCard'
-import SectionHeader from '../components/SectionHeader'
-import FlightDrawer from '../components/FlightDrawer'
-import TankFillupDrawer from '../components/TankFillupDrawer'
-import MaintenanceDrawer from '../components/MaintenanceDrawer'
 import HobbsHistoryDrawer from '../components/HobbsHistoryDrawer'
 import { useTank } from '../hooks/useTank'
+
+// YS-CNA cruise burn (owner-provided, also used for quoting)
+const CRUISE_BURN_GPH = 27
 
 const IconFlight = () => (
   <img src="/helicopter.png" alt="helicopter" className="w-5 h-5 object-contain opacity-50"
     style={{ filter: 'brightness(0) invert(1)' }} />
 )
-const IconFuel = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-    <path d="M3 22V8l9-6 9 6v14H3zM10 22V12h4v10" />
-  </svg>
-)
-const IconWrench = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-  </svg>
-)
-// ── Fluid status mini-card ─────────────────────────────────────────────────────
-
-const FLUID_SHORT = {
-  engine_oil:       'Eng. Oil',
-  transmission_oil: 'Trans.',
-  hydraulic_fluid:  'Hyd.',
-}
-
-const FLUID_REF_HOURS = 100
-
-function FluidStatusCard({ maint }) {
-  const fluids = Object.keys(FLUID_TYPES).map(type => {
-    const status = maint.getFluidStatus(type)
-    const hoursSince = status.hoursSince ?? 0
-    const hasData    = !!status.last
-    const pct = hasData
-      ? Math.max((1 - hoursSince / FLUID_REF_HOURS) * 100, 2)
-      : 100
-    const isLow = hasData && pct < 30
-    return { type, short: FLUID_SHORT[type], hoursSince, hasData, pct, isLow }
-  })
-
-  return (
-    <div className="stat-card flex flex-col justify-between gap-3">
-      <p className="label">Fluids</p>
-      <div className="space-y-2.5">
-        {fluids.map(({ type, short, hoursSince, hasData, pct, isLow }) => (
-          <div key={type}>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] text-white/40">{short}</span>
-              <span className="text-[10px] text-white/40">
-                {hasData ? `${hoursSince}h ago` : '—'}
-              </span>
-            </div>
-            <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: `${pct}%`,
-                  backgroundColor: isLow
-                    ? 'rgba(255,255,255,0.9)'
-                    : 'rgba(255,255,255,0.4)',
-                }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ── Tank mini card ─────────────────────────────────────────────────────────────
-
-function TankMiniCard({ tank, onClick }) {
-  const { fillPercent, currentLevel, lastFillup } = tank
-  const r    = 26
-  const circ = 2 * Math.PI * r
-  const offset = circ * (1 - (fillPercent ?? 0))
-  const isLow  = fillPercent != null && fillPercent < 0.25
-  const ringColor = isLow
-    ? 'rgba(255,255,255,0.9)'
-    : fillPercent < 0.6
-      ? 'rgba(255,255,255,0.55)'
-      : 'rgba(255,255,255,0.35)'
-  const lastDate = lastFillup?.date
-    ? new Date(lastFillup.date + 'T12:00:00').toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })
-    : null
-
-  return (
-    <div className="stat-card cursor-pointer active:opacity-80 transition-opacity select-none flex flex-col gap-3"
-      onClick={onClick}>
-
-      <p className="label">External tank</p>
-
-      {/* Ring centred */}
-      <div className="flex justify-center">
-        <div className="relative" style={{ width: 68, height: 68 }}>
-          <svg className="w-full h-full -rotate-90" viewBox="0 0 68 68">
-            <circle cx="34" cy="34" r={r} fill="none"
-              stroke="rgba(255,255,255,0.06)" strokeWidth="7" />
-            <circle cx="34" cy="34" r={r} fill="none"
-              stroke={ringColor}
-              strokeWidth="7"
-              strokeDasharray={circ}
-              strokeDashoffset={offset}
-              strokeLinecap="round"
-              style={{ transition: 'stroke-dashoffset 0.8s ease, stroke 0.4s ease' }}
-            />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <p className="text-base font-bold text-white leading-none">
-              {currentLevel != null ? currentLevel : '—'}
-            </p>
-            <p className="text-[8px] text-white/35 mt-0.5">of 150</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <p className="label">Level</p>
-          <p className="text-xs font-bold text-white">
-            {currentLevel != null ? `${Math.round(fillPercent * 100)}%` : '—'}
-          </p>
-        </div>
-        {lastDate && (
-          <div className="flex items-center justify-between">
-            <p className="label">Fill-up</p>
-            <p className="text-[10px] font-semibold text-white/60">{lastDate}</p>
-          </div>
-        )}
-        {isLow && currentLevel != null && (
-          <span className="badge bg-white text-black text-[9px] animate-pulse mt-1">Low</span>
-        )}
-      </div>
-    </div>
-  )
-}
-
 function flightRoute(flight) {
   const first = flight.legs?.[0]
   const last = flight.legs?.[flight.legs.length - 1]
@@ -174,57 +40,6 @@ function hobbsLastUpdated(flights) {
 }
 
 
-
-// ── Maintenance status mini-card ───────────────────────────────────────────────
-
-function MaintStatusCard({ maintItems, onClick }) {
-  const overdue  = maintItems.overdue.length
-  const dueSoon  = maintItems.dueSoon.length
-  const ok       = maintItems.ok.length
-
-  // Most urgent item to surface
-  const topItem = maintItems.overdue[0] ?? maintItems.dueSoon[0] ?? null
-
-  return (
-    <div
-      className="stat-card cursor-pointer active:opacity-80 transition-opacity select-none overflow-hidden"
-      onClick={onClick}
-    >
-      <p className="label">Maintenance</p>
-
-      {/* Copper-line image: grayscale→invert turns white bg to black,
-          screen blend makes black transparent → clean white lines on card */}
-      <div className="flex-1" style={{ backgroundColor: '#1A1A1A', isolation: 'isolate', paddingTop: '0.75rem' }}>
-        <img
-          src="/Bell-Long-Ranger-206L-copper-line.png"
-          alt="helicopter"
-          className="w-full object-contain select-none pointer-events-none"
-          style={{
-            filter: 'grayscale(1) invert(1) brightness(1.8)',
-            opacity: 0.35,
-            mixBlendMode: 'screen',
-          }}
-        />
-      </div>
-
-      {/* Counts — monochromatic, no dividers */}
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col items-center flex-1">
-          <p className="text-base font-bold leading-none text-white">{overdue}</p>
-          <p className="text-[9px] text-white/30 uppercase tracking-wide mt-0.5">Over</p>
-        </div>
-        <div className="flex flex-col items-center flex-1">
-          <p className="text-base font-bold leading-none text-white">{dueSoon}</p>
-          <p className="text-[9px] text-white/30 uppercase tracking-wide mt-0.5">Soon</p>
-        </div>
-        <div className="flex flex-col items-center flex-1">
-          <p className="text-base font-bold leading-none text-white">{ok}</p>
-          <p className="text-[9px] text-white/30 uppercase tracking-wide mt-0.5">OK</p>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // Home header: CNA crest centered with the aircraft status chip. At rest it's
 // large; scroll down and a compact frosted bar with a smaller crest stays stuck
@@ -285,12 +100,8 @@ function CrestHeader({ tailNumber }) {
 export default function Dashboard() {
   const { aircraft, selectedAircraft, setSelectedAircraft } = useAircraft()
   const { flights, stats, fuelStats, refresh } = useFlights(selectedAircraft?.id)
-  const maint      = useMaintenance(selectedAircraft?.id, selectedAircraft?.hobbs_current)
   const maintItems = useMaintenanceItems(selectedAircraft?.id, selectedAircraft?.hobbs_current, selectedAircraft?.cycles_current)
   const navigate = useNavigate()
-  const [flightDrawerOpen,    setFlightDrawerOpen]    = useState(false)
-  const [tankDrawerOpen,      setTankDrawerOpen]      = useState(false)
-  const [maintDrawerOpen,     setMaintDrawerOpen]     = useState(false)
   const [hobbsHistoryOpen,    setHobbsHistoryOpen]    = useState(false)
   const tank = useTank()
   const { pilots, mechanics, operations } = useEmployeeFlights(selectedAircraft?.id)
@@ -299,12 +110,6 @@ export default function Dashboard() {
   const hobbs   = selectedAircraft?.hobbs_current
   const cycles  = selectedAircraft?.cycles_current
   const recentFlights = flights.slice(0, 4)
-
-  const QUICK_ACTIONS = [
-    { label: 'Log Flight', color: 'bg-white/10 text-white', icon: <IconFlight />, onClick: () => setFlightDrawerOpen(true) },
-    { label: 'Fuel Tank',  color: 'bg-white/10 text-white', icon: <IconFuel />,   onClick: () => setTankDrawerOpen(true) },
-    { label: 'Maint.',     color: 'bg-white/10 text-white', icon: <IconWrench />, onClick: () => setMaintDrawerOpen(true) },
-  ]
 
   const overdueCount = maintItems.overdue.length
   const dueSoonCount = maintItems.dueSoon.length
@@ -349,26 +154,58 @@ export default function Dashboard() {
           className="hero-heli" draggable="false" />
       </button>
 
-      {/* Quick verbs — icon row under the aircraft */}
-      <div className="flex justify-center gap-3 px-5 -mt-1 mb-5">
-        <button className="hero-icon-btn" aria-label="Log flight" onClick={() => setFlightDrawerOpen(true)}>
-          <IconFlight />
-        </button>
-        <button className="hero-icon-btn" aria-label="Fuel tank" onClick={() => setTankDrawerOpen(true)}>
-          <IconFuel />
-        </button>
-        <button className="hero-icon-btn" aria-label="Log maintenance service" onClick={() => setMaintDrawerOpen(true)}>
-          <IconWrench />
-        </button>
-        <button className="hero-icon-btn" aria-label="Flights and itineraries" onClick={() => navigate('/flights')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
-          </svg>
-        </button>
-      </div>
+      <div className="px-4 pb-6 pt-4 space-y-5">
 
-      <div className="px-4 pb-6 space-y-5">
+        {/* ── Vitals — 2×2 grid, the aircraft's four numbers at a glance ── */}
+        <div className="grid grid-cols-2 gap-2.5">
+
+          <button className="vital-tile" onClick={() => setHobbsHistoryOpen(true)}>
+            <p className="vital-label">Hobbs</p>
+            <p className="vital-value">
+              {hobbs != null ? hobbs.toLocaleString() : '—'} <span className="vital-unit">h</span>
+            </p>
+            <p className="vital-sub">
+              {stats.total ? `+${stats.allHours ?? stats.monthHours} this month` : 'No flights yet'}
+            </p>
+          </button>
+
+          <button className="vital-tile" onClick={() => navigate('/maintenance')}>
+            <p className="vital-label">Maintenance</p>
+            {overdueCount > 0 ? (
+              <p className="vital-value text-red-400">
+                {overdueCount} <span className="vital-unit">overdue</span>
+              </p>
+            ) : dueSoonCount > 0 ? (
+              <p className="vital-value text-amber-300">
+                {dueSoonCount} <span className="vital-unit">due soon</span>
+              </p>
+            ) : (
+              <p className="vital-value">OK</p>
+            )}
+            <p className="vital-sub">
+              {nextDue ? `next due in ${nextDue.hrsRemaining.toFixed(1)} h` : 'no upcoming items'}
+            </p>
+          </button>
+
+          <button className="vital-tile" onClick={() => navigate('/fuel')}>
+            <p className="vital-label">Fuel</p>
+            <p className="vital-value">
+              {tank.currentLevel != null ? tank.currentLevel : '—'} <span className="vital-unit">gal</span>
+            </p>
+            <div className="h-1 rounded-full bg-white/[0.08] overflow-hidden mt-2">
+              <div className="h-full rounded-full bg-accent transition-all duration-700"
+                style={{ width: `${(tank.fillPercent ?? 0) * 100}%` }} />
+            </div>
+          </button>
+
+          <button className="vital-tile" onClick={() => navigate('/fuel')}>
+            <p className="vital-label">Endurance</p>
+            <p className="vital-value">
+              {tank.currentLevel != null ? (tank.currentLevel / CRUISE_BURN_GPH).toFixed(1) : '—'} <span className="vital-unit">h</span>
+            </p>
+            <p className="vital-sub">at {CRUISE_BURN_GPH} gph cruise burn</p>
+          </button>
+        </div>
 
         {/* ── Status rows ── */}
         <div className="trow-group">
@@ -388,22 +225,6 @@ export default function Dashboard() {
             <span className="ml-auto text-[13px] text-white/45 tabular-nums flex-shrink-0">
               {overdueCount > 0 ? `${overdueCount + dueSoonCount} items` : nextDue ? `in ${nextDue.hrsRemaining.toFixed(1)} h` : ''}
             </span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="chev w-4 h-4"><path d="M9 18l6-6-6-6" /></svg>
-          </button>
-
-          <button className="trow" onClick={() => navigate('/fuel')}>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline justify-between">
-                <p className="text-[14px] font-semibold text-white">Fuel tank</p>
-                <p className="text-[13px] text-white/45 tabular-nums">
-                  {tank.currentLevel != null ? `${tank.currentLevel} gal · ${Math.round(tank.fillPercent * 100)}%` : '—'}
-                </p>
-              </div>
-              <div className="h-[3px] rounded-full bg-white/[0.08] overflow-hidden mt-2.5">
-                <div className="h-full rounded-full bg-accent transition-all duration-700"
-                  style={{ width: `${(tank.fillPercent ?? 0) * 100}%` }} />
-              </div>
-            </div>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="chev w-4 h-4"><path d="M9 18l6-6-6-6" /></svg>
           </button>
 
@@ -469,23 +290,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <FlightDrawer
-        open={flightDrawerOpen}
-        onClose={() => setFlightDrawerOpen(false)}
-        onSaved={refresh}
-      />
-      <TankFillupDrawer
-        open={tankDrawerOpen}
-        onClose={() => setTankDrawerOpen(false)}
-        onSaved={tank.refresh}
-        lastGallonsAfter={tank.currentLevel}
-      />
-      <MaintenanceDrawer
-        open={maintDrawerOpen}
-        onClose={() => setMaintDrawerOpen(false)}
-        onSaved={maint.refresh}
-        defaultType="engine_oil"
-      />
       <HobbsHistoryDrawer
         open={hobbsHistoryOpen}
         onClose={() => setHobbsHistoryOpen(false)}
