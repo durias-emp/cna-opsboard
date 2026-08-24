@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toHobbs, formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
+import PullDownMenu from '../components/PullDownMenu'
 import { useFlights } from '../hooks/useFlights'
 import { useMaintenance, FLUID_TYPES } from '../hooks/useMaintenance'
 import { useMaintenanceItems } from '../hooks/useMaintenanceItems'
@@ -226,7 +227,7 @@ function MaintStatusCard({ maintItems, onClick }) {
 }
 
 export default function Dashboard() {
-  const { selectedAircraft } = useAircraft()
+  const { aircraft, selectedAircraft, setSelectedAircraft } = useAircraft()
   const { flights, stats, fuelStats, refresh } = useFlights(selectedAircraft?.id)
   const maint      = useMaintenance(selectedAircraft?.id, selectedAircraft?.hobbs_current)
   const maintItems = useMaintenanceItems(selectedAircraft?.id, selectedAircraft?.hobbs_current, selectedAircraft?.cycles_current)
@@ -266,9 +267,23 @@ export default function Dashboard() {
 
       {/* ── Hero — the aircraft is the interface ── */}
       <div className="px-5 pt-2">
-        <h1 className="text-[26px] font-bold text-white leading-tight tracking-tight">
-          {selectedAircraft?.tail_number ?? '—'}
-        </h1>
+        <PullDownMenu
+          items={aircraft.map(a => ({
+            key: a.id,
+            label: a.tail_number,
+            checked: a.id === selectedAircraft?.id,
+            onSelect: () => setSelectedAircraft(a),
+          }))}
+          trigger={toggle => (
+            <button onClick={toggle} className="flex items-center gap-1.5 select-none active:opacity-70">
+              <h1 className="text-[26px] font-bold text-white leading-tight tracking-tight">
+                {selectedAircraft?.tail_number ?? '—'}
+              </h1>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
+                strokeLinecap="round" className="w-4 h-4 text-white/40 mt-1"><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+          )}
+        />
         <p className="text-[13px] text-white/40 mt-0.5 font-medium">
           {hobbs != null && <>{hobbs.toLocaleString()} h</>}
           {cycles != null && <span className="text-white/25"> · {cycles.toLocaleString()} cyc</span>}
