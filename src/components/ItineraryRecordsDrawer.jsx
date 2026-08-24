@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/utils'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 import { softDelete } from '../lib/softDelete'
+import ActionSheet from './ActionSheet'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -174,18 +175,21 @@ function ItineraryCard({ record: r, isExpanded, onToggle, onEdit, onDelete }) {
             </button>
             <button
               disabled={deleting}
-              onClick={async () => {
-                if (!confirmDelete) { setConfirmDelete(true); setTimeout(() => setConfirmDelete(false), 4000); return }
-                setDeleting(true)
-                await onDelete(r.id)
-                setDeleting(false); setConfirmDelete(false)
-              }}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-semibold select-none transition-all duration-200
+              onClick={() => setConfirmDelete(true)}
+              className="flex-1 py-2.5 rounded-xl text-xs font-semibold select-none transition-all duration-200
                 active:scale-[0.97] disabled:opacity-40
-                ${confirmDelete ? 'bg-red-500 text-white' : 'bg-white/[0.07] text-white/35 hover:bg-red-500/20 hover:text-red-300'}`}
+                bg-white/[0.07] text-white/35 hover:bg-red-500/20 hover:text-red-300"
             >
-              {deleting ? 'Deleting…' : confirmDelete ? 'Tap again to delete manifest' : 'Delete'}
+              {deleting ? 'Deleting…' : 'Delete'}
             </button>
+            <ActionSheet
+              open={confirmDelete}
+              onClose={() => setConfirmDelete(false)}
+              title="Delete this passenger manifest? The office can restore it if needed."
+              actions={[{ label: 'Delete Manifest', destructive: true, onPress: async () => {
+                setDeleting(true); await onDelete(r.id); setDeleting(false)
+              } }]}
+            />
           </div>
         </div>
       )}

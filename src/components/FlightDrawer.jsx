@@ -3,6 +3,7 @@ import { useAircraft } from '../context/AircraftContext'
 import { useTeam } from '../context/TeamContext'
 import { RPC_MISSING } from '../lib/softDelete'
 import { getAccessToken } from '../context/AuthContext'
+import ActionSheet from './ActionSheet'
 import { supabase } from '../lib/supabase'
 import DatePicker from './DatePicker'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
@@ -1269,34 +1270,23 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
             ) : isEditing ? 'Update Flight' : 'Log Flight'}
           </button>
 
-          {isEditing && !confirmDelete && (
+          {isEditing && (
             <button
               onClick={() => setConfirmDelete(true)}
+              disabled={saving}
               className="w-full py-2.5 text-sm text-red-400/70 font-medium
                          active:text-red-400 transition-colors select-none"
             >
-              Delete Flight
+              {saving ? 'Deleting…' : 'Delete Flight'}
             </button>
           )}
 
-          {isEditing && confirmDelete && (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="flex-1 py-2.5 rounded-2xl bg-white/[0.07] text-sm text-white/50 font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={saving}
-                className="flex-1 py-2.5 rounded-2xl bg-red-500/80 text-sm text-white font-semibold
-                           active:bg-red-500 disabled:opacity-40"
-              >
-                {saving ? 'Deleting…' : 'Yes, delete'}
-              </button>
-            </div>
-          )}
+          <ActionSheet
+            open={confirmDelete}
+            onClose={() => setConfirmDelete(false)}
+            title="This flight and its hours will be removed from the aircraft totals. It can be restored by the office."
+            actions={[{ label: 'Delete Flight', destructive: true, onPress: handleDelete }]}
+          />
         </div>
       </div>
     </>

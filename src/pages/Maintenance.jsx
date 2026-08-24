@@ -403,22 +403,11 @@ export default function Maintenance() {
       {/* ── Hero: blueprint + summary cards ── */}
       <div className="relative">
 
-        {/* Page title */}
-        <div className="flex items-center justify-between px-4 pt-5 pb-2">
-          <div>
-            <h1 className="page-title">Maintenance</h1>
-            <p className="text-xs text-white/35 mt-0.5">
-              {selectedAircraft?.tail_number} · {hobbs.toLocaleString()}h · {cycles.toLocaleString()} cyc
-            </p>
-          </div>
-          <button className="fab" onClick={() => setSnagOpen(true)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
-              strokeLinecap="round" className="w-4 h-4">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            Snag List
-          </button>
-        </div>
+        <PageHeader
+          title="Maintenance"
+          sub={`${selectedAircraft?.tail_number} · ${hobbs.toLocaleString()}h · ${cycles.toLocaleString()} cyc`}
+          action={{ label: 'Snag List', onClick: () => setSnagOpen(true) }}
+        />
 
       </div>
 

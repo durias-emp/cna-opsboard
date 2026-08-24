@@ -435,20 +435,20 @@ export default function WeightBalanceCalculator({ onClose }) {
               ].map(({ key, label, pos }) => {
                 const on = doors[key]
                 return (
-                  <button key={key} onClick={() => toggleDoor(key)}
-                    className="flex items-center justify-between rounded-xl px-3 py-2.5 transition-all active:scale-[0.97]"
-                    style={{
-                      background: on ? 'rgba(255,255,255,0.07)' : 'rgba(239,68,68,0.08)',
-                      border: `1px solid ${on ? 'rgba(255,255,255,0.08)' : 'rgba(239,68,68,0.25)'}`,
-                    }}>
-                    <span className="text-xs font-semibold" style={{ color: on ? 'rgba(255,255,255,0.7)' : '#f87171' }}>
+                  <label key={key}
+                    className="flex items-center justify-between rounded-xl px-3 py-2.5 bg-white/[0.05] select-none">
+                    <span className="text-xs font-semibold" style={{ color: on ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.4)' }}>
                       {pos} {label}
                     </span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                      style={{ background: on ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', color: on ? '#4ade80' : '#f87171' }}>
-                      {on ? 'ON' : 'OFF'}
-                    </span>
-                  </button>
+                    {/* native iOS switch in Safari 17.4+; falls back to an accent checkbox elsewhere */}
+                    <input
+                      type="checkbox"
+                      switch=""
+                      checked={on}
+                      onChange={() => toggleDoor(key)}
+                      style={{ accentColor: '#2CB9BD' }}
+                    />
+                  </label>
                 )
               })}
             </div>
