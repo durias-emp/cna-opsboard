@@ -181,56 +181,54 @@ export default function Dashboard() {
         {/* ── One card: vitals grid on top, status rows below ── */}
         <div className="trow-group bg-navy-800">
 
-          <div className="grid grid-cols-2 gap-2.5 p-3">
+          <div className="p-3 space-y-2.5">
 
-            <button className="vital-tile" onClick={() => setHobbsHistoryOpen(true)}>
+            {/* Hobbs — the account balance */}
+            <button className="vital-tile w-full items-center py-5" onClick={() => setHobbsHistoryOpen(true)}>
               <p className="vital-label">Hobbs</p>
-              <p className="vital-value" style={{ fontSize: 27 }}>
+              <p className="vital-value tracking-tight" style={{ fontSize: 42 }}>
                 {animHobbs != null
                   ? animHobbs.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-                  : '—'} <span className="vital-unit">h</span>
+                  : '—'} <span className="vital-unit" style={{ fontSize: 18 }}>h</span>
               </p>
               <p className="vital-sub">
                 {stats.total ? `+${stats.allHours ?? stats.monthHours} this month` : 'No flights yet'}
               </p>
             </button>
 
-            <button className="vital-tile" onClick={() => navigate('/maintenance')}>
-              <p className="vital-label">Maintenance</p>
-              {overdueCount > 0 ? (
-                <p className="vital-value text-red-400">
-                  {overdueCount} <span className="vital-unit">overdue</span>
-                </p>
-              ) : dueSoonCount > 0 ? (
-                <p className="vital-value text-amber-300">
-                  {dueSoonCount} <span className="vital-unit">due soon</span>
-                </p>
-              ) : (
-                <p className="vital-value">OK</p>
-              )}
-              <p className="vital-sub">
-                {nextDue ? `next due in ${nextDue.hrsRemaining.toFixed(1)} h` : 'no upcoming items'}
-              </p>
-            </button>
+            {/* Secondary stats */}
+            <div className="grid grid-cols-3 gap-2.5">
+              <button className="vital-tile" onClick={() => navigate('/maintenance')}>
+                <p className="vital-label">Maint</p>
+                {overdueCount > 0 ? (
+                  <p className="vital-value-sm text-red-400">{overdueCount} <span className="vital-unit">over</span></p>
+                ) : dueSoonCount > 0 ? (
+                  <p className="vital-value-sm text-amber-300">{dueSoonCount} <span className="vital-unit">soon</span></p>
+                ) : (
+                  <p className="vital-value-sm">OK</p>
+                )}
+                <p className="vital-sub">{nextDue ? `next ${nextDue.hrsRemaining.toFixed(1)} h` : '—'}</p>
+              </button>
 
-            <button className="vital-tile" onClick={() => navigate('/fuel')}>
-              <p className="vital-label">Fuel</p>
-              <p className="vital-value">
-                {animFuel != null ? Math.round(animFuel) : '—'} <span className="vital-unit">gal</span>
-              </p>
-              <div className="h-1 rounded-full bg-white/[0.08] overflow-hidden mt-2">
-                <div className="h-full rounded-full bg-accent transition-all duration-700"
-                  style={{ width: `${(tank.fillPercent ?? 0) * 100}%` }} />
-              </div>
-            </button>
+              <button className="vital-tile" onClick={() => navigate('/fuel')}>
+                <p className="vital-label">Fuel</p>
+                <p className="vital-value-sm">
+                  {animFuel != null ? Math.round(animFuel) : '—'} <span className="vital-unit">gal</span>
+                </p>
+                <div className="h-1 rounded-full bg-white/[0.08] overflow-hidden mt-2 w-full">
+                  <div className="h-full rounded-full bg-accent transition-all duration-700"
+                    style={{ width: `${(tank.fillPercent ?? 0) * 100}%` }} />
+                </div>
+              </button>
 
-            <button className="vital-tile" onClick={() => navigate('/fuel')}>
-              <p className="vital-label">Endurance</p>
-              <p className="vital-value">
-                {animEndurance != null ? animEndurance.toFixed(1) : '—'} <span className="vital-unit">h</span>
-              </p>
-              <p className="vital-sub">at {CRUISE_BURN_GPH} gph cruise burn</p>
-            </button>
+              <button className="vital-tile" onClick={() => navigate('/fuel')}>
+                <p className="vital-label">Endur</p>
+                <p className="vital-value-sm">
+                  {animEndurance != null ? animEndurance.toFixed(1) : '—'} <span className="vital-unit">h</span>
+                </p>
+                <p className="vital-sub">{CRUISE_BURN_GPH} gph</p>
+              </button>
+            </div>
           </div>
 
           <button className="trow" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
