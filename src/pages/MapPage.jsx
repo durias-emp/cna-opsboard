@@ -36,6 +36,9 @@ export default function MapPage() {
   const [selected, setSelected] = useState(null)
   const [draft,    setDraft]    = useState(null)
   const [ready,    setReady]    = useState(false)
+  // TEMP diagnostics — remove once the phone renders the map
+  const [diag, setDiag] = useState([])
+  const note = msg => setDiag(d => [...d.slice(-11), msg])
 
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -48,18 +51,38 @@ export default function MapPage() {
   // ── Map lifecycle ──
   useEffect(() => {
     let map, cancelled = false
+
+    // TEMP diagnostics
+    try {
+      const c = document.createElement('canvas')
+      const gl = c.getContext('webgl2') || c.getContext('webgl')
+      note(gl ? `webgl OK (${gl.constructor.name})` : 'webgl UNAVAILABLE')
+    } catch (e) { note(`webgl threw: ${e.message}`) }
+    const el = containerRef.current
+    note(`container ${el?.clientWidth}x${el?.clientHeight}`)
+    note(`maplibre v${maplibregl.getVersion ? maplibregl.getVersion() : (maplibregl.version ?? '?')}`)
+    note(navigator.serviceWorker?.controller ? 'SW CONTROLLING page' : 'no SW controlling')
+
     loadStyle().then(style => {
       if (cancelled) return
-      map = new maplibregl.Map({
-        container: containerRef.current,
-        style,
-        center: SALVADOR_CENTER,
-        zoom: 8.5,
-        attributionControl: { compact: true },
-      })
+      note(typeof style === 'string' ? 'style: fetch FAILED, using URL' : `style: json OK (${style.layers?.length} layers)`)
+      try {
+        map = new maplibregl.Map({
+          container: containerRef.current,
+          style,
+          center: SALVADOR_CENTER,
+          zoom: 8.5,
+          attributionControl: { compact: true },
+        })
+      } catch (e) { note(`Map() THREW: ${e.message}`); return }
       mapRef.current = map
+      note('map constructed')
+      map.on('error', e => note(`map error: ${e.error?.message ?? e.error ?? 'unknown'}`))
+      map.on('styledata', () => note('styledata received'))
+      map.once('render', () => note(`first render, canvas ${map.getCanvas().width}x${map.getCanvas().height}`))
 
       map.on('load', () => {
+        note('map LOAD fired')
         map.addSource('aip',    { type: 'geojson', data: fc([]) })
         map.addSource('custom', { type: 'geojson', data: fc([]) })
 
@@ -165,6 +188,14 @@ export default function MapPage() {
           <p className="text-[15px] font-semibold text-white leading-none">Map</p>
           <p className="text-[11px] text-white/40 mt-1 leading-none">Hold anywhere to add a waypoint</p>
         </div>
+      </div>
+
+      {/* TEMP diagnostics readout — remove once the map renders on device */}
+      <div className="absolute left-2 right-2 z-10 pointer-events-none rounded-lg px-2 py-1.5"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)', background: 'rgba(0,0,0,0.75)' }}>
+        {diag.map((m, i) => (
+          <p key={i} className="text-[10px] font-mono leading-snug text-lime-300">{m}</p>
+        ))}
       </div>
 
       {selected && (
