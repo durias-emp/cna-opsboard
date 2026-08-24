@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 
 const TABS = [
@@ -53,9 +54,31 @@ const TABS = [
 ]
 
 export default function BottomNav() {
+  // Instagram behavior: scrolling down anywhere contracts the capsule
+  // (labels collapse, pill shrinks); scrolling up — or reaching the top —
+  // expands it again. Scroll events don't bubble, so listen in capture.
+  const [compact, setCompact] = useState(false)
+  const lastTop = useRef(new WeakMap())
+
+  useEffect(() => {
+    function onScroll(e) {
+      const el = e.target
+      if (!(el instanceof Element) || el.scrollHeight <= el.clientHeight + 40) return
+      const prev = lastTop.current.get(el) ?? 0
+      const top  = el.scrollTop
+      lastTop.current.set(el, top)
+      if (top < 32) { setCompact(false); return }
+      const dy = top - prev
+      if (dy > 4)  setCompact(true)
+      if (dy < -4) setCompact(false)
+    }
+    document.addEventListener('scroll', onScroll, true)
+    return () => document.removeEventListener('scroll', onScroll, true)
+  }, [])
+
   return (
     <div className="nav-dock">
-    <nav className="pill-nav">
+    <nav className={`pill-nav${compact ? ' compact' : ''}`} onClick={() => setCompact(false)}>
       {TABS.map(({ to, label, icon }) => (
         <NavLink
           key={to}

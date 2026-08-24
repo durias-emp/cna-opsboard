@@ -45,44 +45,81 @@
 }
 
 @layer components {
-  /* ── Bottom nav — iOS-standard tab bar on a fade-to-black dock ──
-     Five equal columns, icon over an 10px label, active state is tint only:
-     no bubbles, no size changes, nothing to knock it off balance. */
+  /* ── Bottom nav — Instagram-style floating liquid-glass capsule ──
+     Expanded: icons + labels. Scrolling down contracts it to an icon-only
+     pill; scrolling up (or tapping it) expands it. Apple sheet spring curve. */
   .nav-dock {
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
     z-index: 50;
-    padding: 0.4rem 0.5rem calc(env(safe-area-inset-bottom, 0px) + 0.25rem);
-    /* iOS tab-bar material: content scrolls behind and blurs through */
-    background: rgba(23, 23, 23, 0.78);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    justify-content: center;
+    padding: 0 1rem calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
+    background: transparent;
     pointer-events: none;
   }
 
   .pill-nav {
-    @apply flex items-stretch w-full max-w-md mx-auto;
+    @apply flex items-stretch;
     pointer-events: auto;
+    width: min(100%, 26rem);
+    padding: 0.45rem 0.4rem;
+    border-radius: 999px;
+    /* liquid glass: deep blur + saturation, translucent ink, top highlight */
+    background: rgba(28, 28, 30, 0.60);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.10),
+      inset 0 0 0 0.5px rgba(255, 255, 255, 0.06),
+      0 10px 40px rgba(0, 0, 0, 0.55);
+    transition: width 0.45s cubic-bezier(0.32, 0.72, 0, 1),
+                padding 0.45s cubic-bezier(0.32, 0.72, 0, 1),
+                transform 0.45s cubic-bezier(0.32, 0.72, 0, 1);
   }
 
   .nav-btn {
-    @apply flex-1 flex flex-col items-center justify-center gap-1
-           py-1 text-[10px] font-medium text-white/35
+    @apply flex-1 flex flex-col items-center justify-center
+           text-[10px] font-medium text-white/40
            transition-colors duration-150 select-none;
+    gap: 0.28rem;
+    padding: 0.35rem 0;
+    border-radius: 999px;
   }
 
-  .nav-btn.active {
-    @apply text-white;
-  }
+  .nav-btn.active { @apply text-white; }
 
-  .nav-btn svg { width: 1.5rem; height: 1.5rem; }
-  /* the helicopter glyph is 2:1 wide — give it a wider box so its visual
-     weight matches the square stroke icons */
-  .nav-btn img { width: 2.1rem; height: 1.5rem; object-fit: contain; opacity: 0.35; }
+  .nav-btn svg { width: 1.5rem; height: 1.5rem; flex-shrink: 0; }
+  .nav-btn img { width: 2.1rem; height: 1.5rem; object-fit: contain; opacity: 0.4; flex-shrink: 0; }
   .nav-btn.active img { opacity: 1; }
+
+  /* label collapse machinery */
+  .nav-btn span {
+    max-height: 1rem;
+    opacity: 1;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.32, 0.72, 0, 1),
+                opacity 0.25s ease,
+                margin 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  /* ── Compact (scrolled): smaller pill, icons only ── */
+  .pill-nav.compact {
+    width: min(78%, 19rem);
+    padding: 0.3rem 0.35rem;
+    transform: translateY(4px) scale(0.97);
+  }
+  .pill-nav.compact .nav-btn span {
+    max-height: 0;
+    opacity: 0;
+    margin-top: -0.28rem;   /* swallow the flex gap */
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pill-nav, .nav-btn span { transition-duration: 0.01ms; }
+  }
 
   /* ── Layout shell ── */
   .page-shell {
