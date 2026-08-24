@@ -11,6 +11,7 @@ const Flights     = lazy(() => import('./pages/Flights'))
 const Maintenance = lazy(() => import('./pages/Maintenance'))
 const Fuel        = lazy(() => import('./pages/Fuel'))
 const Employees   = lazy(() => import('./pages/Employees'))
+const MapPage     = lazy(() => import('./pages/MapPage'))
 import IdentityScreen from './components/IdentityScreen'
 import ConnectionError from './components/ConnectionError'
 import LoginScreen from './components/LoginScreen'
@@ -37,6 +38,7 @@ function Shell() {
           <Route path="/maintenance" element={<Maintenance />} />
           <Route path="/fuel" element={<Fuel />} />
           <Route path="/employees" element={<Employees />} />
+          <Route path="/map" element={<MapPage />} />
         </Routes>
         </Suspense>
       </main>

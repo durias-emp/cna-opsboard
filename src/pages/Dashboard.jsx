@@ -365,6 +365,14 @@ export default function Dashboard() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="chev w-4 h-4 ml-auto"><path d="M9 18l6-6-6-6" /></svg>
           </button>
 
+          <button className="trow" onClick={() => navigate('/map')}>
+            <div className="min-w-0">
+              <p className="text-[14px] font-semibold text-white">Map &amp; Waypoints</p>
+              <p className="text-[12px] text-white/40 mt-0.5">275 aerodromes · hold to add your own sites</p>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="chev w-4 h-4 ml-auto"><path d="M9 18l6-6-6-6" /></svg>
+          </button>
+
           <button className="trow" onClick={() => navigate('/employees')}>
             <div className="min-w-0">
               <p className="text-[14px] font-semibold text-white">Team</p>
