@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useMotionValue, animate } from 'framer-motion'
 import { toHobbs, formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
 import PullDownMenu from '../components/PullDownMenu'
@@ -11,6 +12,23 @@ import { useTank } from '../hooks/useTank'
 
 // YS-CNA cruise burn (owner-provided, also used for quoting)
 const CRUISE_BURN_GPH = 27
+
+// CNA Monies' balance count-up: one motion value, one animate() call,
+// formatted every frame. Fast launch, slow land — like a bank app counter.
+function useAnimatedNumber(target, duration = 1.2) {
+  const mv = useMotionValue(0)
+  const [display, setDisplay] = useState(0)
+
+  useEffect(() => mv.on('change', v => setDisplay(v)), [mv])
+
+  useEffect(() => {
+    if (target == null) return
+    const controls = animate(mv, target, { duration, ease: [0.16, 1, 0.3, 1] })
+    return controls.stop
+  }, [target, mv, duration])
+
+  return target == null ? null : display
+}
 
 const IconFlight = () => (
   <img src="/helicopter.png" alt="helicopter" className="w-5 h-5 object-contain opacity-50"
@@ -118,6 +136,10 @@ export default function Dashboard() {
     .sort((a, b) => a.hrsRemaining - b.hrsRemaining)[0] ?? null
   const lastFlight = flights[0] ?? null
 
+  const animHobbs     = useAnimatedNumber(hobbs)
+  const animFuel      = useAnimatedNumber(tank.currentLevel)
+  const animEndurance = useAnimatedNumber(tank.currentLevel != null ? tank.currentLevel / CRUISE_BURN_GPH : null)
+
   return (
     <div className="flex-1 overflow-y-auto nav-clearance">
 
@@ -156,79 +178,63 @@ export default function Dashboard() {
 
       <div className="px-4 pb-6 pt-4 space-y-5">
 
-        {/* ── Vitals — 2×2 grid, the aircraft's four numbers at a glance ── */}
-        <div className="grid grid-cols-2 gap-2.5">
+        {/* ── One card: vitals grid on top, status rows below ── */}
+        <div className="trow-group bg-navy-800">
 
-          <button className="vital-tile" onClick={() => setHobbsHistoryOpen(true)}>
-            <p className="vital-label">Hobbs</p>
-            <p className="vital-value">
-              {hobbs != null ? hobbs.toLocaleString() : '—'} <span className="vital-unit">h</span>
-            </p>
-            <p className="vital-sub">
-              {stats.total ? `+${stats.allHours ?? stats.monthHours} this month` : 'No flights yet'}
-            </p>
-          </button>
+          <div className="grid grid-cols-2 gap-2.5 p-3">
 
-          <button className="vital-tile" onClick={() => navigate('/maintenance')}>
-            <p className="vital-label">Maintenance</p>
-            {overdueCount > 0 ? (
-              <p className="vital-value text-red-400">
-                {overdueCount} <span className="vital-unit">overdue</span>
+            <button className="vital-tile" onClick={() => setHobbsHistoryOpen(true)}>
+              <p className="vital-label">Hobbs</p>
+              <p className="vital-value" style={{ fontSize: 27 }}>
+                {animHobbs != null
+                  ? animHobbs.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+                  : '—'} <span className="vital-unit">h</span>
               </p>
-            ) : dueSoonCount > 0 ? (
-              <p className="vital-value text-amber-300">
-                {dueSoonCount} <span className="vital-unit">due soon</span>
+              <p className="vital-sub">
+                {stats.total ? `+${stats.allHours ?? stats.monthHours} this month` : 'No flights yet'}
               </p>
-            ) : (
-              <p className="vital-value">OK</p>
-            )}
-            <p className="vital-sub">
-              {nextDue ? `next due in ${nextDue.hrsRemaining.toFixed(1)} h` : 'no upcoming items'}
-            </p>
-          </button>
+            </button>
 
-          <button className="vital-tile" onClick={() => navigate('/fuel')}>
-            <p className="vital-label">Fuel</p>
-            <p className="vital-value">
-              {tank.currentLevel != null ? tank.currentLevel : '—'} <span className="vital-unit">gal</span>
-            </p>
-            <div className="h-1 rounded-full bg-white/[0.08] overflow-hidden mt-2">
-              <div className="h-full rounded-full bg-accent transition-all duration-700"
-                style={{ width: `${(tank.fillPercent ?? 0) * 100}%` }} />
-            </div>
-          </button>
-
-          <button className="vital-tile" onClick={() => navigate('/fuel')}>
-            <p className="vital-label">Endurance</p>
-            <p className="vital-value">
-              {tank.currentLevel != null ? (tank.currentLevel / CRUISE_BURN_GPH).toFixed(1) : '—'} <span className="vital-unit">h</span>
-            </p>
-            <p className="vital-sub">at {CRUISE_BURN_GPH} gph cruise burn</p>
-          </button>
-        </div>
-
-        {/* ── Status rows ── */}
-        <div className="trow-group">
-
-          <button className="trow" onClick={() => navigate('/maintenance')}>
-            <span className={`w-1 self-stretch rounded-full flex-shrink-0 ${overdueCount > 0 ? 'bg-red-500/80' : dueSoonCount > 0 ? 'bg-amber-400/70' : 'bg-white/10'}`} />
-            <div className="min-w-0">
-              <p className="text-[14px] font-semibold text-white">Maintenance</p>
-              <p className="text-[12px] text-white/40 mt-0.5 truncate">
-                {overdueCount > 0
-                  ? `${overdueCount} overdue · ${dueSoonCount} due soon`
-                  : nextDue
-                    ? `Next: ${nextDue.description}`
-                    : 'All items OK'}
+            <button className="vital-tile" onClick={() => navigate('/maintenance')}>
+              <p className="vital-label">Maintenance</p>
+              {overdueCount > 0 ? (
+                <p className="vital-value text-red-400">
+                  {overdueCount} <span className="vital-unit">overdue</span>
+                </p>
+              ) : dueSoonCount > 0 ? (
+                <p className="vital-value text-amber-300">
+                  {dueSoonCount} <span className="vital-unit">due soon</span>
+                </p>
+              ) : (
+                <p className="vital-value">OK</p>
+              )}
+              <p className="vital-sub">
+                {nextDue ? `next due in ${nextDue.hrsRemaining.toFixed(1)} h` : 'no upcoming items'}
               </p>
-            </div>
-            <span className="ml-auto text-[13px] text-white/45 tabular-nums flex-shrink-0">
-              {overdueCount > 0 ? `${overdueCount + dueSoonCount} items` : nextDue ? `in ${nextDue.hrsRemaining.toFixed(1)} h` : ''}
-            </span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="chev w-4 h-4"><path d="M9 18l6-6-6-6" /></svg>
-          </button>
+            </button>
 
-          <button className="trow" onClick={() => navigate('/flights')}>
+            <button className="vital-tile" onClick={() => navigate('/fuel')}>
+              <p className="vital-label">Fuel</p>
+              <p className="vital-value">
+                {animFuel != null ? Math.round(animFuel) : '—'} <span className="vital-unit">gal</span>
+              </p>
+              <div className="h-1 rounded-full bg-white/[0.08] overflow-hidden mt-2">
+                <div className="h-full rounded-full bg-accent transition-all duration-700"
+                  style={{ width: `${(tank.fillPercent ?? 0) * 100}%` }} />
+              </div>
+            </button>
+
+            <button className="vital-tile" onClick={() => navigate('/fuel')}>
+              <p className="vital-label">Endurance</p>
+              <p className="vital-value">
+                {animEndurance != null ? animEndurance.toFixed(1) : '—'} <span className="vital-unit">h</span>
+              </p>
+              <p className="vital-sub">at {CRUISE_BURN_GPH} gph cruise burn</p>
+            </button>
+          </div>
+
+          <button className="trow" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+            onClick={() => navigate('/flights')}>
             <div className="min-w-0">
               <p className="text-[14px] font-semibold text-white">Flights</p>
               <p className="text-[12px] text-white/40 mt-0.5">

@@ -166,8 +166,8 @@
 
   /* ── Vitals — 2×2 stat tiles on the Dashboard ── */
   .vital-tile {
-    @apply bg-navy-800 rounded-2xl px-4 py-3.5 text-left select-none
-           active:bg-navy-700 transition-colors flex flex-col;
+    @apply bg-white/[0.05] rounded-[14px] px-4 py-3.5 text-left select-none
+           active:bg-white/[0.09] transition-colors flex flex-col;
   }
   .vital-label {
     @apply text-[11px] font-semibold uppercase text-white/35;
