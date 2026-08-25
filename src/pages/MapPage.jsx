@@ -63,6 +63,37 @@ export default function MapPage() {
   const profile = useQuoteProfile(selectedAircraft?.id)
   const [roundTrip, setRoundTrip] = useState(true)
   const [waitingHr, setWaitingHr] = useState(0)
+  const [picking, setPicking]     = useState(null)   // 'from' | 'to' | 'stop' → search sheet
+
+  // Default departure: last one used, else Salamanca (CNA's base)
+  function defaultFrom() {
+    const list = waypointsRef.current
+    const savedId = localStorage.getItem('cna:quoteFrom')
+    return list.find(w => String(w.id) === savedId)
+        ?? list.find(w => (w.code ?? '').toUpperCase() === 'SALA')
+        ?? list.find(w => w.name.toUpperCase().includes('SALAMANCA'))
+        ?? null
+  }
+
+  function startQuote() {
+    const home = defaultFrom()
+    setRoutePoints(home ? [home] : [])
+    setRoundTrip(profile.round_trip_default)
+    setWaitingHr(0)
+    setMode('quote')
+  }
+
+  function placeWaypoint(w, slot) {
+    setRoutePoints(ps => {
+      if (slot === 'from') {
+        try { localStorage.setItem('cna:quoteFrom', String(w.id)) } catch { /* ok */ }
+        return ps.length ? [w, ...ps.slice(1)] : [w]
+      }
+      if (slot === 'to')   return ps.length >= 2 ? [...ps.slice(0, -1), w] : [...ps, w]
+      /* stop */           return ps.length >= 2 ? [...ps.slice(0, -1), w, ps[ps.length - 1]] : [...ps, w]
+    })
+    setPicking(null)
+  }
 
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -228,10 +259,10 @@ export default function MapPage() {
     const m = location.state?.mode
     if (m !== 'quote' && m !== 'trips') return
     cancelAnimationFrame(animRef.current)
-    setRoutePoints([]); setTrip(null)
-    setRoundTrip(profile.round_trip_default); setWaitingHr(0)
-    setMode(m)
+    setTrip(null)
     window.history.replaceState({}, '')
+    if (m === 'quote') startQuote()
+    else { setRoutePoints([]); setMode(m) }
   }, [location.state])   // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Quote math: the pure engine, live from the tapped route ──
@@ -465,7 +496,7 @@ export default function MapPage() {
           <div className="grid grid-cols-3 gap-2.5 p-3">
             {[
               { label: 'Flight plan', onClick: () => window.open(AVIARA_URL, '_blank') },
-              { label: 'Quote',       onClick: () => { setRoutePoints([]); setRoundTrip(profile.round_trip_default); setWaitingHr(0); setMode('quote') } },
+              { label: 'Quote',       onClick: startQuote },
               { label: 'Trips',       onClick: () => setMode('trips') },
             ].map(({ label, onClick }) => (
               <button key={label} onClick={onClick}
@@ -489,14 +520,47 @@ export default function MapPage() {
                   className="text-[12px] font-semibold text-white px-3 py-1.5 rounded-full bg-white/[0.08] active:bg-white/[0.15]">Done</button>
               </div>
             </div>
-            {routePoints.length === 0 ? (
-              <p className="text-[12px] text-white/40">Tap sites on the chart in order to build the route.</p>
-            ) : (
+            {(() => {
+              const from = routePoints[0] ?? null
+              const to   = routePoints.length >= 2 ? routePoints[routePoints.length - 1] : null
+              const stops = routePoints.slice(1, -1)
+              const wpName = w => w ? (w.code || w.name) : null
+              return (
+                <div className="space-y-1.5 mb-3">
+                  <button onClick={() => setPicking('from')}
+                    className="w-full flex items-center gap-2.5 rounded-xl bg-white/[0.06] px-3 py-2.5 active:bg-white/[0.12]">
+                    <span className="text-[10px] uppercase tracking-wider text-white/35 w-9 text-left flex-shrink-0">From</span>
+                    <span className={`text-[13px] font-semibold ${from ? 'text-white' : 'text-white/30'}`}>
+                      {wpName(from) ?? 'Choose departure'}
+                    </span>
+                  </button>
+                  {stops.map((wp, i) => (
+                    <div key={`${wp.id}-${i}`} className="w-full flex items-center gap-2.5 rounded-xl bg-white/[0.06] px-3 py-2.5">
+                      <span className="text-[10px] uppercase tracking-wider text-white/35 w-9 text-left flex-shrink-0">Stop</span>
+                      <span className="text-[13px] font-semibold text-white">{wpName(wp)}</span>
+                      <button className="ml-auto text-white/35 text-[15px] px-1.5"
+                        onClick={() => setRoutePoints(ps => ps.filter((_, j) => j !== i + 1))}>×</button>
+                    </div>
+                  ))}
+                  <button onClick={() => setPicking('to')}
+                    className="w-full flex items-center gap-2.5 rounded-xl bg-white/[0.06] px-3 py-2.5 active:bg-white/[0.12]">
+                    <span className="text-[10px] uppercase tracking-wider text-white/35 w-9 text-left flex-shrink-0">To</span>
+                    <span className={`text-[13px] font-semibold ${to ? 'text-white' : 'text-white/30'}`}>
+                      {wpName(to) ?? 'Choose destination'}
+                    </span>
+                  </button>
+                  {from && to && (
+                    <button onClick={() => setPicking('stop')}
+                      className="text-[11px] font-semibold text-accent px-1 pt-0.5 active:opacity-70">+ Add stop</button>
+                  )}
+                  {!to && (
+                    <p className="text-[10.5px] text-white/30 px-1">Search above, or tap a site on the chart.</p>
+                  )}
+                </div>
+              )
+            })()}
+            {routePoints.length >= 2 && (
               <>
-                <p className="text-[12px] text-accent font-semibold mb-2.5 leading-snug">
-                  {routePoints.map(w => w.code || w.name).join(' → ')}
-                  {roundTrip && routePoints.length >= 2 && ` → ${routePoints[0].code || routePoints[0].name}`}
-                </p>
 
                 {/* Adjustments */}
                 <div className="flex items-center gap-2 mb-3">
@@ -612,6 +676,15 @@ export default function MapPage() {
         )}
       </div>
 
+      {picking && (
+        <WaypointPicker
+          waypoints={waypoints}
+          slot={picking}
+          onSelect={w => placeWaypoint(w, picking)}
+          onClose={() => setPicking(null)}
+        />
+      )}
+
       {selected && (
         <WaypointSheet waypoint={selected} onClose={() => setSelected(null)}
           onDelete={deactivateWaypoint} />
@@ -621,6 +694,67 @@ export default function MapPage() {
           onClose={() => setDraft(null)} onSave={addWaypoint} />
       )}
     </div>
+  )
+}
+
+// ── Waypoint picker — search-first site selection for quoting ────────────────
+function WaypointPicker({ waypoints, slot, onSelect, onClose }) {
+  const [q, setQ] = useState('')
+  const needle = q.trim().toUpperCase()
+  const results = useMemo(() => {
+    const scored = waypoints
+      .filter(w => !needle
+        || w.name.toUpperCase().includes(needle)
+        || (w.code ?? '').toUpperCase().includes(needle))
+      .sort((a, b) => {
+        // custom sites first, then exact code hits, then alphabetical
+        const ca = a.source !== 'aip' ? 0 : 1, cb = b.source !== 'aip' ? 0 : 1
+        if (ca !== cb) return ca - cb
+        const ea = (a.code ?? '').toUpperCase() === needle ? 0 : 1
+        const eb = (b.code ?? '').toUpperCase() === needle ? 0 : 1
+        if (ea !== eb) return ea - eb
+        return a.name.localeCompare(b.name)
+      })
+    return scored.slice(0, 40)
+  }, [waypoints, needle])
+
+  const titles = { from: 'Departure', to: 'Destination', stop: 'Add stop' }
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[80]" onClick={onClose} />
+      <div className="fixed bottom-0 left-0 right-0 z-[90] rounded-t-3xl flex flex-col"
+        style={{ maxHeight: '70dvh',
+                 background: 'rgba(30,30,32,0.72)', backdropFilter: 'blur(50px) saturate(200%)',
+                 WebkitBackdropFilter: 'blur(50px) saturate(200%)',
+                 border: '0.5px solid rgba(255,255,255,0.10)' }}>
+        <div className="px-4 pt-4 pb-2 flex-shrink-0">
+          <p className="text-[15px] font-bold text-white mb-2.5">{titles[slot]}</p>
+          <input autoFocus value={q} onChange={e => setQ(e.target.value)}
+            placeholder="Search 279 sites — name or code"
+            className="input-field w-full" />
+        </div>
+        <div className="overflow-y-auto flex-1 px-2 pb-6" style={{ overscrollBehavior: 'contain' }}>
+          {results.map(w => (
+            <button key={w.id} onClick={() => onSelect(w)}
+              className="w-full flex items-center justify-between px-3 py-3 rounded-xl active:bg-white/[0.08] text-left">
+              <span className="min-w-0">
+                <span className="block text-[14px] font-semibold text-white truncate">
+                  {w.name}{w.code ? <span className="text-white/40 font-normal"> · {w.code}</span> : null}
+                </span>
+                <span className="block text-[11px] text-white/35 mt-0.5">
+                  {w.source !== 'aip' ? 'My waypoint' : `${w.kind}${w.country ? ' · ' + w.country : ''}`}
+                </span>
+              </span>
+              {w.source !== 'aip' && <span className="w-2 h-2 rounded-full bg-accent flex-shrink-0 ml-3" />}
+            </button>
+          ))}
+          {results.length === 0 && (
+            <p className="text-[12px] text-white/35 px-3 py-4">Nothing matches "{q}".</p>
+          )}
+        </div>
+      </div>
+    </>
   )
 }
 
