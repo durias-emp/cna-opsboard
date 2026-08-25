@@ -468,7 +468,7 @@ export default function Fuel() {
   const [monthModal,    setMonthModal]    = useState(false)
 
   return (
-    <div className="flex-1 overflow-y-auto nav-clearance">
+    <div className="flex-1 overflow-y-auto nav-clearance page-ambience">
       <PageHeader
         title="Fuel"
         sub="Facility tank + flight consumption"

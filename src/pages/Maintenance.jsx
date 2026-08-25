@@ -398,7 +398,7 @@ export default function Maintenance() {
   const totalDueSoon  = maintItems.dueSoon.length
 
   return (
-    <div ref={pageRef} className="flex-1 overflow-y-auto nav-clearance">
+    <div ref={pageRef} className="flex-1 overflow-y-auto nav-clearance page-ambience">
 
       {/* ── Hero: blueprint + summary cards ── */}
       <div className="relative">
@@ -417,7 +417,7 @@ export default function Maintenance() {
         {/* Overdue */}
         <button
           onClick={() => handleSummaryTap('overdue')}
-          className="rounded-2xl bg-navy-800 p-3.5 text-left active:bg-navy-700 transition-colors select-none"
+          className="rounded-2xl card-sm !p-3.5 text-left active:bg-white/10 transition-colors select-none"
         >
           <p className="text-2xl font-bold text-red-400 leading-none">{maintItems.overdue.length}</p>
           <p className="text-[11px] font-semibold text-red-400/70 mt-1.5 uppercase tracking-wide">Overdue</p>
@@ -426,7 +426,7 @@ export default function Maintenance() {
         {/* Due Soon */}
         <button
           onClick={() => handleSummaryTap('due_soon')}
-          className="rounded-2xl bg-navy-800 p-3.5 text-left active:bg-navy-700 transition-colors select-none"
+          className="rounded-2xl card-sm !p-3.5 text-left active:bg-white/10 transition-colors select-none"
         >
           <p className="text-2xl font-bold text-amber-400 leading-none">{maintItems.dueSoon.length}</p>
           <p className="text-[11px] font-semibold text-amber-400/70 mt-1.5 uppercase tracking-wide">Due Soon</p>
@@ -435,7 +435,7 @@ export default function Maintenance() {
         {/* OK */}
         <button
           onClick={() => handleSummaryTap('ok')}
-          className="rounded-2xl bg-navy-800 p-3.5 text-left active:bg-navy-700 transition-colors select-none"
+          className="rounded-2xl card-sm !p-3.5 text-left active:bg-white/10 transition-colors select-none"
         >
           <p className="text-2xl font-bold text-emerald-400 leading-none">{maintItems.ok.length}</p>
           <p className="text-[11px] font-semibold text-emerald-400/70 mt-1.5 uppercase tracking-wide">OK</p>
