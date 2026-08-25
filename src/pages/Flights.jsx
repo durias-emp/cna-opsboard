@@ -49,7 +49,7 @@ const DOW_LABEL = ['', 'Mon', '', 'Wed', '', 'Fri', '']
 const SQ  = 12
 const GAP = 3
 
-function FlightHeatmap({ flights }) {
+function FlightHeatmap({ flights, statsLine }) {
   const now      = new Date()
   const _ld = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   const todayStr = _ld(now)
@@ -127,7 +127,11 @@ function FlightHeatmap({ flights }) {
   }
 
   return (
-    <div className="card space-y-2">
+    <div className="glass-card rounded-2xl p-4 space-y-2">
+      {/* Season stats — the headline, easy to read at a glance */}
+      {statsLine && (
+        <p className="text-[13.5px] font-semibold text-white/90 pb-1">{statsLine}</p>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <p className="label">{qLabel}</p>
@@ -555,8 +559,7 @@ export default function Flights() {
       <CrestHeader />
       <PageHeader
         title="Flights"
-        sub={loading ? selectedAircraft?.tail_number
-          : `${stats.total} flights · ${stats.allHours} total · ${stats.monthHours} this month`}
+        sub={selectedAircraft?.tail_number}
         action={{ label: 'Log Flight', onClick: () => setDrawerOpen(true) }}
       />
 
@@ -564,7 +567,8 @@ export default function Flights() {
 
         {/* Heatmap */}
         {!loading && (
-          <FlightHeatmap flights={flights} />
+          <FlightHeatmap flights={flights}
+            statsLine={`${stats.total} flights · ${stats.allHours} total · ${stats.monthHours} this month`} />
         )}
 
         {/* ── Itinerary & tools — Tesla-style rows ── */}
