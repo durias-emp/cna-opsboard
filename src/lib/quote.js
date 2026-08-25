@@ -7,7 +7,7 @@ export const DEFAULT_PROFILE = {
   burn_gph: 27,
   rate_hr: 1200,          // pre-IVA — the factura base (1,200 × 1.13 = 1,356/h)
   currency: 'USD',
-  min_charge: 500,        // pre-IVA subtotal floor
+  min_charge: 400,        // pre-IVA floor = 20 min at $1,200/h (totals $452 with IVA)
   standby_free_hr: 1,
   standby_rate_hr: 100,   // pre-IVA
   tax_rate: 0.13,         // IVA, its own line

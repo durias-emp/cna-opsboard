@@ -3,7 +3,7 @@ import { computeQuote, DEFAULT_PROFILE } from '../src/lib/quote'
 
 // Hand-computed against CNA's rules (2026-08-25): round trip billed,
 // $1,200/h base + IVA 13% as its own line (= $1,356/h effective),
-// $500 pre-IVA minimum, waiting 1 h free then $100/h pre-IVA.
+// $400 pre-IVA minimum (= 20 min at $1,200/h), waiting 1 h free then $100/h pre-IVA.
 
 const SALA = { lat: 13.629528, lng: -89.2535 }     // Salamanca
 const FAR  = { lat: 14.3,      lng: -88.2 }        // ~75 nm away
@@ -25,11 +25,12 @@ describe('computeQuote', () => {
     expect(q.totalNm).toBeCloseTo(q.oneWayNm, 5)
   })
 
-  it('applies the $500 pre-IVA minimum to short hops (totals $565 with IVA)', () => {
+  it('applies the 20-minute minimum to short hops ($400 pre-IVA, $452 total)', () => {
     const near = { lat: SALA.lat + 0.05, lng: SALA.lng }   // ~3 nm
     const q = computeQuote({ points: [SALA, near], roundTrip: true })
+    expect(DEFAULT_PROFILE.min_charge).toBeCloseTo((20 / 60) * DEFAULT_PROFILE.rate_hr, 0)
     expect(q.subtotal).toBe(DEFAULT_PROFILE.min_charge)
-    expect(q.total).toBeCloseTo(500 * 1.13, 6)
+    expect(q.total).toBeCloseTo(400 * 1.13, 6)   // $452
     expect(q.lines.some(l => l.key === 'min')).toBe(true)
   })
 
