@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMotionValue, animate } from 'framer-motion'
+import createGlobe from 'cobe'
 import { toHobbs, formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
 import PullDownMenu from '../components/PullDownMenu'
 import { useFlights } from '../hooks/useFlights'
 import { useMaintenanceItems } from '../hooks/useMaintenanceItems'
-import { useEmployeeFlights } from '../hooks/useEmployeeFlights'
 import HobbsHistoryDrawer from '../components/HobbsHistoryDrawer'
 import { useTank } from '../hooks/useTank'
 
@@ -35,6 +35,44 @@ function FuelArc({ gal }) {
       <line x1="40" y1="42" x2={nx} y2={ny} stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
       <circle cx="40" cy="42" r="2.6" fill="#fff" />
     </svg>
+  )
+}
+
+// Tiny spinning dotted globe (cobe, ~5 kB) with a livery-teal marker on
+// El Salvador. Decorative lead-in for the Map & Waypoints row.
+function MiniGlobe({ size = 52 }) {
+  const boxRef = useRef(null)
+  useEffect(() => {
+    // cobe re-parents the canvas into wrapper divs, which breaks React's
+    // unmount (removeChild crash). React owns only the box; the canvas is
+    // created imperatively and the box is emptied on cleanup.
+    const box = boxRef.current
+    const canvas = document.createElement('canvas')
+    canvas.style.width = `${size}px`
+    canvas.style.height = `${size}px`
+    box.appendChild(canvas)
+    let phi = 3.8   // start with the Americas facing us
+    const globe = createGlobe(canvas, {
+      devicePixelRatio: 4,           // small canvas: oversample so dots survive
+      width: size * 4,
+      height: size * 4,
+      phi,
+      theta: 0.28,
+      dark: 1,
+      diffuse: 1.2,
+      mapSamples: 3000,              // fewer, bigger dots at this tiny size
+      mapBrightness: 8,
+      baseColor: [0.6, 0.6, 0.62],
+      markerColor: [0.17, 0.73, 0.74],
+      glowColor: [0.2, 0.2, 0.22],
+      markers: [{ location: [13.72, -88.95], size: 0.12 }],
+      onRender: state => { state.phi = phi; phi += 0.004 },
+    })
+    return () => { globe.destroy(); box.replaceChildren() }
+  }, [size])
+  return (
+    <div ref={boxRef} aria-hidden
+      style={{ width: size, height: size, flexShrink: 0, overflow: 'hidden' }} />
   )
 }
 
@@ -169,8 +207,6 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [hobbsHistoryOpen,    setHobbsHistoryOpen]    = useState(false)
   const tank = useTank()
-  const { pilots, mechanics, operations } = useEmployeeFlights(selectedAircraft?.id)
-  const teamSize = pilots.length + mechanics.length + operations.length
 
   const hobbs   = selectedAircraft?.hobbs_current
   const cycles  = selectedAircraft?.cycles_current
@@ -281,31 +317,11 @@ export default function Dashboard() {
           </div>
 
           <button className="trow" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
-            onClick={() => navigate('/flights')}>
-            <div className="min-w-0">
-              <p className="text-[14px] font-semibold text-white">Flights</p>
-              <p className="text-[12px] text-white/40 mt-0.5">
-                {stats.total ? `${stats.allHours ?? stats.monthHours} this month · ${stats.total} flights` : 'No flights yet'}
-                {lastFlight && ` · last ${formatDate(lastFlight.date)}`}
-              </p>
-            </div>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="chev w-4 h-4 ml-auto"><path d="M9 18l6-6-6-6" /></svg>
-          </button>
-
-          <button className="trow" onClick={() => navigate('/map')}>
+            onClick={() => navigate('/map')}>
+            <MiniGlobe size={52} />
             <div className="min-w-0">
               <p className="text-[14px] font-semibold text-white">Map &amp; Waypoints</p>
               <p className="text-[12px] text-white/40 mt-0.5">275 aerodromes · hold to add your own sites</p>
-            </div>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="chev w-4 h-4 ml-auto"><path d="M9 18l6-6-6-6" /></svg>
-          </button>
-
-          <button className="trow" onClick={() => navigate('/employees')}>
-            <div className="min-w-0">
-              <p className="text-[14px] font-semibold text-white">Team</p>
-              <p className="text-[12px] text-white/40 mt-0.5">
-                {teamSize} people · {pilots.length} pilots · {mechanics.length} mechanics · {operations.length} ops
-              </p>
             </div>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="chev w-4 h-4 ml-auto"><path d="M9 18l6-6-6-6" /></svg>
           </button>
