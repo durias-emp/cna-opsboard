@@ -185,7 +185,7 @@ export default function Dashboard() {
                   : '—'} <span className="vital-unit" style={{ fontSize: 18 }}>h</span>
               </p>
               <p className="vital-sub">
-                {stats.total ? `+${stats.allHours ?? stats.monthHours} this month` : 'No flights yet'}
+                {animEndurance != null ? `Endurance ${animEndurance.toFixed(1)} h` : '—'}
               </p>
               {cycles != null && (
                 <p className="vital-sub mt-1">
@@ -222,12 +222,12 @@ export default function Dashboard() {
                 </div>
               </button>
 
-              <button className="vital-tile" onClick={() => navigate('/fuel')}>
-                <p className="vital-label">Endur</p>
+              <button className="vital-tile" onClick={() => navigate('/flights')}>
+                <p className="vital-label">Month</p>
                 <p className="vital-value-sm">
-                  {animEndurance != null ? animEndurance.toFixed(1) : '—'} <span className="vital-unit">h</span>
+                  {stats.total ? `+${stats.allHours ?? stats.monthHours}` : '0h'}
                 </p>
-                <p className="vital-sub">{CRUISE_BURN_GPH} gph</p>
+                <p className="vital-sub">{stats.total ? `${stats.total} flights` : 'no flights'}</p>
               </button>
             </div>
           </div>
