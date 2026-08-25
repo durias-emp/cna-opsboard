@@ -66,6 +66,13 @@ export default function MapPage() {
       // AVIARA's 3D globe: re-apply on every style load (setStyle resets it)
       map.on('style.load', () => map.setProjection({ type: 'globe' }))
 
+      // Attribution stays (OSM license requires it) but collapsed to the ⓘ —
+      // MapLibre auto-expands it on load, so fold it back immediately
+      map.once('load', () => {
+        containerRef.current?.querySelector('.maplibregl-ctrl-attrib')
+          ?.classList.remove('maplibregl-compact-show')
+      })
+
       map.on('load', () => {
         map.addSource('aip',    { type: 'geojson', data: fc([]) })
         map.addSource('custom', { type: 'geojson', data: fc([]) })

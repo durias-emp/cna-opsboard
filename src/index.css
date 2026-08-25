@@ -476,6 +476,27 @@
   }
 }
 
+/* ── MapLibre attribution: legally required, visually quiet ──
+   Collapsed ⓘ as a small dark glass dot; the expanded credits panel matches
+   the app material instead of the stock white pill. */
+.maplibregl-ctrl-attrib {
+  background: rgba(30, 30, 32, 0.5) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 999px !important;
+}
+.maplibregl-ctrl-attrib.maplibregl-compact { min-height: 22px; }
+.maplibregl-ctrl-attrib-button {
+  filter: invert(1);
+  opacity: 0.45;
+  transform: scale(0.82);
+}
+.maplibregl-ctrl-attrib-inner,
+.maplibregl-ctrl-attrib-inner a {
+  color: rgba(255, 255, 255, 0.55) !important;
+  font-size: 10px;
+}
+
 @keyframes sheet-up {
   from { transform: translateY(100%); }
   to   { transform: translateY(0); }
