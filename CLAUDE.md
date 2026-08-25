@@ -35,8 +35,10 @@ on-device investigation (see AVIARA `src/main.jsx` viewport comments and commits
   translucent triggers an iOS container bug: the web view is sized one status bar
   short and the bottom band is OS-owned, unreachable by ANY css (inset:0, vh, dvh).
 - The visible bar is painted from **theme-color**, which iOS samples at launch from
-  the start_url document. Keep it identical to the app background (#0A0A0A) and
-  never rewrite it from a head script (parse-time prefers-color-scheme lies).
+  the start_url document. Keep it identical to the app background (currently
+  #171717, the Tesla ground — updated 2026-08-24 when the redesign changed the
+  ground and the stale #0A0A0A left a visible line) and never rewrite it from a
+  head script (parse-time prefers-color-scheme lies).
 - These choices are **baked into the home-screen icon at install time** — after
   changing them, the icon must be deleted and re-added or nothing changes.
 - Shell CSS: `100dvh` + `body{position:fixed;inset:0}` + visualViewport re-anchor
