@@ -5,9 +5,10 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { useWaypoints } from '../hooks/useWaypoints'
 import { useAircraft } from '../context/AircraftContext'
 import { useFlights } from '../hooks/useFlights'
-import { formatDMS } from '../lib/geo'
+import { formatDMS, parseCoords } from '../lib/geo'
 import { computeQuote } from '../lib/quote'
 import { useQuoteProfile } from '../hooks/useQuoteProfile'
+import { useRouteWinds } from '../hooks/useRouteWinds'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 import { loadStyle, SALVADOR_CENTER, AVIARA_URL } from '../lib/mapStyle'
 
@@ -63,6 +64,7 @@ export default function MapPage() {
   const profile = useQuoteProfile(selectedAircraft?.id)
   const [roundTrip, setRoundTrip] = useState(true)
   const [waitingHr, setWaitingHr] = useState(0)
+  const [cruiseAltFt, setCruiseAltFt] = useState(null)   // null → profile default
   const [picking, setPicking]     = useState(null)   // 'from' | 'to' | 'stop' → search sheet
   const [pin, setPin]             = useState(null)   // MFS-style dropped pin {lat,lng,x,y}
 
@@ -297,10 +299,12 @@ export default function MapPage() {
     else { setRoutePoints([]); setMode(m) }
   }, [location.state])   // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Quote math: the pure engine, live from the tapped route ──
+  // ── Quote math: climb/cruise/descent physics + winds aloft ──
+  const altFt = cruiseAltFt ?? profile.default_cruise_alt_ft
+  const wind = useRouteWinds(mode === 'quote' ? routePoints : [], altFt)
   const quote = useMemo(
-    () => computeQuote({ points: routePoints, roundTrip, waitingHr, profile }),
-    [routePoints, roundTrip, waitingHr, profile]
+    () => computeQuote({ points: routePoints, roundTrip, waitingHr, cruiseAltFt: altFt, wind, profile }),
+    [routePoints, roundTrip, waitingHr, altFt, wind, profile]
   )
 
   // ── Draw the quote route + fit the camera ──
@@ -635,6 +639,17 @@ export default function MapPage() {
               <>
 
                 {/* Adjustments */}
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-[11px] text-white/40">Cruise alt</span>
+                  <button onClick={() => setCruiseAltFt(a => Math.max(1500, (a ?? profile.default_cruise_alt_ft) - 500))}
+                    className="w-7 h-7 rounded-full bg-white/[0.08] text-white/70 text-[15px] leading-none active:bg-white/[0.15]">−</button>
+                  <span className="text-[12px] font-bold text-white tabular-nums">{altFt.toLocaleString('en-US')} ft</span>
+                  <button onClick={() => setCruiseAltFt(a => Math.min(12000, (a ?? profile.default_cruise_alt_ft) + 500))}
+                    className="w-7 h-7 rounded-full bg-white/[0.08] text-white/70 text-[15px] leading-none active:bg-white/[0.15]">+</button>
+                  <span className="text-[10px] text-white/30 ml-auto">
+                    {wind ? `wind ${Math.round(wind.kts)} kt / ${Math.round(wind.dirDeg)}° (${wind.level})` : 'winds unavailable'}
+                  </span>
+                </div>
                 <div className="flex items-center gap-2 mb-3">
                   <button onClick={() => setRoundTrip(v => !v)}
                     className={`px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors
@@ -673,8 +688,9 @@ export default function MapPage() {
                       </div>
                     </div>
                     <p className="text-[9.5px] text-white/25">
-                      {quote.totalNm.toFixed(0)} nm · {quote.flightHr.toFixed(1)} h · {quote.fuelGal.toFixed(0)} gal ·
-                      {' '}{profile.cruise_kts} kts · direct legs
+                      {quote.totalNm.toFixed(0)} nm · air {quote.airHr.toFixed(1)} h · {quote.fuelGal.toFixed(0)} gal ·
+                      {' '}climb {profile.climb_kts}/{profile.climb_fpm} · cruise {profile.cruise_kts} kt · desc {profile.descent_kts}/{profile.descent_fpm}
+                      {quote.tailKts ? ` · ${quote.tailKts > 0 ? 'tail' : 'head'}wind ${Math.abs(quote.tailKts).toFixed(0)} kt` : ''}
                     </p>
                   </>
                 ) : (
@@ -791,6 +807,7 @@ function WaypointPicker({ waypoints, slot, onSelect, onClose }) {
   }, [waypoints, needle])
 
   const titles = { from: 'Departure', to: 'Destination', stop: 'Add stop' }
+  const coords = parseCoords(q)
 
   return (
     <>
@@ -803,10 +820,24 @@ function WaypointPicker({ waypoints, slot, onSelect, onClose }) {
         <div className="px-4 pt-4 pb-2 flex-shrink-0">
           <p className="text-[15px] font-bold text-white mb-2.5">{titles[slot]}</p>
           <input autoFocus value={q} onChange={e => setQ(e.target.value)}
-            placeholder="Search 279 sites — name or code"
+            placeholder="Name, code, or coordinates"
             className="input-field w-full" />
         </div>
         <div className="overflow-y-auto flex-1 px-2 pb-6" style={{ overscrollBehavior: 'contain' }}>
+          {coords && (
+            <button
+              onClick={() => onSelect({
+                id: `adhoc-${coords.lat.toFixed(5)},${coords.lng.toFixed(5)}`,
+                name: formatDMS(coords.lat, coords.lng),
+                code: null, lat: coords.lat, lng: coords.lng, source: 'adhoc',
+              })}
+              className="w-full flex items-center justify-between px-3 py-3 rounded-xl active:bg-white/[0.08] text-left">
+              <span>
+                <span className="block text-[14px] font-semibold text-accent font-mono">{formatDMS(coords.lat, coords.lng)}</span>
+                <span className="block text-[11px] text-white/35 mt-0.5">Use these coordinates</span>
+              </span>
+            </button>
+          )}
           {results.map(w => (
             <button key={w.id} onClick={() => onSelect(w)}
               className="w-full flex items-center justify-between px-3 py-3 rounded-xl active:bg-white/[0.08] text-left">
