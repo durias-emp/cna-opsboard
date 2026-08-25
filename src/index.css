@@ -339,11 +339,13 @@
   .tile-body {
     @apply flex-1 min-w-0 flex items-center justify-between gap-3 py-4 pr-4 relative;
   }
-  /* iOS-style separator: floats between rows, inset from both edges */
-  .tile:not(:first-child) .tile-body::before {
+  /* iOS-style separator: floats between rows, centered in the card with the
+     same inset on both sides */
+  .tile { position: relative; }
+  .tile:not(:first-child)::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 1rem;
+    top: 0; left: 1rem; right: 1rem;
     height: 1px;
     background: rgba(255, 255, 255, 0.06);
   }
