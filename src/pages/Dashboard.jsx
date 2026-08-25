@@ -12,6 +12,31 @@ import { useTank } from '../hooks/useTank'
 
 // YS-CNA cruise burn (owner-provided, also used for quoting)
 const CRUISE_BURN_GPH = 27
+// Bell 206B3 POH: total fuel capacity 96.7 USG. Low-fuel caution ~20 gal.
+const FUEL_CAP_GAL = 96.7
+const FUEL_LOW_GAL = 20
+
+// Garmin-style arc gauge: gray track, colored sweep, needle, digital readout
+function FuelArc({ gal }) {
+  const f = Math.min(Math.max((gal ?? 0) / FUEL_CAP_GAL, 0), 1)
+  const rad = Math.PI * (1 - f)
+  const nx = 40 + 26 * Math.cos(rad)
+  const ny = 42 - 26 * Math.sin(rad)
+  const low = gal != null && gal <= FUEL_LOW_GAL
+  const sweep = low ? '#FBBF24' : '#4ADE50'
+  return (
+    <svg viewBox="0 0 80 48" className="w-full" style={{ maxWidth: '5.4rem' }}>
+      <path d="M 8 42 A 32 32 0 0 1 72 42" fill="none"
+        stroke="rgba(255,255,255,0.09)" strokeWidth="6" strokeLinecap="round" />
+      <path d="M 8 42 A 32 32 0 0 1 72 42" fill="none"
+        stroke={sweep} strokeWidth="6" strokeLinecap="round"
+        strokeDasharray={`${f * 100.5} 999`}
+        style={{ transition: 'stroke-dasharray 0.3s linear' }} />
+      <line x1="40" y1="42" x2={nx} y2={ny} stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
+      <circle cx="40" cy="42" r="2.6" fill="#fff" />
+    </svg>
+  )
+}
 
 // CNA Monies' balance count-up: one motion value, one animate() call,
 // formatted every frame. Fast launch, slow land — like a bank app counter.
@@ -146,9 +171,12 @@ export default function Dashboard() {
     .sort((a, b) => a.hrsRemaining - b.hrsRemaining)[0] ?? null
   const lastFlight = flights[0] ?? null
 
+  // Fuel inside the aircraft = gauge reading at the end of the last flight
+  const onboardFuel = lastFlight?.fuel_end_gal ?? null
+
   const animHobbs     = useAnimatedNumber(hobbs)
-  const animFuel      = useAnimatedNumber(tank.currentLevel)
-  const animEndurance = useAnimatedNumber(tank.currentLevel != null ? tank.currentLevel / CRUISE_BURN_GPH : null)
+  const animFuel      = useAnimatedNumber(onboardFuel)
+  const animEndurance = useAnimatedNumber(onboardFuel != null ? onboardFuel / CRUISE_BURN_GPH : null)
 
   return (
     <div className="flex-1 overflow-y-auto nav-clearance">
@@ -211,15 +239,12 @@ export default function Dashboard() {
                 <p className="vital-sub">{nextDue ? `next ${nextDue.hrsRemaining.toFixed(1)} h` : '—'}</p>
               </button>
 
-              <button className="vital-tile" onClick={() => navigate('/fuel')}>
+              <button className="vital-tile items-center" onClick={() => navigate('/fuel')}>
                 <p className="vital-label">Fuel</p>
-                <p className="vital-value-sm">
-                  {animFuel != null ? Math.round(animFuel) : '—'} <span className="vital-unit">gal</span>
+                <FuelArc gal={animFuel} />
+                <p className="vital-value-sm" style={{ marginTop: '-0.15rem' }}>
+                  {animFuel != null ? Math.round(animFuel) : '—'} <span className="vital-unit">USG</span>
                 </p>
-                <div className="h-1 rounded-full bg-white/[0.08] overflow-hidden mt-2 w-full">
-                  <div className="h-full rounded-full bg-accent transition-all duration-700"
-                    style={{ width: `${(tank.fillPercent ?? 0) * 100}%` }} />
-                </div>
               </button>
 
               <button className="vital-tile" onClick={() => navigate('/flights')}>
