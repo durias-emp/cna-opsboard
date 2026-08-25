@@ -5,12 +5,13 @@ import { haversineNm } from './geo'
 export const DEFAULT_PROFILE = {
   cruise_kts: 100,
   burn_gph: 27,
-  rate_hr: 1350,
+  rate_hr: 1200,          // pre-IVA — the factura base (1,200 × 1.13 = 1,356/h)
   currency: 'USD',
-  min_charge: 500,
+  min_charge: 500,        // pre-IVA subtotal floor
   standby_free_hr: 1,
-  standby_rate_hr: 100,
-  tax_included: true,
+  standby_rate_hr: 100,   // pre-IVA
+  tax_rate: 0.13,         // IVA, its own line
+  tax_included: false,
   round_trip_default: true,
 }
 
@@ -55,7 +56,15 @@ export function computeQuote({ points, roundTrip = true, waitingHr = 0, profile 
     })
   }
 
-  const total = flightCost + minTopUp + waitCost
+  // IVA as its own line — flight math and tax never mix (Diego, 2026-08-25)
+  const subtotal = flightCost + minTopUp + waitCost
+  let iva = 0
+  const taxRate = profile.tax_rate ?? 0
+  if (!profile.tax_included && taxRate > 0 && subtotal > 0) {
+    iva = subtotal * taxRate
+    lines.push({ key: 'iva', label: `IVA ${Math.round(taxRate * 100)}%`, amount: iva })
+  }
+  const total = subtotal + iva
 
-  return { oneWayNm, returnNm, totalNm, flightHr, fuelGal, lines, total }
+  return { oneWayNm, returnNm, totalNm, flightHr, fuelGal, lines, subtotal, total }
 }

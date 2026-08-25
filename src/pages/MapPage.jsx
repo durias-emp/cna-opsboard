@@ -665,7 +665,7 @@ export default function MapPage() {
                       ))}
                       <div className="flex items-baseline justify-between pt-1.5 border-t border-white/[0.08]">
                         <span className="text-[13px] font-bold text-white">
-                          Total <span className="font-normal text-white/35 text-[11px]">IVA incluido</span>
+                          Total{profile.tax_included && <span className="font-normal text-white/35 text-[11px]"> IVA incluido</span>}
                         </span>
                         <span className="text-[18px] font-bold text-white tabular-nums">
                           ${Math.round(quote.total).toLocaleString('en-US')}
