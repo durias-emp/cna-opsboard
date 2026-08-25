@@ -167,7 +167,8 @@ export default function MapPage() {
           id: 'aip-dots', type: 'circle', source: 'aip',
           paint: {
             'circle-radius': ['case', ['==', ['get', 'kind'], 'heliport'], 3.5, 4.5],
-            'circle-color': '#7A828A',
+            // heliports in chart blue, aerodromes in gray — tell them apart at a glance
+            'circle-color': ['case', ['==', ['get', 'kind'], 'heliport'], '#3D7BC4', '#7A828A'],
             'circle-stroke-color': '#FFFFFF',
             'circle-stroke-width': 1.2,
             'circle-opacity': 0.9,
@@ -183,7 +184,7 @@ export default function MapPage() {
             'text-offset': [0, 1.1],
             'text-anchor': 'top',
           },
-          paint: { 'text-color': '#3E464D', 'text-halo-color': 'rgba(255,255,255,0.8)', 'text-halo-width': 1 },
+          paint: { 'text-color': ['case', ['==', ['get', 'kind'], 'heliport'], '#2B5E9C', '#3E464D'], 'text-halo-color': 'rgba(255,255,255,0.8)', 'text-halo-width': 1 },
         })
         map.addLayer({
           id: 'custom-dots', type: 'circle', source: 'custom',
