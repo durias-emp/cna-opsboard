@@ -27,9 +27,9 @@ function FuelArc({ gal }) {
   return (
     <svg viewBox="0 0 80 48" className="w-full" style={{ maxWidth: '5.4rem' }}>
       <path d="M 8 42 A 32 32 0 0 1 72 42" fill="none"
-        stroke="rgba(255,255,255,0.09)" strokeWidth="6" strokeLinecap="round" />
+        stroke="rgba(255,255,255,0.09)" strokeWidth="6" strokeLinecap="butt" />
       <path d="M 8 42 A 32 32 0 0 1 72 42" fill="none"
-        stroke={sweep} strokeWidth="6" strokeLinecap="round"
+        stroke={sweep} strokeWidth="6" strokeLinecap="butt"
         strokeDasharray={`${f * 100.5} 999`}
         style={{ transition: 'stroke-dasharray 0.3s linear' }} />
       <line x1="40" y1="42" x2={nx} y2={ny} stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
