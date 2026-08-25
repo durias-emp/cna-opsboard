@@ -64,6 +64,7 @@ export default function MapPage() {
   const [roundTrip, setRoundTrip] = useState(true)
   const [waitingHr, setWaitingHr] = useState(0)
   const [picking, setPicking]     = useState(null)   // 'from' | 'to' | 'stop' → search sheet
+  const [pin, setPin]             = useState(null)   // MFS-style dropped pin {lat,lng,x,y}
 
   // Default departure: last one used, else Salamanca (CNA's base)
   function defaultFrom() {
@@ -81,6 +82,32 @@ export default function MapPage() {
     setRoundTrip(profile.round_trip_default)
     setWaitingHr(0)
     setMode('quote')
+  }
+
+  function pinToPoint(p) {
+    const short = (v, pos, neg) => {
+      const abs = Math.abs(v), d = Math.floor(abs), m = ((abs - d) * 60).toFixed(1)
+      return `${d}°${m}′${v >= 0 ? pos : neg}`
+    }
+    return {
+      id: `adhoc-${p.lat.toFixed(5)},${p.lng.toFixed(5)}`,
+      name: `${short(p.lat, 'N', 'S')} ${short(p.lng, 'E', 'W')}`,
+      code: null, lat: p.lat, lng: p.lng, source: 'adhoc',
+    }
+  }
+
+  function pinAsRoute(slot) {
+    const w = pinToPoint(pin)
+    setPin(null)
+    if (mode !== 'quote') {
+      const home = defaultFrom()
+      setRoundTrip(profile.round_trip_default)
+      setWaitingHr(0)
+      setRoutePoints(slot === 'from' ? [w] : (home ? [home, w] : [w]))
+      setMode('quote')
+      return
+    }
+    placeWaypoint(w, slot)
   }
 
   function placeWaypoint(w, slot) {
@@ -235,20 +262,25 @@ export default function MapPage() {
       map.on('mouseleave', 'custom-dots', () => { map.getCanvas().style.cursor = '' })
 
       // Desktop right-click → new waypoint
-      map.on('contextmenu', e => { if (modeRef.current === 'menu') setDraft({ lat: e.lngLat.lat, lng: e.lngLat.lng }) })
+      map.on('contextmenu', e => {
+        if (modeRef.current !== 'menu' && modeRef.current !== 'quote') return
+        setPin({ lat: e.lngLat.lat, lng: e.lngLat.lng, x: e.point.x, y: e.point.y })
+      })
 
       // Mobile long-press → new waypoint (MapLibre has no touch contextmenu)
       let pressTimer = null, pressAt = null
       map.on('touchstart', e => {
         if (e.originalEvent.touches.length !== 1) return
-        if (modeRef.current !== 'menu') return   // no waypoint drafts mid-quote/trip
+        if (modeRef.current !== 'menu' && modeRef.current !== 'quote') return
         pressAt = e.lngLat
-        pressTimer = setTimeout(() => setDraft({ lat: pressAt.lat, lng: pressAt.lng }), LONG_PRESS_MS)
+        const pt = e.point
+        pressTimer = setTimeout(() => setPin({ lat: pressAt.lat, lng: pressAt.lng, x: pt.x, y: pt.y }), LONG_PRESS_MS)
       })
       const cancelPress = () => { clearTimeout(pressTimer); pressTimer = null }
       map.on('touchmove', cancelPress)
       map.on('touchend', cancelPress)
       map.on('move', cancelPress)
+      map.on('movestart', () => setPin(null))
     })
 
     return () => { cancelled = true; mapRef.current = null; map?.remove() }
@@ -435,7 +467,7 @@ export default function MapPage() {
         </button>
         <div className="rounded-2xl px-3.5 py-2 pointer-events-none"
           style={{ background: 'rgba(var(--glass-rgb), calc(var(--glass-opacity) + 0.3))', backdropFilter: 'blur(var(--glass-blur)) saturate(180%)', WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(180%)' }}>
-          <p className="text-[11px] text-white/45 leading-none">Hold anywhere to add a waypoint</p>
+          <p className="text-[11px] text-white/45 leading-none">Hold anywhere to drop a pin</p>
         </div>
 
         {/* Layers — AVIARA system: what draws on the chart is a choice */}
@@ -483,6 +515,46 @@ export default function MapPage() {
           )}
         </div>
       </div>
+
+      {/* MFS-style dropped pin: pilot coordinates + route actions */}
+      {pin && (
+        <div className="absolute z-20"
+          style={{
+            left: Math.min(Math.max(pin.x, 110), (containerRef.current?.clientWidth ?? 400) - 110),
+            top: pin.y,
+            transform: pin.y > 190 ? 'translate(-50%, calc(-100% - 14px))' : 'translate(-50%, 14px)',
+          }}>
+          <div className="rounded-2xl overflow-hidden min-w-[13rem]"
+            style={{ background: 'rgba(30,30,32,0.72)', backdropFilter: 'blur(40px) saturate(200%)',
+                     WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+                     border: '0.5px solid rgba(255,255,255,0.12)',
+                     boxShadow: '0 12px 36px rgba(0,0,0,0.55)' }}>
+            <div className="px-3.5 pt-3 pb-2.5 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[12px] font-bold text-white font-mono leading-snug">{formatDMS(pin.lat, pin.lng)}</p>
+                <p className="text-[10px] text-white/35 font-mono mt-0.5">{pin.lat.toFixed(5)}, {pin.lng.toFixed(5)}</p>
+              </div>
+              <button onClick={() => setPin(null)} className="text-white/40 text-[15px] leading-none px-1 -mr-1">✕</button>
+            </div>
+            <button onClick={() => pinAsRoute('from')}
+              className="w-full text-left px-3.5 py-2.5 text-[13px] font-semibold text-white border-t border-white/[0.08] active:bg-white/[0.08]">
+              Set as departure
+            </button>
+            <button onClick={() => pinAsRoute('to')}
+              className="w-full text-left px-3.5 py-2.5 text-[13px] font-semibold text-white border-t border-white/[0.08] active:bg-white/[0.08]">
+              Set as destination
+            </button>
+            <button onClick={() => { setDraft({ lat: pin.lat, lng: pin.lng }); setPin(null) }}
+              className="w-full text-left px-3.5 py-2.5 text-[13px] font-semibold text-accent border-t border-white/[0.08] active:bg-white/[0.08]">
+              Save as waypoint
+            </button>
+          </div>
+          {/* stem dot on the pressed spot */}
+          <div className="absolute left-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-accent"
+            style={{ transform: 'translateX(-50%)',
+                     [pin.y > 190 ? 'bottom' : 'top']: '-19px' }} />
+        </div>
+      )}
 
       {/* ── Ops card — floating context card at the bottom ── */}
       <div className="absolute left-3 right-3 z-10 rounded-3xl overflow-hidden"
