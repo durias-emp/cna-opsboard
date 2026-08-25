@@ -70,7 +70,7 @@ function MiniMap({ height = 150 }) {
           id: 'wp-dots', type: 'circle', source: 'wp',
           paint: {
             'circle-radius': ['case', ['==', ['get', 'custom'], 1], 3.4, 1.7],
-            'circle-color': ['case', ['==', ['get', 'custom'], 1], '#2CB9BD', '#8A9096'],
+            'circle-color': ['case', ['==', ['get', 'custom'], 1], '#0E8F93', '#7A828A'],
             'circle-opacity': 0.85,
           },
         })
@@ -93,7 +93,7 @@ function MiniMap({ height = 150 }) {
     })
   }, [waypoints, ready])
 
-  return <div ref={boxRef} className="absolute inset-0" style={{ height, isolation: 'isolate' }} />
+  return <div ref={boxRef} className="absolute inset-0" style={{ height, isolation: 'isolate', background: '#EAE6DE' }} />
 }
 
 // CNA Monies' balance count-up: one motion value, one animate() call,

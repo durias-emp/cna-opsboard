@@ -165,8 +165,8 @@ export default function MapPage() {
           id: 'aip-dots', type: 'circle', source: 'aip',
           paint: {
             'circle-radius': ['case', ['==', ['get', 'kind'], 'heliport'], 3.5, 4.5],
-            'circle-color': '#5B616B',
-            'circle-stroke-color': '#9BA1A8',
+            'circle-color': '#7A828A',
+            'circle-stroke-color': '#FFFFFF',
             'circle-stroke-width': 1.2,
             'circle-opacity': 0.9,
           },
@@ -181,7 +181,7 @@ export default function MapPage() {
             'text-offset': [0, 1.1],
             'text-anchor': 'top',
           },
-          paint: { 'text-color': 'rgba(255,255,255,0.45)' },
+          paint: { 'text-color': '#3E464D', 'text-halo-color': 'rgba(255,255,255,0.8)', 'text-halo-width': 1 },
         })
         map.addLayer({
           id: 'custom-dots', type: 'circle', source: 'custom',
@@ -202,7 +202,7 @@ export default function MapPage() {
             'text-offset': [0, 1.2],
             'text-anchor': 'top',
           },
-          paint: { 'text-color': '#56D3D6' },
+          paint: { 'text-color': '#0B7377', 'text-halo-color': 'rgba(255,255,255,0.85)', 'text-halo-width': 1 },
         })
 
         // Ops overlays: quote/trip route line + points + breadcrumb dot
@@ -449,7 +449,7 @@ export default function MapPage() {
           .maplibregl-map { position: relative } on this node at init, which
           out-cascades the Tailwind class and collapses the box to 0 height */}
       <div ref={containerRef} className="z-0"
-        style={{ position: 'absolute', inset: 0, isolation: 'isolate', background: '#171717' }} />
+        style={{ position: 'absolute', inset: 0, isolation: 'isolate', background: '#EAE6DE' }} />
 
       {/* Floating back button + hint + layers */}
       <div className="absolute top-0 left-0 right-0 z-10 flex items-center gap-3 px-4"
@@ -467,7 +467,7 @@ export default function MapPage() {
         </button>
         <div className="rounded-2xl px-3.5 py-2 pointer-events-none"
           style={{ background: 'rgba(var(--glass-rgb), calc(var(--glass-opacity) + 0.3))', backdropFilter: 'blur(var(--glass-blur)) saturate(180%)', WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(180%)' }}>
-          <p className="text-[11px] text-white/45 leading-none">Hold anywhere to drop a pin</p>
+          <p className="text-[11px] text-white/75 leading-none">Hold anywhere to drop a pin</p>
         </div>
 
         {/* Layers — AVIARA system: what draws on the chart is a choice */}
