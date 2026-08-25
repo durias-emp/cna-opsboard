@@ -212,11 +212,8 @@ export default function Dashboard() {
                   ? animHobbs.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
                   : '—'} <span className="vital-unit" style={{ fontSize: 18 }}>h</span>
               </p>
-              <p className="vital-sub">
-                {animEndurance != null ? `Endurance ${animEndurance.toFixed(1)} h` : '—'}
-              </p>
               {cycles != null && (
-                <p className="vital-sub mt-1">
+                <p className="vital-sub">
                   {cycles.toLocaleString()} cyc
                   {lastFlight?.cycles > 0 && (
                     <span className="text-green-400 font-semibold"> +{lastFlight.cycles}</span>
@@ -225,31 +222,38 @@ export default function Dashboard() {
               )}
             </button>
 
-            {/* Secondary stats */}
+            {/* Secondary stats — label / centerpiece / sub, aligned across all three */}
             <div className="grid grid-cols-3 gap-2.5">
-              <button className="vital-tile" onClick={() => navigate('/maintenance')}>
+              <button className="vital-tile items-center text-center justify-between" onClick={() => navigate('/maintenance')}>
                 <p className="vital-label">Maint</p>
                 {overdueCount > 0 ? (
-                  <p className="vital-value-sm text-red-400">{overdueCount} <span className="vital-unit">over</span></p>
+                  <p className="vital-value-sm text-red-400" style={{ fontSize: 19 }}>
+                    {overdueCount} <span className="vital-unit">over</span>
+                  </p>
                 ) : dueSoonCount > 0 ? (
-                  <p className="vital-value-sm text-amber-300">{dueSoonCount} <span className="vital-unit">soon</span></p>
+                  <p className="vital-value-sm text-amber-300" style={{ fontSize: 19 }}>
+                    {dueSoonCount} <span className="vital-unit">soon</span>
+                  </p>
                 ) : (
-                  <p className="vital-value-sm">OK</p>
+                  <p className="vital-value-sm" style={{ fontSize: 19 }}>OK</p>
                 )}
                 <p className="vital-sub">{nextDue ? `next ${nextDue.hrsRemaining.toFixed(1)} h` : '—'}</p>
               </button>
 
-              <button className="vital-tile items-center" onClick={() => navigate('/fuel')}>
+              <button className="vital-tile items-center text-center justify-between" onClick={() => navigate('/fuel')}>
                 <p className="vital-label">Fuel</p>
                 <FuelArc gal={animFuel} />
-                <p className="vital-value-sm" style={{ marginTop: '-0.15rem' }}>
+                <p className="vital-value-sm" style={{ marginTop: '-0.2rem' }}>
                   {animFuel != null ? Math.round(animFuel) : '—'} <span className="vital-unit">USG</span>
+                </p>
+                <p className="vital-sub">
+                  {animEndurance != null ? `${animEndurance.toFixed(1)} h endurance` : '—'}
                 </p>
               </button>
 
-              <button className="vital-tile" onClick={() => navigate('/flights')}>
+              <button className="vital-tile items-center text-center justify-between" onClick={() => navigate('/flights')}>
                 <p className="vital-label">Month</p>
-                <p className="vital-value-sm">
+                <p className="vital-value-sm" style={{ fontSize: 19 }}>
                   {stats.total ? `+${stats.allHours ?? stats.monthHours}` : '0h'}
                 </p>
                 <p className="vital-sub">{stats.total ? `${stats.total} flights` : 'no flights'}</p>
