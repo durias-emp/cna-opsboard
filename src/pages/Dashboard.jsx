@@ -122,13 +122,10 @@ function CrestHeader({ tailNumber, switcherItems }) {
     ? <PullDownMenu items={switcherItems} align="right" trigger={toggle => chipBody(toggle)} />
     : chipBody(null)
 
-  // iOS-Photos-style top scrim: pure black at the very top (seamless with the
-  // status bar, which is also black) dissolving downward. No edges, no tint —
-  // just enough darkening for the crest to stay readable while scrolling.
-  const scrim = `linear-gradient(to bottom,
-    rgba(10,10,10,${(0.96 * p).toFixed(3)}) 0%,
-    rgba(10,10,10,${(0.55 * p).toFixed(3)}) 55%,
-    rgba(10,10,10,0) 100%)`
+  // Frosted, not darkened: the blur carries the readability, the tint is
+  // barely there, and the mask below fades the whole thing out so no strip
+  // edge ever cuts the content. Never 'none' — the WebKit permanent-loss trap.
+  const blur = `blur(calc(var(--glass-blur) * ${p.toFixed(3)})) saturate(${100 + Math.round(80 * p)}%)`
 
   return (
     <>
@@ -137,9 +134,13 @@ function CrestHeader({ tailNumber, switcherItems }) {
         className="fixed top-0 left-0 right-0 z-[60] pointer-events-none"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
-          background: scrim,
-          paddingBottom: '1.6rem',
-          marginBottom: '-1.6rem',
+          background: `rgba(var(--glass-rgb), calc(var(--glass-opacity) * ${p.toFixed(3)}))`,
+          backdropFilter: blur,
+          WebkitBackdropFilter: blur,
+          maskImage: 'linear-gradient(to bottom, black 45%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black 45%, transparent 100%)',
+          paddingBottom: '1.4rem',
+          marginBottom: '-1.4rem',
         }}
       >
         <div className="flex items-center justify-center" style={{ padding: `${0.8 - 0.2 * p}rem 0` }}>
