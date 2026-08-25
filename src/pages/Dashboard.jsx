@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMotionValue, animate } from 'framer-motion'
-import createGlobe from 'cobe'
 import { toHobbs, formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
 import PullDownMenu from '../components/PullDownMenu'
@@ -35,45 +34,6 @@ function FuelArc({ gal }) {
       <line x1="40" y1="42" x2={nx} y2={ny} stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
       <circle cx="40" cy="42" r="2.6" fill="#fff" />
     </svg>
-  )
-}
-
-// Tiny spinning dotted globe (cobe, ~5 kB) with a livery-teal marker on
-// El Salvador. Decorative lead-in for the Map & Waypoints row.
-function MiniGlobe({ size = 52 }) {
-  const boxRef = useRef(null)
-  useEffect(() => {
-    // cobe re-parents the canvas into wrapper divs, which breaks React's
-    // unmount (removeChild crash). React owns only the box; the canvas is
-    // created imperatively and the box is emptied on cleanup.
-    const box = boxRef.current
-    const canvas = document.createElement('canvas')
-    canvas.style.width = `${size}px`
-    canvas.style.height = `${size}px`
-    box.appendChild(canvas)
-    let phi = 3.8   // start with the Americas facing us
-    const dpr = size < 70 ? 4 : 3    // tiny canvases need oversampling
-    const globe = createGlobe(canvas, {
-      devicePixelRatio: dpr,
-      width: size * dpr,             // cobe renders at width/dpr CSS px — keep = size
-      height: size * dpr,
-      phi,
-      theta: 0.28,
-      dark: 1,
-      diffuse: 1.2,
-      mapSamples: size < 70 ? 3000 : 9000,
-      mapBrightness: 8,
-      baseColor: [0.6, 0.6, 0.62],
-      markerColor: [0.17, 0.73, 0.74],
-      glowColor: [0.2, 0.2, 0.22],
-      markers: [{ location: [13.72, -88.95], size: 0.12 }],
-      onRender: state => { state.phi = phi; phi += 0.004 },
-    })
-    return () => { globe.destroy(); box.replaceChildren() }
-  }, [size])
-  return (
-    <div ref={boxRef} aria-hidden
-      style={{ width: size, height: size, flexShrink: 0, overflow: 'hidden' }} />
   )
 }
 
@@ -319,7 +279,6 @@ export default function Dashboard() {
 
           <button className="trow" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
             onClick={() => navigate('/map')}>
-            <MiniGlobe size={104} />
             <div className="min-w-0">
               <p className="text-[14px] font-semibold text-white">Map &amp; Waypoints</p>
               <p className="text-[12px] text-white/40 mt-0.5">275 aerodromes · hold to add your own sites</p>
