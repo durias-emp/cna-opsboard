@@ -11,8 +11,8 @@
        glass.js owns --glass-opacity/--glass-blur (one number, blur derived);
        CSS owns the colour. Defaults must match DEFAULT_GLASS in glass.js so
        there is no flash before it runs. */
-    --glass-opacity: 0.45;
-    --glass-blur: 18px;
+    --glass-opacity: 0.10;
+    --glass-blur: 29px;
     --glass-rgb: 28, 28, 30;
     --glass-surface: rgba(var(--glass-rgb), var(--glass-opacity));
   }
@@ -336,11 +336,28 @@
 
   .drawer-panel {
     @apply fixed bottom-0 left-0 right-0 z-[70]
-           bg-navy-800 rounded-t-3xl
+           rounded-t-3xl
            flex flex-col;
     max-height: 92dvh;
+    /* AVIARA glass sheet: sheer surface, frost does the readability work */
+    background: rgba(var(--glass-rgb), calc(var(--glass-opacity) + 0.35));
+    backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
     /* the iOS sheet spring curve */
     transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  /* While the sheet is under the finger: near-solid, cheap 2px blur. The
+     property is never removed — WebKit loses backdrop-filter permanently if
+     it disappears from a transformed layer (AVIARA lesson). */
+  .drawer-panel.is-moving {
+    background: rgba(var(--glass-rgb), 0.96);
+    backdrop-filter: blur(2px) saturate(180%);
+    -webkit-backdrop-filter: blur(2px) saturate(180%);
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .drawer-panel, .drawer-panel.is-moving {
+      background: rgb(var(--glass-rgb));
+    }
   }
 
   /* pull-to-close needs the inner list to stop chaining at its top */

@@ -124,8 +124,8 @@ function CrestHeader({ tailNumber, switcherItems }) {
 
   // Never 'none': removing backdrop-filter from a composited layer is the
   // WebKit path that loses the effect permanently (AVIARA lesson). The radius
-  // may go to 0px, but the property stays.
-  const blur = `blur(${Math.round(20 * p)}px) saturate(${100 + Math.round(80 * p)}%)`
+  // may go to 0px, but the property stays. Composed from the glass tokens.
+  const blur = `blur(calc(var(--glass-blur) * ${p.toFixed(3)})) saturate(${100 + Math.round(80 * p)}%)`
 
   return (
     <>
@@ -134,7 +134,7 @@ function CrestHeader({ tailNumber, switcherItems }) {
         className="fixed top-0 left-0 right-0 z-[60] pointer-events-none"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
-          background: `rgba(23,23,23,${(0.94 * p).toFixed(3)})`,
+          background: `rgba(var(--glass-rgb), calc((var(--glass-opacity) + 0.25) * ${p.toFixed(3)}))`,
           backdropFilter: blur,
           WebkitBackdropFilter: blur,
         }}

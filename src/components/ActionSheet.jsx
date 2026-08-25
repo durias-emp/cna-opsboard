@@ -14,7 +14,7 @@ export default function ActionSheet({ open, title, actions = [], onClose }) {
            onClick={e => e.stopPropagation()}>
 
         <div className="rounded-2xl overflow-hidden"
-             style={{ background: 'rgba(44,44,46,0.94)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+             style={{ background: 'rgba(var(--glass-rgb), calc(var(--glass-opacity) + 0.5))', backdropFilter: 'blur(var(--glass-blur)) saturate(180%)', WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(180%)' }}>
           {title && (
             <p className="px-4 py-3 text-center text-[13px] text-white/50 border-b border-white/[0.08]">
               {title}
@@ -36,7 +36,7 @@ export default function ActionSheet({ open, title, actions = [], onClose }) {
         <button onClick={onClose}
           className="mt-2 w-full py-3.5 rounded-2xl text-center text-[17px] font-semibold text-white
                      active:bg-navy-700 transition-colors"
-          style={{ background: 'rgba(44,44,46,0.98)' }}>
+          style={{ background: 'rgba(var(--glass-rgb), calc(var(--glass-opacity) + 0.6))', backdropFilter: 'blur(var(--glass-blur)) saturate(180%)', WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(180%)' }}>
           Cancel
         </button>
       </div>

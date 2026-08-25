@@ -12,9 +12,8 @@
 
 export const GLASS_MIN = 0
 export const GLASS_MAX = 100
-// Tuned by eye against OpsBoard's dashboard and the MapLibre chart — denser
-// than AVIARA's 10 because our capsule floats over live map labels.
-export const DEFAULT_GLASS = 45
+// AVIARA's number — sister apps share the same shipped look.
+export const DEFAULT_GLASS = 10
 
 const MAX_BLUR_PX = 32
 const blurFor = pct => Math.round(MAX_BLUR_PX * (1 - pct / 100))

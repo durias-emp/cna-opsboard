@@ -19,6 +19,7 @@ export function useDrawerSwipe(onClose) {
     if (gesture.current) return   // handle + panel both fire; first one wins
     const panel = e.currentTarget.closest('.drawer-panel') ?? e.currentTarget
     gesture.current = {
+      panel,
       startY:  e.touches[0].clientY,
       panelH:  panel.getBoundingClientRect().height || 600,
       scroller: panel.querySelector('.overflow-y-auto'),
@@ -43,6 +44,9 @@ export function useDrawerSwipe(onClose) {
       if (Math.abs(dy) < 6) return                              // not a drag yet
       if (dy < 0 && inScroller) { g.dead = true; return }       // upward in list = scroll
       g.engaged = true
+      // Glass: thicken the frost while the sheet moves (blur every frame on a
+      // moving layer is expensive; is-moving swaps to a cheap 2px radius)
+      g.panel?.classList.add('is-moving')
     }
     // 1:1 downward; progressive resistance upward
     setDragY(dy >= 0 ? dy : dy / (1 + Math.abs(dy) / 24))
@@ -57,6 +61,8 @@ export function useDrawerSwipe(onClose) {
     const v     = (s[s.length - 1].y - s[0].y) / dt   // px/ms, + = downward
     const dyNow = s[s.length - 1].y - g.startY
     setDragY(0)   // the spring on .drawer-panel takes it from here
+    // Let the settle spring finish under the cheap blur, then restore the frost
+    setTimeout(() => g.panel?.classList.remove('is-moving'), 520)
     if (v > VELOCITY_DISMISS || dyNow > g.panelH * DISTANCE_DISMISS) onClose()
   }, [onClose])
 

@@ -27,8 +27,8 @@ export default function PullDownMenu({ items, trigger, align = 'left' }) {
           className={`absolute top-full mt-2 z-[90] min-w-[13rem] overflow-hidden rounded-2xl
                       shadow-[0_16px_48px_rgba(0,0,0,0.55)] ${align === 'right' ? 'right-0' : 'left-0'}`}
           style={{
-            background: 'rgba(44,44,46,0.96)',
-            backdropFilter: 'blur(20px)',
+            background: 'rgba(var(--glass-rgb), calc(var(--glass-opacity) + 0.55))',
+            backdropFilter: 'blur(var(--glass-blur)) saturate(180%)',
             WebkitBackdropFilter: 'blur(20px)',
             transformOrigin: align === 'right' ? 'top right' : 'top left',
             animation: 'menu-in 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.2)',

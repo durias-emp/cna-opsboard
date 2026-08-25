@@ -180,7 +180,7 @@ export default function MapPage() {
           </svg>
         </button>
         <div className="rounded-2xl px-3.5 py-2 pointer-events-none"
-          style={{ background: 'rgba(23,23,23,0.82)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
+          style={{ background: 'rgba(var(--glass-rgb), calc(var(--glass-opacity) + 0.3))', backdropFilter: 'blur(var(--glass-blur)) saturate(180%)', WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(180%)' }}>
           <p className="text-[11px] text-white/45 leading-none">Hold anywhere to add a waypoint</p>
         </div>
       </div>
