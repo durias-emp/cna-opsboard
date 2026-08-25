@@ -1,9 +1,8 @@
 import { lazy, Suspense, useEffect, useRef } from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import { AircraftProvider, useAircraft } from './context/AircraftContext'
 import { TeamProvider, useTeam } from './context/TeamContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import AircraftBar from './components/AircraftBar'
 import BottomNav from './components/BottomNav'
 // Each page is its own chunk so the first paint doesn't download the whole app
 const Dashboard   = lazy(() => import('./pages/Dashboard'))
@@ -26,10 +25,8 @@ function ConnectionGate({ children }) {
 }
 
 function Shell() {
-  const { pathname } = useLocation()
   return (
     <div className="page-shell bg-navy-950">
-      {pathname !== '/' && pathname !== '/map' && <AircraftBar />}
       <main className="flex-1 overflow-hidden flex flex-col">
         <Suspense fallback={<div className="flex-1" />}>
         <Routes>

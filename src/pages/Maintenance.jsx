@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import CrestHeader from '../components/CrestHeader'
 import { formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
 import { useMaintenance, FLUID_TYPES } from '../hooks/useMaintenance'
@@ -399,6 +400,8 @@ export default function Maintenance() {
 
   return (
     <div ref={pageRef} className="flex-1 overflow-y-auto nav-clearance page-ambience">
+
+      <CrestHeader />
 
       {/* ── Hero: blueprint + summary cards ── */}
       <div className="relative">

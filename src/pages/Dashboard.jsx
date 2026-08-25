@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useMotionValue, animate } from 'framer-motion'
 import { toHobbs, formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
-import PullDownMenu from '../components/PullDownMenu'
 import { useFlights } from '../hooks/useFlights'
 import { useMaintenanceItems } from '../hooks/useMaintenanceItems'
+import CrestHeader from '../components/CrestHeader'
 import HobbsHistoryDrawer from '../components/HobbsHistoryDrawer'
 import { useTank } from '../hooks/useTank'
 
@@ -83,86 +83,8 @@ function hobbsLastUpdated(flights) {
 
 
 
-// Home header: CNA crest centered with the aircraft status chip. At rest it's
-// large; scroll down and a compact frosted bar with a smaller crest stays stuck
-// to the top (iOS large-title behavior, logo edition).
-function CrestHeader({ tailNumber, switcherItems }) {
-  const anchor = useRef(null)
-  // 0 = at rest (large crest, no bar), 1 = fully compact — driven directly by
-  // scroll position so the crest shrinks under the finger like the tab bar.
-  const [p, setP] = useState(0)
-
-  useEffect(() => {
-    const scroller = anchor.current?.parentElement
-    if (!scroller) return
-    const onScroll = () => setP(Math.min(Math.max(scroller.scrollTop / 56, 0), 1))
-    scroller.addEventListener('scroll', onScroll, { passive: true })
-    onScroll()
-    return () => scroller.removeEventListener('scroll', onScroll)
-  }, [])
-
-  const chipBody = onClick => (
-    <button onClick={onClick} disabled={!onClick}
-      className="flex items-center gap-2 bg-white/[0.07] rounded-full px-3 py-1.5 select-none active:opacity-70">
-      <span className="relative flex w-1.5 h-1.5 flex-shrink-0">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-        <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-green-400" />
-      </span>
-      <span className="text-xs font-semibold text-white">{tailNumber ?? '—'}</span>
-      {onClick && (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
-          strokeLinecap="round" className="w-3 h-3 text-white/40"><path d="M6 9l6 6 6-6" /></svg>
-      )}
-    </button>
-  )
-
-  // The chip is the aircraft switcher when items are provided
-  const chip = switcherItems?.length
-    ? <PullDownMenu items={switcherItems} align="right" trigger={toggle => chipBody(toggle)} />
-    : chipBody(null)
-
-  // Frosted, not darkened: the blur carries the readability, the tint is
-  // barely there, and the mask below fades the whole thing out so no strip
-  // edge ever cuts the content. Never 'none' — the WebKit permanent-loss trap.
-  const blur = `blur(calc(var(--glass-blur) * ${p.toFixed(3)})) saturate(${100 + Math.round(80 * p)}%)`
-
-  return (
-    <>
-      {/* Crest bar — always pinned; shrinks and gains frosted glass as you scroll */}
-      <div
-        className="fixed top-0 left-0 right-0 z-[60] pointer-events-none"
-        style={{
-          paddingTop: 'env(safe-area-inset-top, 0px)',
-          // Thin bleed of the page ground at the very top so scrolled content
-          // never hard-touches the status bar boundary, over the sheer glass
-          background: `linear-gradient(to bottom, rgba(23,23,23,${(0.9 * p).toFixed(3)}) 0px, rgba(23,23,23,0) 2.4rem),
-                       rgba(var(--glass-rgb), calc(var(--glass-opacity) * ${p.toFixed(3)}))`,
-          backdropFilter: blur,
-          WebkitBackdropFilter: blur,
-          maskImage: 'linear-gradient(to bottom, black 45%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, black 45%, transparent 100%)',
-          paddingBottom: '1.4rem',
-          marginBottom: '-1.4rem',
-        }}
-      >
-        <div className="flex items-center justify-center" style={{ padding: `${0.8 - 0.2 * p}rem 0` }}>
-          <img src="/cna-mark-white.png" alt="CNA" className="opacity-90 select-none" draggable="false"
-            style={{ height: `${1.5 - 0.5 * p}rem` }} />
-        </div>
-      </div>
-
-      {/* In-flow row — the aircraft pill sits centered under the crest (Tesla:
-          vehicle selector under the marque) and scrolls away with the page */}
-      <div ref={anchor} className="relative flex items-center justify-center px-4"
-        style={{ paddingTop: '3.4rem', paddingBottom: '0.4rem' }}>
-        {chip}
-      </div>
-    </>
-  )
-}
-
 export default function Dashboard() {
-  const { aircraft, selectedAircraft, setSelectedAircraft } = useAircraft()
+  const { selectedAircraft } = useAircraft()
   const { flights, stats, fuelStats, refresh } = useFlights(selectedAircraft?.id)
   const maintItems = useMaintenanceItems(selectedAircraft?.id, selectedAircraft?.hobbs_current, selectedAircraft?.cycles_current)
   const navigate = useNavigate()
@@ -190,15 +112,7 @@ export default function Dashboard() {
   return (
     <div className="flex-1 overflow-y-auto nav-clearance page-ambience">
 
-      <CrestHeader
-        tailNumber={selectedAircraft?.tail_number}
-        switcherItems={aircraft.map(a => ({
-          key: a.id,
-          label: a.tail_number,
-          checked: a.id === selectedAircraft?.id,
-          onSelect: () => setSelectedAircraft(a),
-        }))}
-      />
+      <CrestHeader />
 
       {/* ── Hero — the aircraft is the interface ── */}
       <button onClick={() => setHobbsHistoryOpen(true)} className="hero-stage block w-full select-none">

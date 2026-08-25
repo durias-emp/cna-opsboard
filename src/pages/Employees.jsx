@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import CrestHeader from '../components/CrestHeader'
 import { useAircraft } from '../context/AircraftContext'
 import { useEmployeeFlights } from '../hooks/useEmployeeFlights'
 import { useTodos } from '../hooks/useTodos'
@@ -818,6 +819,8 @@ export default function Employees() {
 
   return (
     <div className="flex-1 overflow-y-auto nav-clearance page-ambience">
+
+      <CrestHeader />
 
       <PageHeader
         title="Team"

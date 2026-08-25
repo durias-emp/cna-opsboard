@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import CrestHeader from '../components/CrestHeader'
 import { useLocation } from 'react-router-dom'
 import { toHobbs, formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
@@ -550,6 +551,8 @@ export default function Flights() {
 
   return (
     <div className="flex-1 overflow-y-auto nav-clearance page-ambience">
+
+      <CrestHeader />
       <PageHeader
         title="Flights"
         sub={loading ? selectedAircraft?.tail_number
