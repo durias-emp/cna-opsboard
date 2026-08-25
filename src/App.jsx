@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { AircraftProvider, useAircraft } from './context/AircraftContext'
 import { TeamProvider, useTeam } from './context/TeamContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -25,6 +25,7 @@ function ConnectionGate({ children }) {
 }
 
 function Shell() {
+  const { pathname } = useLocation()
   return (
     <div className="page-shell bg-navy-950">
       <main className="flex-1 overflow-hidden flex flex-col">
@@ -39,7 +40,7 @@ function Shell() {
         </Routes>
         </Suspense>
       </main>
-      <BottomNav />
+      {pathname !== '/map' && <BottomNav />}
     </div>
   )
 }
