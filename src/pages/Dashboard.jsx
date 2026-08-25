@@ -170,7 +170,7 @@ export default function Dashboard() {
   return (
     <div className="flex-1 overflow-y-auto nav-clearance page-ambience">
 
-      <CrestHeader />
+      <CrestHeader switcher />
 
       {/* ── Hero — the aircraft is the interface ── */}
       <button onClick={() => setHobbsHistoryOpen(true)} className="hero-stage block w-full select-none">

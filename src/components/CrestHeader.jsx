@@ -8,7 +8,7 @@ import PullDownMenu from './PullDownMenu'
 //
 // Must be rendered as a direct child of the page's scroll container — the
 // scroll listener attaches to the anchor row's parent element.
-export default function CrestHeader() {
+export default function CrestHeader({ switcher = false }) {
   const { aircraft, selectedAircraft, setSelectedAircraft } = useAircraft()
   const anchor = useRef(null)
   // 0 = at rest (large crest, no backdrop), 1 = fully compact
@@ -77,10 +77,11 @@ export default function CrestHeader() {
         </div>
       </div>
 
-      {/* In-flow row — the aircraft pill scrolls away with the page */}
+      {/* In-flow row — anchors the scroll listener and clears the pinned
+          crest; the aircraft pill only lives on the home screen */}
       <div ref={anchor} className="relative flex items-center justify-center px-4"
-        style={{ paddingTop: '3.4rem', paddingBottom: '0.4rem' }}>
-        {chip}
+        style={switcher ? { paddingTop: '3.4rem', paddingBottom: '0.4rem' } : { paddingTop: '3.2rem' }}>
+        {switcher && chip}
       </div>
     </>
   )
