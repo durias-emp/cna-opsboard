@@ -5,7 +5,9 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { useWaypoints } from '../hooks/useWaypoints'
 import { useAircraft } from '../context/AircraftContext'
 import { useFlights } from '../hooks/useFlights'
-import { formatDMS, haversineNm } from '../lib/geo'
+import { formatDMS } from '../lib/geo'
+import { computeQuote } from '../lib/quote'
+import { useQuoteProfile } from '../hooks/useQuoteProfile'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 import { loadStyle, SALVADOR_CENTER, AVIARA_URL } from '../lib/mapStyle'
 
@@ -19,11 +21,6 @@ const toFeature = w => ({
 const fc = list => ({ type: 'FeatureCollection', features: list.map(toFeature) })
 
 // ── Ops workspace ──
-// YS-CNA quoting parameters (owner-provided)
-const CRUISE_KTS = 100
-const BURN_GPH   = 27
-const RATE_HR    = 1350
-
 const glassBtn = {
   background: 'rgba(30,30,32,0.55)', backdropFilter: 'blur(24px) saturate(180%)',
   WebkitBackdropFilter: 'blur(24px) saturate(180%)',
@@ -63,6 +60,9 @@ export default function MapPage() {
 
   const { selectedAircraft } = useAircraft()
   const { flights } = useFlights(selectedAircraft?.id)
+  const profile = useQuoteProfile(selectedAircraft?.id)
+  const [roundTrip, setRoundTrip] = useState(true)
+  const [waitingHr, setWaitingHr] = useState(0)
 
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -228,24 +228,17 @@ export default function MapPage() {
     const m = location.state?.mode
     if (m !== 'quote' && m !== 'trips') return
     cancelAnimationFrame(animRef.current)
-    setRoutePoints([]); setTrip(null); setMode(m)
+    setRoutePoints([]); setTrip(null)
+    setRoundTrip(profile.round_trip_default); setWaitingHr(0)
+    setMode(m)
     window.history.replaceState({}, '')
   }, [location.state])   // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Quote math: live numbers from the tapped route ──
-  const quote = useMemo(() => {
-    if (routePoints.length < 2) return null
-    let nm = 0
-    for (let i = 1; i < routePoints.length; i++)
-      nm += haversineNm(routePoints[i - 1].lat, routePoints[i - 1].lng, routePoints[i].lat, routePoints[i].lng)
-    const hours = nm / CRUISE_KTS
-    return {
-      nm,
-      hours,
-      fuel: hours * BURN_GPH,
-      price: hours * RATE_HR,
-    }
-  }, [routePoints])
+  // ── Quote math: the pure engine, live from the tapped route ──
+  const quote = useMemo(
+    () => computeQuote({ points: routePoints, roundTrip, waitingHr, profile }),
+    [routePoints, roundTrip, waitingHr, profile]
+  )
 
   // ── Draw the quote route + fit the camera ──
   useEffect(() => {
@@ -255,9 +248,11 @@ export default function MapPage() {
       type: 'Feature', geometry: { type: 'Point', coordinates: [w.lng, w.lat] }, properties: {},
     }))
     if (routePoints.length >= 2) {
+      const coords = routePoints.map(w => [w.lng, w.lat])
+      if (roundTrip && mode === 'quote') coords.push(coords[0])   // the return home
       feats.push({
         type: 'Feature',
-        geometry: { type: 'LineString', coordinates: routePoints.map(w => [w.lng, w.lat]) },
+        geometry: { type: 'LineString', coordinates: coords },
         properties: {},
       })
     }
@@ -267,7 +262,7 @@ export default function MapPage() {
       routePoints.forEach(w => b.extend([w.lng, w.lat]))
       map.fitBounds(b, { padding: { top: 120, left: 60, right: 60, bottom: 300 }, maxZoom: 10, duration: 700 })
     }
-  }, [routePoints, ready])
+  }, [routePoints, roundTrip, mode, ready])
 
   // ── Trips: resolve a flight's legs to waypoints, draw, and fly the crumb ──
   function resolveTrip(flight) {
@@ -470,7 +465,7 @@ export default function MapPage() {
           <div className="grid grid-cols-3 gap-2.5 p-3">
             {[
               { label: 'Flight plan', onClick: () => window.open(AVIARA_URL, '_blank') },
-              { label: 'Quote',       onClick: () => { setRoutePoints([]); setMode('quote') } },
+              { label: 'Quote',       onClick: () => { setRoutePoints([]); setRoundTrip(profile.round_trip_default); setWaitingHr(0); setMode('quote') } },
               { label: 'Trips',       onClick: () => setMode('trips') },
             ].map(({ label, onClick }) => (
               <button key={label} onClick={onClick}
@@ -500,27 +495,55 @@ export default function MapPage() {
               <>
                 <p className="text-[12px] text-accent font-semibold mb-2.5 leading-snug">
                   {routePoints.map(w => w.code || w.name).join(' → ')}
+                  {roundTrip && routePoints.length >= 2 && ` → ${routePoints[0].code || routePoints[0].name}`}
                 </p>
-                {quote ? (
-                  <div className="grid grid-cols-4 gap-2 text-center">
-                    {[
-                      ['Distance', `${quote.nm.toFixed(0)} nm`],
-                      ['Time', `${quote.hours.toFixed(1)} h`],
-                      ['Fuel', `${quote.fuel.toFixed(0)} gal`],
-                      ['Price', `$${Math.round(quote.price).toLocaleString('en-US')}`],
-                    ].map(([k, v]) => (
-                      <div key={k} className="rounded-xl bg-white/[0.06] py-2.5">
-                        <p className="text-[9px] uppercase tracking-wider text-white/35">{k}</p>
-                        <p className="text-[14px] font-bold text-white mt-1 tabular-nums">{v}</p>
-                      </div>
-                    ))}
+
+                {/* Adjustments */}
+                <div className="flex items-center gap-2 mb-3">
+                  <button onClick={() => setRoundTrip(v => !v)}
+                    className={`px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors
+                      ${roundTrip ? 'bg-accent text-black' : 'bg-white/[0.08] text-white/50'}`}>
+                    Round trip
+                  </button>
+                  <div className="flex items-center gap-1 ml-auto">
+                    <span className="text-[11px] text-white/40 mr-1">Waiting</span>
+                    <button onClick={() => setWaitingHr(h => Math.max(0, +(h - 0.5).toFixed(1)))}
+                      className="w-7 h-7 rounded-full bg-white/[0.08] text-white/70 text-[15px] leading-none active:bg-white/[0.15]">−</button>
+                    <span className="text-[12px] font-bold text-white tabular-nums w-9 text-center">{waitingHr} h</span>
+                    <button onClick={() => setWaitingHr(h => +(h + 0.5).toFixed(1))}
+                      className="w-7 h-7 rounded-full bg-white/[0.08] text-white/70 text-[15px] leading-none active:bg-white/[0.15]">+</button>
                   </div>
+                </div>
+
+                {quote ? (
+                  <>
+                    {/* Breakdown */}
+                    <div className="space-y-1.5 mb-2.5">
+                      {quote.lines.map(l => (
+                        <div key={l.key} className="flex items-baseline justify-between">
+                          <span className="text-[12px] text-white/55">{l.label}</span>
+                          <span className="text-[12px] font-semibold text-white/80 tabular-nums">
+                            ${Math.round(l.amount).toLocaleString('en-US')}
+                          </span>
+                        </div>
+                      ))}
+                      <div className="flex items-baseline justify-between pt-1.5 border-t border-white/[0.08]">
+                        <span className="text-[13px] font-bold text-white">
+                          Total <span className="font-normal text-white/35 text-[11px]">IVA incluido</span>
+                        </span>
+                        <span className="text-[18px] font-bold text-white tabular-nums">
+                          ${Math.round(quote.total).toLocaleString('en-US')}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-[9.5px] text-white/25">
+                      {quote.totalNm.toFixed(0)} nm · {quote.flightHr.toFixed(1)} h · {quote.fuelGal.toFixed(0)} gal ·
+                      {' '}{profile.cruise_kts} kts · direct legs
+                    </p>
+                  </>
                 ) : (
                   <p className="text-[12px] text-white/40">Tap the next site to complete the leg.</p>
                 )}
-                <p className="text-[9.5px] text-white/25 mt-2.5">
-                  {CRUISE_KTS} kts cruise · {BURN_GPH} gph · ${RATE_HR.toLocaleString()}/h all-in · direct legs
-                </p>
               </>
             )}
           </div>

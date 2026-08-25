@@ -51,7 +51,7 @@ begin
     'aircraft','flights','flight_itineraries','todos','task_updates','snags',
     'fluid_logs','grease_logs','maintenance_items','maintenance_compliance_log',
     'tank_fillups','jerry_cans','team_profiles','device_tokens','monies_submissions',
-    'waypoints','quotes'
+    'waypoints','quotes','quote_profiles'
   ] loop
     if to_regclass(t) is null then continue; end if;   -- table not created yet — skip
     execute format('alter table %I enable row level security', t);
