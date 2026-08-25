@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMotionValue, animate } from 'framer-motion'
+import * as maplibregl from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
+import { loadStyle, SALVADOR_CENTER } from '../lib/mapStyle'
+import { useWaypoints } from '../hooks/useWaypoints'
 import { toHobbs, formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
 import { useFlights } from '../hooks/useFlights'
@@ -35,6 +39,60 @@ function FuelArc({ gal }) {
       <circle cx="40" cy="42" r="2.6" fill="#fff" />
     </svg>
   )
+}
+
+// Live minimap preview: the real chart (same MapLibre engine and shared
+// OpenFreeMap style as the Map screen) with the waypoint dots, non-interactive.
+// Tapping it opens the full map.
+function MiniMap({ height = 150 }) {
+  const boxRef = useRef(null)
+  const mapRef = useRef(null)
+  const [ready, setReady] = useState(false)
+  const { waypoints } = useWaypoints()
+
+  useEffect(() => {
+    let map, cancelled = false
+    loadStyle().then(style => {
+      if (cancelled) return
+      map = new maplibregl.Map({
+        container: boxRef.current,
+        style,
+        center: SALVADOR_CENTER,
+        zoom: 6.7,                 // whole country in frame
+        interactive: false,
+        attributionControl: false,
+      })
+      mapRef.current = map
+      map.on('load', () => {
+        map.addSource('wp', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+        map.addLayer({
+          id: 'wp-dots', type: 'circle', source: 'wp',
+          paint: {
+            'circle-radius': ['case', ['==', ['get', 'custom'], 1], 3.4, 1.7],
+            'circle-color': ['case', ['==', ['get', 'custom'], 1], '#2CB9BD', '#8A9096'],
+            'circle-opacity': 0.85,
+          },
+        })
+        setReady(true)
+      })
+    })
+    return () => { cancelled = true; mapRef.current = null; map?.remove() }
+  }, [])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready) return
+    map.getSource('wp')?.setData({
+      type: 'FeatureCollection',
+      features: waypoints.map(w => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [w.lng, w.lat] },
+        properties: { custom: w.source === 'aip' ? 0 : 1 },
+      })),
+    })
+  }, [waypoints, ready])
+
+  return <div ref={boxRef} className="absolute inset-0" style={{ height, isolation: 'isolate' }} />
 }
 
 // CNA Monies' balance count-up: one motion value, one animate() call,
@@ -189,16 +247,24 @@ export default function Dashboard() {
                 <p className="vital-foot">{stats.total ? `${stats.total} flights` : 'no flights'}</p>
               </button>
             </div>
-          </div>
 
-          <button className="trow" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
-            onClick={() => navigate('/map')}>
-            <div className="min-w-0">
-              <p className="text-[14px] font-semibold text-white">Map &amp; Waypoints</p>
-              <p className="text-[12px] text-white/40 mt-0.5">275 aerodromes · hold to add your own sites</p>
-            </div>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="chev w-4 h-4 ml-auto"><path d="M9 18l6-6-6-6" /></svg>
-          </button>
+            {/* Minimap — a tile like its siblings: rounded, inside the card
+                padding, sized like the Hobbs + tiles area combined */}
+            <button className="relative block w-full overflow-hidden select-none active:opacity-90 rounded-[14px]"
+              style={{ height: 280 }}
+              onClick={() => navigate('/map')} aria-label="Open map and waypoints">
+              <MiniMap height={280} />
+              {/* readability scrim + floating title */}
+              <div className="absolute inset-x-0 bottom-0 h-16 pointer-events-none"
+                style={{ background: 'linear-gradient(to top, rgba(17,17,18,0.85), transparent)' }} />
+              <div className="absolute left-4 bottom-3 text-left pointer-events-none">
+                <p className="text-[14px] font-semibold text-white leading-none">Map &amp; Waypoints</p>
+                <p className="text-[11px] text-white/45 mt-1 leading-none">275 aerodromes · hold to add your own sites</p>
+              </div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"
+                className="absolute right-4 bottom-4 w-4 h-4 text-white/40"><path d="M9 18l6-6-6-6" /></svg>
+            </button>
+          </div>
         </div>
 
         {/* Recent flights — finance-style tiles */}

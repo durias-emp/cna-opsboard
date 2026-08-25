@@ -5,24 +5,8 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { useWaypoints } from '../hooks/useWaypoints'
 import { formatDMS } from '../lib/geo'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
+import { loadStyle, SALVADOR_CENTER } from '../lib/mapStyle'
 
-// AVIARA's exact motor and map: MapLibre GL with OpenFreeMap vector tiles,
-// dark style. (In AVIARA, CARTO raster only skins the far-out globe below
-// zoom 5 — OpsBoard never leaves chart-reading zooms, so it is pure
-// OpenFreeMap here.) Style fetched once per session; AVIARA learned the
-// style server rate-limits repeat fetches.
-const STYLE_DARK = 'https://tiles.openfreemap.org/styles/dark'
-let stylePromise = null
-function loadStyle() {
-  if (!stylePromise) {
-    stylePromise = fetch(STYLE_DARK)
-      .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json() })
-      .catch(() => STYLE_DARK)   // MapLibre retries the URL its own way
-  }
-  return stylePromise
-}
-
-const SALVADOR_CENTER = [-88.95, 13.72]   // [lng, lat]
 const LONG_PRESS_MS = 450
 
 const toFeature = w => ({
