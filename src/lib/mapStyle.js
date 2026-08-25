@@ -14,3 +14,6 @@ export function loadStyle() {
 }
 
 export const SALVADOR_CENTER = [-88.95, 13.72]   // [lng, lat]
+
+// Sister app: flight planning lives in AVIARA
+export const AVIARA_URL = 'https://aviara-sandbox.vercel.app'

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useMotionValue, animate } from 'framer-motion'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { loadStyle, SALVADOR_CENTER } from '../lib/mapStyle'
+import { loadStyle, SALVADOR_CENTER, AVIARA_URL } from '../lib/mapStyle'
 import { useWaypoints } from '../hooks/useWaypoints'
 import { toHobbs, formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
@@ -268,6 +268,22 @@ export default function Dashboard() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"
                 className="absolute right-4 bottom-4 w-4 h-4 text-white/40"><path d="M9 18l6-6-6-6" /></svg>
             </button>
+
+            {/* Ops shortcuts — three equal words, straight into each flow */}
+            <div className="grid grid-cols-3 gap-2.5">
+              <button className="vital-tile items-center justify-center py-3.5"
+                onClick={() => window.open(AVIARA_URL, '_blank')}>
+                <span className="text-[13px] font-semibold text-white leading-none">Flight plan</span>
+              </button>
+              <button className="vital-tile items-center justify-center py-3.5"
+                onClick={() => navigate('/map', { state: { mode: 'quote' } })}>
+                <span className="text-[13px] font-semibold text-white leading-none">Quote</span>
+              </button>
+              <button className="vital-tile items-center justify-center py-3.5"
+                onClick={() => navigate('/map', { state: { mode: 'trips' } })}>
+                <span className="text-[13px] font-semibold text-white leading-none">Trips</span>
+              </button>
+            </div>
           </div>
         </div>
 

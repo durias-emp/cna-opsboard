@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useWaypoints } from '../hooks/useWaypoints'
@@ -7,7 +7,7 @@ import { useAircraft } from '../context/AircraftContext'
 import { useFlights } from '../hooks/useFlights'
 import { formatDMS, haversineNm } from '../lib/geo'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
-import { loadStyle, SALVADOR_CENTER } from '../lib/mapStyle'
+import { loadStyle, SALVADOR_CENTER, AVIARA_URL } from '../lib/mapStyle'
 
 const LONG_PRESS_MS = 450
 
@@ -19,7 +19,6 @@ const toFeature = w => ({
 const fc = list => ({ type: 'FeatureCollection', features: list.map(toFeature) })
 
 // ── Ops workspace ──
-const AVIARA_URL = 'https://aviara-app.vercel.app'   // sister app: flight planning
 // YS-CNA quoting parameters (owner-provided)
 const CRUISE_KTS = 100
 const BURN_GPH   = 27
@@ -44,6 +43,7 @@ function loadLayerPrefs() {
 
 export default function MapPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { waypoints, dbReady, addWaypoint, deactivateWaypoint } = useWaypoints()
   const [selected, setSelected] = useState(null)
   const [draft,    setDraft]    = useState(null)
@@ -222,6 +222,15 @@ export default function MapPage() {
 
     return () => { cancelled = true; mapRef.current = null; map?.remove() }
   }, [])
+
+  // ── Deep link: dashboard buttons land here already in quote/trips mode ──
+  useEffect(() => {
+    const m = location.state?.mode
+    if (m !== 'quote' && m !== 'trips') return
+    cancelAnimationFrame(animRef.current)
+    setRoutePoints([]); setTrip(null); setMode(m)
+    window.history.replaceState({}, '')
+  }, [location.state])   // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Quote math: live numbers from the tapped route ──
   const quote = useMemo(() => {
