@@ -122,10 +122,12 @@ function CrestHeader({ tailNumber, switcherItems }) {
     ? <PullDownMenu items={switcherItems} align="right" trigger={toggle => chipBody(toggle)} />
     : chipBody(null)
 
-  // Never 'none': removing backdrop-filter from a composited layer is the
-  // WebKit path that loses the effect permanently (AVIARA lesson). The radius
-  // may go to 0px, but the property stays. Composed from the glass tokens.
-  const blur = `blur(calc(var(--glass-blur) * ${p.toFixed(3)})) saturate(${100 + Math.round(80 * p)}%)`
+  // Not a strip: a radial halo hugging the crest — dark core for readability,
+  // a breath of livery teal around it, fading to nothing well before the
+  // screen edges. Scales with scroll.
+  const halo = `
+    radial-gradient(ellipse 36% 130% at 50% 46%, rgba(18,20,21,${(0.92 * p).toFixed(3)}) 30%, rgba(18,20,21,0) 76%),
+    radial-gradient(ellipse 56% 170% at 50% 46%, rgba(44,185,189,${(0.07 * p).toFixed(3)}), transparent 74%)`
 
   return (
     <>
@@ -134,13 +136,7 @@ function CrestHeader({ tailNumber, switcherItems }) {
         className="fixed top-0 left-0 right-0 z-[60] pointer-events-none"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
-          background: `rgba(var(--glass-rgb), calc((var(--glass-opacity) + 0.25) * ${p.toFixed(3)}))`,
-          backdropFilter: blur,
-          WebkitBackdropFilter: blur,
-          // Fade the bar's lower edge so it melts into the page instead of
-          // cutting the content with a hard line
-          maskImage: 'linear-gradient(to bottom, black 55%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, black 55%, transparent 100%)',
+          background: halo,
           paddingBottom: '0.9rem',
           marginBottom: '-0.9rem',
         }}
