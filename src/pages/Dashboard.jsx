@@ -11,6 +11,7 @@ import { useFlights } from '../hooks/useFlights'
 import { useMaintenanceItems } from '../hooks/useMaintenanceItems'
 import CrestHeader from '../components/CrestHeader'
 import HobbsHistoryDrawer from '../components/HobbsHistoryDrawer'
+import FlightDetailSheet from '../components/FlightDetailSheet'
 import { useTank } from '../hooks/useTank'
 
 // YS-CNA cruise burn (owner-provided, also used for quoting)
@@ -147,6 +148,8 @@ export default function Dashboard() {
   const maintItems = useMaintenanceItems(selectedAircraft?.id, selectedAircraft?.hobbs_current, selectedAircraft?.cycles_current)
   const navigate = useNavigate()
   const [hobbsHistoryOpen,    setHobbsHistoryOpen]    = useState(false)
+  const [detailFlight,        setDetailFlight]        = useState(null)
+  const [detailOpen,          setDetailOpen]          = useState(false)
   const tank = useTank()
 
   const hobbs   = selectedAircraft?.hobbs_current
@@ -285,7 +288,7 @@ export default function Dashboard() {
             <div className="tile-group glass-card">
               {recentFlights.map(f => (
                 <div key={f.id} className="tile"
-                  onClick={() => navigate('/flights', { state: { openFlightId: f.id } })}>
+                  onClick={() => { setDetailFlight(f); setDetailOpen(true) }}>
                   <div className="tile-icon"><IconFlight /></div>
                   <div className="tile-body">
                     <div className="min-w-0">
@@ -301,6 +304,11 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <FlightDetailSheet
+        flight={detailFlight}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+      />
       <HobbsHistoryDrawer
         open={hobbsHistoryOpen}
         onClose={() => setHobbsHistoryOpen(false)}
