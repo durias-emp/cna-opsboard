@@ -1,4 +1,5 @@
 import { toHobbs, formatDate } from '../lib/utils'
+import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 
 function flightRoute(flight) {
   const first = flight.legs?.[0]
@@ -15,6 +16,7 @@ function formatDuration(mins) {
 // Read-only flight detail bottom sheet, shared by the Flights page and the
 // dashboard's Recent-flights shortcuts.
 export default function FlightDetailSheet({ flight, open, onClose }) {
+  const { handleProps, panelProps, panelStyle } = useDrawerSwipe(onClose)
   if (!flight) return null
 
   const legs = flight.legs ?? []
@@ -30,18 +32,15 @@ export default function FlightDetailSheet({ flight, open, onClose }) {
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black/60 z-[60] transition-opacity duration-300
-          ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`drawer-overlay ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
       <div
-        className={`fixed bottom-0 left-0 right-0 z-[70] bg-navy-900 rounded-t-3xl
-          transition-transform duration-300 ease-out
-          ${open ? 'translate-y-0' : 'translate-y-full'}`}
-        style={{ maxHeight: '88dvh', display: 'flex', flexDirection: 'column' }}
+        className={`drawer-panel ${open ? 'translate-y-0' : 'translate-y-full'}`}
+        style={panelStyle} {...panelProps}
       >
         {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+        <div className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab" {...handleProps}>
           <div className="w-10 h-1 rounded-full bg-white/20" />
         </div>
 
