@@ -174,6 +174,7 @@ export default function Dashboard() {
 
       {/* ── Hero — the aircraft is the interface ── */}
       <button onClick={() => setHobbsHistoryOpen(true)} className="hero-stage block w-full select-none">
+        <div className="hero-shadow" aria-hidden />
         <img src="/heli-hero.png" alt={selectedAircraft?.make_model ?? 'Bell 206B3 JetRanger'}
           className="hero-heli" draggable="false" />
       </button>

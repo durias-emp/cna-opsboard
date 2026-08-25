@@ -185,10 +185,28 @@
   }
   .hero-heli {
     display: block;
+    position: relative;   /* rides above the floor shadow */
     width: min(76%, 21rem);
     margin: 0 auto;
     user-select: none;
     -webkit-user-drag: none;
+  }
+
+  /* Parked-in-an-empty-room floor shadow: a tight dark contact core under the
+     skids inside a wider, softer ambient pool. Biased slightly toward the
+     cabin, where the mass sits. */
+  .hero-shadow {
+    position: absolute;
+    left: 47%;
+    bottom: 1.15rem;
+    width: min(60%, 16.5rem);
+    height: 1.7rem;
+    transform: translateX(-50%);
+    background:
+      radial-gradient(ellipse 40% 44% at 50% 50%, rgba(0, 0, 0, 0.65), transparent 70%),
+      radial-gradient(ellipse 78% 62% at 50% 50%, rgba(0, 0, 0, 0.35), transparent 78%);
+    filter: blur(5px);
+    pointer-events: none;
   }
 
   .hero-icon-btn {
