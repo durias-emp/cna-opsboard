@@ -191,6 +191,32 @@
   .trow-group { @apply rounded-2xl overflow-hidden; }
   .trow .chev { @apply ml-auto text-white/20 flex-shrink-0; }
 
+  /* ── Glass cards — iOS-material content surfaces ──
+     Composed from the glass tokens like every floating surface, with a small
+     opacity floor so content stays anchored. The page ambience behind them is
+     what the frost actually samples. */
+  .glass-card {
+    background: rgba(var(--glass-rgb), calc(var(--glass-opacity) + 0.22));
+    backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06),
+                inset 0 0 0 0.5px rgba(255, 255, 255, 0.04);
+  }
+  .glass-card .trow { background: transparent; }
+  .glass-card .trow:active { background: rgba(255, 255, 255, 0.06); }
+  .glass-card .tile { background: transparent; }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass-card { background: rgb(35, 35, 36); }
+  }
+
+  /* Soft ambience the glass frosts against: livery-teal and white glows */
+  .page-ambience {
+    background:
+      radial-gradient(58% 38% at 82% 8%,  rgba(44, 185, 189, 0.13), transparent 70%),
+      radial-gradient(48% 34% at 12% 46%, rgba(255, 255, 255, 0.06), transparent 72%),
+      radial-gradient(52% 40% at 70% 88%, rgba(44, 185, 189, 0.07), transparent 70%);
+  }
+
   /* ── Vitals — 2×2 stat tiles on the Dashboard ── */
   .vital-tile {
     @apply bg-white/[0.05] rounded-[14px] px-4 py-3.5 text-left select-none

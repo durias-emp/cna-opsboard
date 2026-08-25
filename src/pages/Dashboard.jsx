@@ -182,7 +182,7 @@ export default function Dashboard() {
   const animEndurance = useAnimatedNumber(onboardFuel != null ? onboardFuel / CRUISE_BURN_GPH : null)
 
   return (
-    <div className="flex-1 overflow-y-auto nav-clearance">
+    <div className="flex-1 overflow-y-auto nav-clearance page-ambience">
 
       <CrestHeader
         tailNumber={selectedAircraft?.tail_number}
@@ -203,7 +203,7 @@ export default function Dashboard() {
       <div className="px-4 pb-6 pt-4 space-y-5">
 
         {/* ── One card: vitals grid on top, status rows below ── */}
-        <div className="trow-group bg-navy-800">
+        <div className="trow-group glass-card">
 
           <div className="p-3 space-y-2.5">
 
@@ -302,14 +302,14 @@ export default function Dashboard() {
             <button className="text-[13px] font-semibold text-accent active:opacity-70" onClick={() => navigate('/flights')}>See all</button>
           </div>
           {recentFlights.length === 0 ? (
-            <div className="tile-group flex flex-col items-center justify-center py-8 gap-2">
+            <div className="tile-group glass-card flex flex-col items-center justify-center py-8 gap-2">
               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/25">
                 <IconFlight />
               </div>
               <p className="text-xs text-white/25">No flights yet</p>
             </div>
           ) : (
-            <div className="tile-group">
+            <div className="tile-group glass-card">
               {recentFlights.map(f => (
                 <div key={f.id} className="tile" onClick={() => navigate('/flights')}>
                   <div className="tile-icon"><IconFlight /></div>
