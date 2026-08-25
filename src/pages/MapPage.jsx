@@ -19,7 +19,7 @@ const toFeature = w => ({
 const fc = list => ({ type: 'FeatureCollection', features: list.map(toFeature) })
 
 // ── Ops workspace ──
-const AVIARA_URL = 'https://aviara.app'   // TODO: confirm AVIARA's real web URL with Diego
+const AVIARA_URL = 'https://aviara-app.vercel.app'   // sister app: flight planning
 // YS-CNA quoting parameters (owner-provided)
 const CRUISE_KTS = 100
 const BURN_GPH   = 27
