@@ -12,10 +12,6 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'cna-logo.png', 'helicopter.png'],
-      // Serve the real manifest through the dev server too — without it, an
-      // Add-to-Home-Screen install from the phone-preview tunnel runs on legacy
-      // Apple meta tags only, the path iOS 26 mis-sizes (59pt-short window).
-      devOptions: { enabled: true },
       manifest: {
         id: '/',
         start_url: '/',
@@ -23,8 +19,8 @@ export default defineConfig({
         name: 'CNA OpsBoard',
         short_name: 'OpsBoard',
         description: 'Cielo Norte Aviación Operations Dashboard',
-        theme_color: '#0A0A0A',
-        background_color: '#0A0A0A',
+        theme_color: '#171717',
+        background_color: '#171717',
         display: 'standalone',
         display_override: ['standalone'],
         orientation: 'portrait',

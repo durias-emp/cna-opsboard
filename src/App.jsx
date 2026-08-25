@@ -1,9 +1,8 @@
 import { lazy, Suspense, useEffect, useRef } from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { AircraftProvider, useAircraft } from './context/AircraftContext'
 import { TeamProvider, useTeam } from './context/TeamContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import AircraftBar from './components/AircraftBar'
 import BottomNav from './components/BottomNav'
 // Each page is its own chunk so the first paint doesn't download the whole app
 const Dashboard   = lazy(() => import('./pages/Dashboard'))
@@ -11,6 +10,7 @@ const Flights     = lazy(() => import('./pages/Flights'))
 const Maintenance = lazy(() => import('./pages/Maintenance'))
 const Fuel        = lazy(() => import('./pages/Fuel'))
 const Employees   = lazy(() => import('./pages/Employees'))
+const MapPage     = lazy(() => import('./pages/MapPage'))
 import IdentityScreen from './components/IdentityScreen'
 import ConnectionError from './components/ConnectionError'
 import LoginScreen from './components/LoginScreen'
@@ -24,23 +24,36 @@ function ConnectionGate({ children }) {
   return children
 }
 
+const SCREENS = [
+  ['/',            Dashboard],
+  ['/flights',     Flights],
+  ['/maintenance', Maintenance],
+  ['/fuel',        Fuel],
+  ['/employees',   Employees],
+  ['/map',         MapPage],
+]
+
+// Keep-alive tab navigator (native-app behavior): each screen mounts on first
+// visit and then STAYS mounted, hidden with display:none. Switching tabs never
+// rebuilds a screen — data, scroll position, the map's GL context, and every
+// built component survive, so screens appear instantly and fully constructed.
 function Shell() {
   const { pathname } = useLocation()
+  const visited = useRef(new Set())
+  visited.current.add(pathname)
   return (
     <div className="page-shell bg-navy-950">
-      {pathname !== '/' && <AircraftBar />}
       <main className="flex-1 overflow-hidden flex flex-col">
         <Suspense fallback={<div className="flex-1" />}>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/flights" element={<Flights />} />
-          <Route path="/maintenance" element={<Maintenance />} />
-          <Route path="/fuel" element={<Fuel />} />
-          <Route path="/employees" element={<Employees />} />
-        </Routes>
+          {SCREENS.map(([path, Screen]) => visited.current.has(path) && (
+            <div key={path} className="flex-1 min-h-0 flex-col"
+              style={{ display: pathname === path ? 'flex' : 'none' }}>
+              <Screen />
+            </div>
+          ))}
         </Suspense>
       </main>
-      <BottomNav />
+      {pathname !== '/map' && <BottomNav />}
     </div>
   )
 }

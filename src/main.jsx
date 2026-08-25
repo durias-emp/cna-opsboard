@@ -2,7 +2,12 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import './index.css'
+import { loadGlass } from './lib/glass'
 import App from './App'
+
+// Before first paint, so the glass surfaces never visibly jump to the stored
+// sheerness (an effect would run after paint — exactly what a user notices).
+loadGlass()
 
 // iOS keyboard-close re-anchor: when the on-screen keyboard dismisses in a
 // standalone PWA, WebKit sometimes leaves the page scrolled/shifted, which
@@ -14,6 +19,14 @@ if (typeof window !== 'undefined' && window.visualViewport) {
       window.scrollTo(0, 0)
     }
   })
+}
+
+// Dev only: evict any previously-installed dev service worker. It intercepted
+// every fetch (including MapLibre's tile requests from worker threads) and
+// silently starved them — the black-map bug. Production uses its own SW.
+if (import.meta.env.DEV && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()))
+  if (window.caches) caches.keys().then(keys => keys.forEach(k => caches.delete(k)))
 }
 
 createRoot(document.getElementById('root')).render(

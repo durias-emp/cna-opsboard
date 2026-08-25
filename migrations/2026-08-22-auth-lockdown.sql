@@ -50,8 +50,10 @@ begin
   foreach t in array array[
     'aircraft','flights','flight_itineraries','todos','task_updates','snags',
     'fluid_logs','grease_logs','maintenance_items','maintenance_compliance_log',
-    'tank_fillups','jerry_cans','team_profiles','device_tokens','monies_submissions'
+    'tank_fillups','jerry_cans','team_profiles','device_tokens','monies_submissions',
+    'waypoints','quotes'
   ] loop
+    if to_regclass(t) is null then continue; end if;   -- table not created yet — skip
     execute format('alter table %I enable row level security', t);
     -- drop whatever policies exist today (the allow-all ones included)
     for p in select policyname from pg_policies where schemaname = 'public' and tablename = t loop
