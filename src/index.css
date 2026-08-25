@@ -426,8 +426,11 @@
   }
 
   /* ── Drawer overlay ── */
+  /* No darkening: a dimmed page reads as a different color than the status
+     bar and creates exactly the cut we keep removing. The overlay only
+     catches taps; the sheet's own frost provides the separation. */
   .drawer-overlay {
-    @apply fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm
+    @apply fixed inset-0 z-[60] bg-transparent
            transition-opacity duration-300;
   }
 
