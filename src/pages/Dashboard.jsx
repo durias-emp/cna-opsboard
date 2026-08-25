@@ -137,6 +137,12 @@ function CrestHeader({ tailNumber, switcherItems }) {
           background: `rgba(var(--glass-rgb), calc((var(--glass-opacity) + 0.25) * ${p.toFixed(3)}))`,
           backdropFilter: blur,
           WebkitBackdropFilter: blur,
+          // Fade the bar's lower edge so it melts into the page instead of
+          // cutting the content with a hard line
+          maskImage: 'linear-gradient(to bottom, black 55%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black 55%, transparent 100%)',
+          paddingBottom: '0.9rem',
+          marginBottom: '-0.9rem',
         }}
       >
         <div className="flex items-center justify-center" style={{ padding: `${0.8 - 0.2 * p}rem 0` }}>
