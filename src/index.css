@@ -209,12 +209,14 @@
     .glass-card { background: rgb(35, 35, 36); }
   }
 
-  /* Soft ambience the glass frosts against: livery-teal and white glows */
+  /* Soft ambience the glass frosts against: livery-teal and white glows.
+     Nothing above ~35% height — the top stays flat so it blends seamlessly
+     into the status bar. */
   .page-ambience {
     background:
-      radial-gradient(58% 38% at 82% 8%,  rgba(44, 185, 189, 0.13), transparent 70%),
-      radial-gradient(48% 34% at 12% 46%, rgba(255, 255, 255, 0.06), transparent 72%),
-      radial-gradient(52% 40% at 70% 88%, rgba(44, 185, 189, 0.07), transparent 70%);
+      radial-gradient(48% 30% at 82% 52%, rgba(44, 185, 189, 0.11), transparent 70%),
+      radial-gradient(48% 34% at 12% 62%, rgba(255, 255, 255, 0.05), transparent 72%),
+      radial-gradient(52% 40% at 70% 92%, rgba(44, 185, 189, 0.08), transparent 70%);
   }
 
   /* ── Vitals — 2×2 stat tiles on the Dashboard ── */
