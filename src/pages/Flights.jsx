@@ -541,6 +541,16 @@ export default function Flights() {
     }
   }, [location.state])
 
+  // Direct access from the dashboard: a Recent-flights tap lands here with the
+  // flight id and its detail drawer opens immediately (waits for data load)
+  useEffect(() => {
+    const id = location.state?.openFlightId
+    if (!id || !flights.length) return
+    const f = flights.find(x => String(x.id) === String(id))
+    if (f) { setDetailFlight(f); setDetailOpen(true) }
+    window.history.replaceState({}, '')
+  }, [location.state, flights])
+
   const now = new Date()
   const _ld2       = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   const monthStart     = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`

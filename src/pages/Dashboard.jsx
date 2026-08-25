@@ -284,7 +284,8 @@ export default function Dashboard() {
           ) : (
             <div className="tile-group glass-card">
               {recentFlights.map(f => (
-                <div key={f.id} className="tile" onClick={() => navigate('/flights')}>
+                <div key={f.id} className="tile"
+                  onClick={() => navigate('/flights', { state: { openFlightId: f.id } })}>
                   <div className="tile-icon"><IconFlight /></div>
                   <div className="tile-body">
                     <div className="min-w-0">
