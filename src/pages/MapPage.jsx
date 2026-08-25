@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useWaypoints } from '../hooks/useWaypoints'
-import { formatDMS } from '../lib/geo'
+import { useAircraft } from '../context/AircraftContext'
+import { useFlights } from '../hooks/useFlights'
+import { formatDMS, haversineNm } from '../lib/geo'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 import { loadStyle, SALVADOR_CENTER } from '../lib/mapStyle'
 
@@ -15,6 +17,19 @@ const toFeature = w => ({
   properties: { id: w.id, code: w.code ?? '', name: w.name, kind: w.kind },
 })
 const fc = list => ({ type: 'FeatureCollection', features: list.map(toFeature) })
+
+// ── Ops workspace ──
+const AVIARA_URL = 'https://aviara.app'   // TODO: confirm AVIARA's real web URL with Diego
+// YS-CNA quoting parameters (owner-provided)
+const CRUISE_KTS = 100
+const BURN_GPH   = 27
+const RATE_HR    = 1350
+
+const glassBtn = {
+  background: 'rgba(30,30,32,0.55)', backdropFilter: 'blur(24px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 0.5px rgba(255,255,255,0.08)',
+}
 
 const INTRO_KEY = 'cna:mapIntro'          // sessionStorage: intro flight once per session
 const LAYERS_KEY = 'cna:mapLayers'        // localStorage: AVIARA-style layer visibility
@@ -37,6 +52,17 @@ export default function MapPage() {
   const [layersOpen, setLayersOpen] = useState(false)
   const layersRef = useRef(layers)
   layersRef.current = layers
+
+  // Ops card: 'menu' launcher → 'quote' (tap-to-route) / 'trips' / 'trip-view'
+  const [mode, setMode] = useState('menu')
+  const modeRef = useRef(mode)
+  modeRef.current = mode
+  const [routePoints, setRoutePoints] = useState([])     // quote route, in tap order
+  const [trip, setTrip] = useState(null)                 // selected past flight
+  const animRef = useRef(null)                           // breadcrumb rAF id
+
+  const { selectedAircraft } = useAircraft()
+  const { flights } = useFlights(selectedAircraft?.id)
 
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -121,6 +147,25 @@ export default function MapPage() {
           paint: { 'text-color': '#56D3D6' },
         })
 
+        // Ops overlays: quote/trip route line + points + breadcrumb dot
+        map.addSource('route', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+        map.addLayer({
+          id: 'route-line', type: 'line', source: 'route',
+          filter: ['==', ['geometry-type'], 'LineString'],
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: { 'line-color': '#2CB9BD', 'line-width': 3, 'line-opacity': 0.9 },
+        })
+        map.addLayer({
+          id: 'route-pts', type: 'circle', source: 'route',
+          filter: ['==', ['geometry-type'], 'Point'],
+          paint: { 'circle-radius': 5, 'circle-color': '#FFFFFF', 'circle-stroke-color': '#2CB9BD', 'circle-stroke-width': 2.5 },
+        })
+        map.addSource('crumb', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+        map.addLayer({
+          id: 'crumb-dot', type: 'circle', source: 'crumb',
+          paint: { 'circle-radius': 7, 'circle-color': '#2CB9BD', 'circle-stroke-color': '#FFFFFF', 'circle-stroke-width': 2.5 },
+        })
+
         // AVIARA layers: apply saved visibility (aerodromes hidden by default)
         const vis = layersRef.current
         for (const id of ['aip-dots', 'aip-labels'])
@@ -139,12 +184,17 @@ export default function MapPage() {
         setReady(true)
       })
 
-      // Tap a marker → detail sheet
+      // Tap a marker → detail sheet, or extend the route while quoting
       const pick = e => {
         const f = e.features?.[0]
         if (!f) return
         const w = waypointsRef.current.find(x => String(x.id) === String(f.properties.id))
-        if (w) setSelected(w)
+        if (!w) return
+        if (modeRef.current === 'quote') {
+          setRoutePoints(ps => (ps[ps.length - 1]?.id === w.id ? ps : [...ps, w]))
+        } else {
+          setSelected(w)
+        }
       }
       map.on('click', 'aip-dots', pick)
       map.on('click', 'custom-dots', pick)
@@ -154,12 +204,13 @@ export default function MapPage() {
       map.on('mouseleave', 'custom-dots', () => { map.getCanvas().style.cursor = '' })
 
       // Desktop right-click → new waypoint
-      map.on('contextmenu', e => setDraft({ lat: e.lngLat.lat, lng: e.lngLat.lng }))
+      map.on('contextmenu', e => { if (modeRef.current === 'menu') setDraft({ lat: e.lngLat.lat, lng: e.lngLat.lng }) })
 
       // Mobile long-press → new waypoint (MapLibre has no touch contextmenu)
       let pressTimer = null, pressAt = null
       map.on('touchstart', e => {
         if (e.originalEvent.touches.length !== 1) return
+        if (modeRef.current !== 'menu') return   // no waypoint drafts mid-quote/trip
         pressAt = e.lngLat
         pressTimer = setTimeout(() => setDraft({ lat: pressAt.lat, lng: pressAt.lng }), LONG_PRESS_MS)
       })
@@ -171,6 +222,138 @@ export default function MapPage() {
 
     return () => { cancelled = true; mapRef.current = null; map?.remove() }
   }, [])
+
+  // ── Quote math: live numbers from the tapped route ──
+  const quote = useMemo(() => {
+    if (routePoints.length < 2) return null
+    let nm = 0
+    for (let i = 1; i < routePoints.length; i++)
+      nm += haversineNm(routePoints[i - 1].lat, routePoints[i - 1].lng, routePoints[i].lat, routePoints[i].lng)
+    const hours = nm / CRUISE_KTS
+    return {
+      nm,
+      hours,
+      fuel: hours * BURN_GPH,
+      price: hours * RATE_HR,
+    }
+  }, [routePoints])
+
+  // ── Draw the quote route + fit the camera ──
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready) return
+    const feats = routePoints.map(w => ({
+      type: 'Feature', geometry: { type: 'Point', coordinates: [w.lng, w.lat] }, properties: {},
+    }))
+    if (routePoints.length >= 2) {
+      feats.push({
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: routePoints.map(w => [w.lng, w.lat]) },
+        properties: {},
+      })
+    }
+    map.getSource('route')?.setData({ type: 'FeatureCollection', features: feats })
+    if (routePoints.length >= 2) {
+      const b = new maplibregl.LngLatBounds()
+      routePoints.forEach(w => b.extend([w.lng, w.lat]))
+      map.fitBounds(b, { padding: { top: 120, left: 60, right: 60, bottom: 300 }, maxZoom: 10, duration: 700 })
+    }
+  }, [routePoints, ready])
+
+  // ── Trips: resolve a flight's legs to waypoints, draw, and fly the crumb ──
+  function resolveTrip(flight) {
+    const find = name => {
+      if (!name) return null
+      const n = String(name).trim().toUpperCase()
+      return waypointsRef.current.find(w => (w.code ?? '').toUpperCase() === n)
+          ?? waypointsRef.current.find(w => w.name.toUpperCase().includes(n))
+    }
+    const coords = []
+    for (const leg of flight.legs ?? []) {
+      const a = find(leg.takeoff_location), b = find(leg.landing_location)
+      if (a && !coords.length) coords.push([a.lng, a.lat])
+      if (a && coords.length && (coords[coords.length - 1][0] !== a.lng)) coords.push([a.lng, a.lat])
+      if (b) coords.push([b.lng, b.lat])
+    }
+    return coords.length >= 2 ? coords : null
+  }
+
+  function showTrip(flight) {
+    const coords = resolveTrip(flight)
+    setTrip({ flight, coords })
+    setMode('trip-view')
+    const map = mapRef.current
+    if (!map || !ready) return
+    cancelAnimationFrame(animRef.current)
+    if (!coords) {
+      map.getSource('route')?.setData({ type: 'FeatureCollection', features: [] })
+      map.getSource('crumb')?.setData({ type: 'FeatureCollection', features: [] })
+      return
+    }
+    const b = new maplibregl.LngLatBounds()
+    coords.forEach(c => b.extend(c))
+    map.fitBounds(b, { padding: { top: 120, left: 60, right: 60, bottom: 300 }, maxZoom: 10.5, duration: 700 })
+
+    // Breadcrumb: the line draws itself and a dot flies it (~3.5 s)
+    const seg = []
+    let total = 0
+    for (let i = 1; i < coords.length; i++) {
+      const d = Math.hypot(coords[i][0] - coords[i - 1][0], coords[i][1] - coords[i - 1][1])
+      seg.push(d); total += d
+    }
+    const t0 = performance.now()
+    const DUR = 3500
+    const step = now => {
+      const p = Math.min((now - t0) / DUR, 1)
+      let dist = p * total, drawn = [coords[0]]
+      let pos = coords[0]
+      for (let i = 1; i < coords.length; i++) {
+        if (dist >= seg[i - 1]) { drawn.push(coords[i]); dist -= seg[i - 1]; pos = coords[i] }
+        else {
+          const f = seg[i - 1] ? dist / seg[i - 1] : 1
+          pos = [coords[i - 1][0] + (coords[i][0] - coords[i - 1][0]) * f,
+                 coords[i - 1][1] + (coords[i][1] - coords[i - 1][1]) * f]
+          drawn.push(pos)
+          break
+        }
+      }
+      map.getSource('route')?.setData({ type: 'FeatureCollection', features: [
+        { type: 'Feature', geometry: { type: 'LineString', coordinates: drawn }, properties: {} },
+        ...[coords[0], coords[coords.length - 1]].map(c => ({ type: 'Feature', geometry: { type: 'Point', coordinates: c }, properties: {} })),
+      ] })
+      map.getSource('crumb')?.setData({ type: 'FeatureCollection', features: [
+        { type: 'Feature', geometry: { type: 'Point', coordinates: pos }, properties: {} },
+      ] })
+      if (p < 1) animRef.current = requestAnimationFrame(step)
+    }
+    animRef.current = requestAnimationFrame(step)
+  }
+
+  // ── Leaving a mode clears the overlays; quote mode shows every waypoint ──
+  function exitToMenu() {
+    cancelAnimationFrame(animRef.current)
+    setRoutePoints([]); setTrip(null); setMode('menu')
+    const map = mapRef.current
+    if (map && ready) {
+      map.getSource('route')?.setData({ type: 'FeatureCollection', features: [] })
+      map.getSource('crumb')?.setData({ type: 'FeatureCollection', features: [] })
+    }
+  }
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready) return
+    // While quoting, every site must be tappable regardless of layer prefs
+    if (mode === 'quote') {
+      for (const id of ['aip-dots', 'aip-labels', 'custom-dots', 'custom-labels'])
+        map.setLayoutProperty(id, 'visibility', 'visible')
+    } else {
+      for (const id of ['aip-dots', 'aip-labels'])
+        map.setLayoutProperty(id, 'visibility', layers.aip ? 'visible' : 'none')
+      for (const id of ['custom-dots', 'custom-labels'])
+        map.setLayoutProperty(id, 'visibility', layers.custom ? 'visible' : 'none')
+    }
+  }, [mode, ready])   // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── AVIARA layers: visibility follows the toggles, persisted ──
   useEffect(() => {
@@ -264,6 +447,143 @@ export default function MapPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── Ops card — floating context card at the bottom ── */}
+      <div className="absolute left-3 right-3 z-10 rounded-3xl overflow-hidden"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.8rem)',
+                 background: 'rgba(30,30,32,0.62)', backdropFilter: 'blur(40px) saturate(200%)',
+                 WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+                 border: '0.5px solid rgba(255,255,255,0.10)',
+                 boxShadow: '0 16px 48px rgba(0,0,0,0.5)' }}>
+
+        {mode === 'menu' && (
+          <div className="grid grid-cols-3">
+            {[
+              { label: 'Flight plan', sub: 'AVIARA', onClick: () => window.open(AVIARA_URL, '_blank'),
+                icon: <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" /> },
+              { label: 'Quote', sub: 'price a trip', onClick: () => { setRoutePoints([]); setMode('quote') },
+                icon: <><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></> },
+              { label: 'Trips', sub: 'past flights', onClick: () => setMode('trips'),
+                icon: <><circle cx="6" cy="19" r="2" /><circle cx="18" cy="5" r="2" /><path d="M8 19h6.5a3.5 3.5 0 0 0 0-7h-5a3.5 3.5 0 0 1 0-7H16" /></> },
+            ].map(({ label, sub, onClick, icon }, i) => (
+              <button key={label} onClick={onClick}
+                className={`flex flex-col items-center gap-1.5 py-4 active:bg-white/[0.08] ${i > 0 ? 'border-l border-white/[0.07]' : ''}`}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#2CB9BD" strokeWidth={1.8}
+                  strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">{icon}</svg>
+                <span className="text-[13px] font-semibold text-white leading-none">{label}</span>
+                <span className="text-[10px] text-white/35 leading-none">{sub}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {mode === 'quote' && (
+          <div className="px-4 pt-3.5 pb-4">
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-[15px] font-bold text-white">Quote</p>
+              <div className="flex gap-2">
+                {routePoints.length > 0 && (
+                  <button onClick={() => setRoutePoints([])}
+                    className="text-[12px] font-semibold text-white/50 px-3 py-1.5 rounded-full bg-white/[0.08] active:bg-white/[0.15]">Clear</button>
+                )}
+                <button onClick={exitToMenu}
+                  className="text-[12px] font-semibold text-white px-3 py-1.5 rounded-full bg-white/[0.08] active:bg-white/[0.15]">Done</button>
+              </div>
+            </div>
+            {routePoints.length === 0 ? (
+              <p className="text-[12px] text-white/40">Tap sites on the chart in order to build the route.</p>
+            ) : (
+              <>
+                <p className="text-[12px] text-accent font-semibold mb-2.5 leading-snug">
+                  {routePoints.map(w => w.code || w.name).join(' → ')}
+                </p>
+                {quote ? (
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    {[
+                      ['Distance', `${quote.nm.toFixed(0)} nm`],
+                      ['Time', `${quote.hours.toFixed(1)} h`],
+                      ['Fuel', `${quote.fuel.toFixed(0)} gal`],
+                      ['Price', `$${Math.round(quote.price).toLocaleString('en-US')}`],
+                    ].map(([k, v]) => (
+                      <div key={k} className="rounded-xl bg-white/[0.06] py-2.5">
+                        <p className="text-[9px] uppercase tracking-wider text-white/35">{k}</p>
+                        <p className="text-[14px] font-bold text-white mt-1 tabular-nums">{v}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[12px] text-white/40">Tap the next site to complete the leg.</p>
+                )}
+                <p className="text-[9.5px] text-white/25 mt-2.5">
+                  {CRUISE_KTS} kts cruise · {BURN_GPH} gph · ${RATE_HR.toLocaleString()}/h all-in · direct legs
+                </p>
+              </>
+            )}
+          </div>
+        )}
+
+        {mode === 'trips' && (
+          <div className="px-4 pt-3.5 pb-2">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[15px] font-bold text-white">Trips</p>
+              <button onClick={exitToMenu}
+                className="text-[12px] font-semibold text-white px-3 py-1.5 rounded-full bg-white/[0.08] active:bg-white/[0.15]">Done</button>
+            </div>
+            <div className="max-h-48 overflow-y-auto -mx-1 px-1 pb-2">
+              {flights.slice(0, 8).map(f => (
+                <button key={f.id} onClick={() => showTrip(f)}
+                  className="w-full flex items-center justify-between py-2.5 border-b border-white/[0.06] last:border-0 active:bg-white/[0.06] rounded-lg px-1 text-left">
+                  <span>
+                    <span className="block text-[13px] font-semibold text-white leading-none">
+                      {f.legs?.[0]?.takeoff_location ?? '—'} → {f.legs?.[f.legs.length - 1]?.landing_location ?? '—'}
+                    </span>
+                    <span className="block text-[11px] text-white/40 mt-1 leading-none">
+                      {new Date(f.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                  </span>
+                  <span className="text-[13px] font-bold text-white tabular-nums">
+                    {f.total_minutes ? `${(f.total_minutes / 60).toFixed(1)}h` : '—'}
+                  </span>
+                </button>
+              ))}
+              {flights.length === 0 && <p className="text-[12px] text-white/40 py-3">No flights logged yet.</p>}
+            </div>
+          </div>
+        )}
+
+        {mode === 'trip-view' && trip && (
+          <div className="px-4 pt-3.5 pb-4">
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-[15px] font-bold text-white">
+                {trip.flight.legs?.[0]?.takeoff_location ?? '—'} → {trip.flight.legs?.[trip.flight.legs.length - 1]?.landing_location ?? '—'}
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => { cancelAnimationFrame(animRef.current); setMode('trips') }}
+                  className="text-[12px] font-semibold text-white/50 px-3 py-1.5 rounded-full bg-white/[0.08] active:bg-white/[0.15]">Back</button>
+                <button onClick={exitToMenu}
+                  className="text-[12px] font-semibold text-white px-3 py-1.5 rounded-full bg-white/[0.08] active:bg-white/[0.15]">Done</button>
+              </div>
+            </div>
+            {!trip.coords && (
+              <p className="text-[11px] text-amber-300/80 mb-2">
+                Couldn't match this flight's locations to saved waypoints, so the route can't be drawn.
+              </p>
+            )}
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {[
+                ['Date', new Date(trip.flight.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })],
+                ['Duration', trip.flight.total_minutes ? `${(trip.flight.total_minutes / 60).toFixed(1)} h` : '—'],
+                ['Fuel', trip.flight.fuel_consumed_gal != null ? `${trip.flight.fuel_consumed_gal} gal` : '—'],
+              ].map(([k, v]) => (
+                <div key={k} className="rounded-xl bg-white/[0.06] py-2.5">
+                  <p className="text-[9px] uppercase tracking-wider text-white/35">{k}</p>
+                  <p className="text-[14px] font-bold text-white mt-1 tabular-nums">{v}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {selected && (
