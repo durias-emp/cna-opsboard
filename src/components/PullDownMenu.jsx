@@ -27,9 +27,11 @@ export default function PullDownMenu({ items, trigger, align = 'left' }) {
           className={`absolute top-full mt-2 z-[90] min-w-[13rem] overflow-hidden rounded-2xl
                       shadow-[0_16px_48px_rgba(0,0,0,0.55)] ${align === 'right' ? 'right-0' : 'left-0'}`}
           style={{
-            background: 'rgba(var(--glass-rgb), calc(var(--glass-opacity) + 0.55))',
-            backdropFilter: 'blur(var(--glass-blur)) saturate(180%)',
-            WebkitBackdropFilter: 'blur(20px)',
+            // iOS thick material — the native context-menu look. Deliberately
+            // NOT tied to the app's glass number: system menus don't thin out.
+            background: 'rgba(44,44,46,0.82)',
+            backdropFilter: 'blur(40px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(180%)',
             transformOrigin: align === 'right' ? 'top right' : 'top left',
             animation: 'menu-in 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.2)',
           }}

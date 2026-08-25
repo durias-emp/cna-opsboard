@@ -152,8 +152,10 @@ function CrestHeader({ tailNumber, switcherItems }) {
         </div>
       </div>
 
-      {/* In-flow row — holds the aircraft pill, which scrolls away with the page */}
-      <div ref={anchor} className="relative flex items-center justify-end pt-4 pb-1 px-4" style={{ minHeight: '3.1rem' }}>
+      {/* In-flow row — the aircraft pill sits centered under the crest (Tesla:
+          vehicle selector under the marque) and scrolls away with the page */}
+      <div ref={anchor} className="relative flex items-center justify-center px-4"
+        style={{ paddingTop: '3.4rem', paddingBottom: '0.4rem' }}>
         {chip}
       </div>
     </>
