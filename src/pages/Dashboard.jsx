@@ -52,15 +52,16 @@ function MiniGlobe({ size = 52 }) {
     canvas.style.height = `${size}px`
     box.appendChild(canvas)
     let phi = 3.8   // start with the Americas facing us
+    const dpr = size < 70 ? 4 : 3    // tiny canvases need oversampling
     const globe = createGlobe(canvas, {
-      devicePixelRatio: 4,           // small canvas: oversample so dots survive
-      width: size * 4,
-      height: size * 4,
+      devicePixelRatio: dpr,
+      width: size * dpr,             // cobe renders at width/dpr CSS px — keep = size
+      height: size * dpr,
       phi,
       theta: 0.28,
       dark: 1,
       diffuse: 1.2,
-      mapSamples: 3000,              // fewer, bigger dots at this tiny size
+      mapSamples: size < 70 ? 3000 : 9000,
       mapBrightness: 8,
       baseColor: [0.6, 0.6, 0.62],
       markerColor: [0.17, 0.73, 0.74],
@@ -318,7 +319,7 @@ export default function Dashboard() {
 
           <button className="trow" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
             onClick={() => navigate('/map')}>
-            <MiniGlobe size={52} />
+            <MiniGlobe size={104} />
             <div className="min-w-0">
               <p className="text-[14px] font-semibold text-white">Map &amp; Waypoints</p>
               <p className="text-[12px] text-white/40 mt-0.5">275 aerodromes · hold to add your own sites</p>
