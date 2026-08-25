@@ -258,6 +258,9 @@ export default function Dashboard() {
               style={{ height: 280 }}
               onClick={() => navigate('/map')} aria-label="Open map and waypoints">
               <MiniMap height={280} />
+              {/* dark veil: the clear chart dims to sit inside the dark UI */}
+              <div className="absolute inset-0 pointer-events-none"
+                style={{ background: 'rgba(14, 16, 18, 0.38)' }} />
               {/* readability scrim + floating title */}
               <div className="absolute inset-x-0 bottom-0 h-16 pointer-events-none"
                 style={{ background: 'linear-gradient(to top, rgba(17,17,18,0.85), transparent)' }} />
