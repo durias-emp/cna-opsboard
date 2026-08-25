@@ -123,6 +123,23 @@
     transform: translateY(4px) scale(0.97);
   }
 
+  /* Instagram lens: the frosted blob riding behind the active tab */
+  .nav-lens-track {
+    position: absolute;
+    left: 0.4rem; right: 0.4rem; top: 0.28rem; bottom: 0.28rem;
+    pointer-events: none;
+  }
+  .nav-lens {
+    position: absolute;
+    left: 0; top: 0; height: 100%; width: 20%;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.11);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09);
+    transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .nav-lens.dragging { background: rgba(255, 255, 255, 0.16); }
+  .nav-btn { position: relative; }   /* paint tabs above the lens */
+
   /* In motion the frost thickens, it does not vanish: while the capsule is
      animating, go near-solid and drop the radius to 2px. NEVER remove
      backdrop-filter from this (transformed) layer — WebKit loses the effect
