@@ -249,8 +249,8 @@ insert into waypoints (code, name, lat, lng, elevation_ft, kind, country, source
   ('MHOC', 'CORATZA SAN PEDRO SULA', 15.4725, -87.994167, null, 'aerodrome', 'Honduras', 'aip'),
   ('MHBJ', 'BIJAO CHOLOMA', 15.704083, -87.926139, null, 'aerodrome', 'Honduras', 'aip'),
   ('MNMG', 'MNMG', 12.141742, -86.16977, 194, 'aerodrome', 'Nicaragua', 'aip'),
-  (null, 'A.I.E.S. – SOARG', 13.440833, -89.055833, 82, 'aerodrome', 'El Salvador', 'aip'),
-  (null, 'A.I.ILOPANGO', 13.6994, -89.119811, 2018, 'aerodrome', 'El Salvador', 'aip'),
+  ('MSLP', 'A.I.E.S. – SOARG', 13.440833, -89.055833, 82, 'aerodrome', 'El Salvador', 'aip'),
+  ('MSSS', 'A.I.ILOPANGO', 13.6994, -89.119811, 2018, 'aerodrome', 'El Salvador', 'aip'),
   (null, 'Puerto Barillas', 13.265263, -88.499132, 17, 'aerodrome', 'El Salvador', 'aip'),
   (null, 'Tonalá', 13.579269, -89.733678, 114, 'aerodrome', 'El Salvador', 'aip'),
   (null, 'El Zapote', 13.707954, -90.026271, 10, 'aerodrome', 'El Salvador', 'aip'),
@@ -276,4 +276,10 @@ insert into waypoints (code, name, lat, lng, elevation_ft, kind, country, source
   (null, 'Salamanca', 13.629528, -89.2535, 2815, 'heliport', 'El Salvador', 'aip'),
   (null, 'Millennium', 13.701347, -89.228494, null, 'heliport', 'El Salvador', 'aip'),
   (null, 'Planta Holcim, El Ronco', 14.326857, -89.498628, 1520, 'heliport', 'El Salvador', 'aip'),
-  (null, 'Samedan', 13.658736, -89.250096, 3285, 'heliport', 'El Salvador', 'aip');
+  (null, 'Samedan', 13.658736, -89.250096, 3285, 'heliport', 'El Salvador', 'aip'),
+  ('MGGT', 'La Aurora Intl · Guatemala City', 14.583272, -90.527497, 4952, 'aerodrome', 'Guatemala', 'aip'),
+  ('MGMM', 'Mundo Maya Intl · Flores', 16.913889, -89.866389, 387, 'aerodrome', 'Guatemala', 'aip'),
+  ('MHTG', 'Toncontín Intl · Tegucigalpa', 14.060883, -87.217197, 3294, 'aerodrome', 'Honduras', 'aip'),
+  ('MHPR', 'Palmerola Intl · Comayagua', 14.3825, -87.621111, 2060, 'aerodrome', 'Honduras', 'aip'),
+  ('MHLM', 'Ramón Villeda Morales Intl · San Pedro Sula', 15.452639, -87.923556, 91, 'aerodrome', 'Honduras', 'aip'),
+  ('MHRO', 'Juan Manuel Gálvez Intl · Roatán', 16.316814, -86.522961, 18, 'aerodrome', 'Honduras', 'aip');
