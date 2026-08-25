@@ -234,41 +234,48 @@ export default function Dashboard() {
               )}
             </button>
 
-            {/* Secondary stats — label / centerpiece / sub, aligned across all three */}
+            {/* Secondary stats — identical skeleton on all three tiles:
+                label / fixed-height centerpiece / one-line footer */}
             <div className="grid grid-cols-3 gap-2.5">
-              <button className="vital-tile items-center text-center justify-between" onClick={() => navigate('/maintenance')}>
+              <button className="vital-tile items-center text-center" onClick={() => navigate('/maintenance')}>
                 <p className="vital-label">Maint</p>
-                {overdueCount > 0 ? (
-                  <p className="vital-value-sm text-red-400" style={{ fontSize: 19 }}>
-                    {overdueCount} <span className="vital-unit">over</span>
-                  </p>
-                ) : dueSoonCount > 0 ? (
-                  <p className="vital-value-sm text-amber-300" style={{ fontSize: 19 }}>
-                    {dueSoonCount} <span className="vital-unit">soon</span>
-                  </p>
-                ) : (
-                  <p className="vital-value-sm" style={{ fontSize: 19 }}>OK</p>
-                )}
-                <p className="vital-sub">{nextDue ? `next ${nextDue.hrsRemaining.toFixed(1)} h` : '—'}</p>
+                <div className="vital-zone">
+                  {overdueCount > 0 ? (
+                    <p className="vital-value-sm text-red-400">
+                      {overdueCount} <span className="vital-unit">over</span>
+                    </p>
+                  ) : dueSoonCount > 0 ? (
+                    <p className="vital-value-sm text-amber-300">
+                      {dueSoonCount} <span className="vital-unit">soon</span>
+                    </p>
+                  ) : (
+                    <p className="vital-value-sm">OK</p>
+                  )}
+                </div>
+                <p className="vital-foot">{nextDue ? `next ${nextDue.hrsRemaining.toFixed(1)} h` : '—'}</p>
               </button>
 
-              <button className="vital-tile items-center text-center justify-between" onClick={() => navigate('/fuel')}>
+              <button className="vital-tile items-center text-center" onClick={() => navigate('/fuel')}>
                 <p className="vital-label">Fuel</p>
-                <FuelArc gal={animFuel} />
-                <p className="vital-value-sm" style={{ marginTop: '-0.2rem' }}>
-                  {animFuel != null ? Math.round(animFuel) : '—'} <span className="vital-unit">USG</span>
-                </p>
-                <p className="vital-sub">
+                <div className="vital-zone">
+                  <FuelArc gal={animFuel} />
+                  <p className="vital-value-sm" style={{ marginTop: '-0.3rem' }}>
+                    {animFuel != null ? Math.round(animFuel) : '—'} <span className="vital-unit">USG</span>
+                  </p>
+                </div>
+                <p className="vital-foot">
                   {animEndurance != null ? `${animEndurance.toFixed(1)} h endurance` : '—'}
                 </p>
               </button>
 
-              <button className="vital-tile items-center text-center justify-between" onClick={() => navigate('/flights')}>
+              <button className="vital-tile items-center text-center" onClick={() => navigate('/flights')}>
                 <p className="vital-label">Month</p>
-                <p className="vital-value-sm" style={{ fontSize: 19 }}>
-                  {stats.total ? `+${stats.allHours ?? stats.monthHours}` : '0h'}
-                </p>
-                <p className="vital-sub">{stats.total ? `${stats.total} flights` : 'no flights'}</p>
+                <div className="vital-zone">
+                  <p className="vital-value-sm">
+                    {stats.total ? `+${stats.allHours ?? stats.monthHours}` : '0h'}
+                  </p>
+                </div>
+                <p className="vital-foot">{stats.total ? `${stats.total} flights` : 'no flights'}</p>
               </button>
             </div>
           </div>
