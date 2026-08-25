@@ -60,6 +60,20 @@ export default function BottomNav() {
   const [compact, setCompact] = useState(false)
   const lastTop = useRef(new WeakMap())
 
+  // While the capsule animates between states, thicken the frost (is-moving):
+  // blurring a moving layer every frame is expensive, and the class swaps to a
+  // cheap 2px blur without ever removing backdrop-filter (the WebKit trap).
+  const [moving, setMoving] = useState(false)
+  const moveTimer = useRef(null)
+  const firstRender = useRef(true)
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return }
+    setMoving(true)
+    clearTimeout(moveTimer.current)
+    moveTimer.current = setTimeout(() => setMoving(false), 480)
+    return () => clearTimeout(moveTimer.current)
+  }, [compact])
+
   useEffect(() => {
     function onScroll(e) {
       const el = e.target
@@ -78,7 +92,7 @@ export default function BottomNav() {
 
   return (
     <div className="nav-dock">
-    <nav className={`pill-nav${compact ? ' compact' : ''}`} onClick={() => setCompact(false)}>
+    <nav className={`pill-nav${compact ? ' compact' : ''}${moving ? ' is-moving' : ''}`} onClick={() => setCompact(false)}>
       {TABS.map(({ to, label, icon }) => (
         <NavLink
           key={to}

@@ -122,7 +122,10 @@ function CrestHeader({ tailNumber, switcherItems }) {
     ? <PullDownMenu items={switcherItems} align="right" trigger={toggle => chipBody(toggle)} />
     : chipBody(null)
 
-  const blur = p > 0.02 ? `blur(${Math.round(20 * p)}px) saturate(${100 + Math.round(80 * p)}%)` : 'none'
+  // Never 'none': removing backdrop-filter from a composited layer is the
+  // WebKit path that loses the effect permanently (AVIARA lesson). The radius
+  // may go to 0px, but the property stays.
+  const blur = `blur(${Math.round(20 * p)}px) saturate(${100 + Math.round(80 * p)}%)`
 
   return (
     <>

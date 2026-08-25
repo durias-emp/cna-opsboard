@@ -2,7 +2,12 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import './index.css'
+import { loadGlass } from './lib/glass'
 import App from './App'
+
+// Before first paint, so the glass surfaces never visibly jump to the stored
+// sheerness (an effect would run after paint — exactly what a user notices).
+loadGlass()
 
 // iOS keyboard-close re-anchor: when the on-screen keyboard dismisses in a
 // standalone PWA, WebKit sometimes leaves the page scrolled/shifted, which
