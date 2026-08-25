@@ -134,7 +134,10 @@ function CrestHeader({ tailNumber, switcherItems }) {
         className="fixed top-0 left-0 right-0 z-[60] pointer-events-none"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
-          background: `rgba(var(--glass-rgb), calc(var(--glass-opacity) * ${p.toFixed(3)}))`,
+          // Thin bleed of the page ground at the very top so scrolled content
+          // never hard-touches the status bar boundary, over the sheer glass
+          background: `linear-gradient(to bottom, rgba(23,23,23,${(0.9 * p).toFixed(3)}) 0px, rgba(23,23,23,0) 2.4rem),
+                       rgba(var(--glass-rgb), calc(var(--glass-opacity) * ${p.toFixed(3)}))`,
           backdropFilter: blur,
           WebkitBackdropFilter: blur,
           maskImage: 'linear-gradient(to bottom, black 45%, transparent 100%)',
