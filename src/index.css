@@ -304,7 +304,9 @@
 
   /* ── Finance-style list tiles: icon squircle, bold title over muted date,
         bold value, inset separators that start after the icon ── */
-  .tile-group { @apply bg-navy-800 rounded-2xl overflow-hidden; }
+  /* No background of its own: pair with .glass-card so the material matches
+     the rest of the app's cards */
+  .tile-group { @apply rounded-2xl overflow-hidden; }
   .tile { @apply flex items-center gap-3.5 pl-4 pr-0 cursor-pointer select-none; }
   .tile:active { @apply bg-white/[0.03]; }
   .tile-icon {
@@ -312,9 +314,16 @@
            flex items-center justify-center flex-shrink-0;
   }
   .tile-body {
-    @apply flex-1 min-w-0 flex items-center justify-between gap-3 py-4 pr-4;
+    @apply flex-1 min-w-0 flex items-center justify-between gap-3 py-4 pr-4 relative;
   }
-  .tile:not(:first-child) .tile-body { border-top: 1px solid rgba(255, 255, 255, 0.06); }
+  /* iOS-style separator: floats between rows, inset from both edges */
+  .tile:not(:first-child) .tile-body::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 1rem;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.06);
+  }
   .tile-title { @apply text-[15px] font-semibold text-white leading-tight truncate; }
   .tile-sub   { @apply text-[12.5px] text-white/40 mt-1 leading-tight truncate; }
   .tile-value { @apply text-[15px] font-semibold text-white flex-shrink-0 tabular-nums; }

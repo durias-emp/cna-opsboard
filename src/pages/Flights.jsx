@@ -640,7 +640,7 @@ export default function Flights() {
               action={{ label: 'Log Flight', onClick: () => setDrawerOpen(true) }}
             />
           ) : (
-            <div className="tile-group">
+            <div className="tile-group glass-card">
               {filtered.map(flight => (
                 <div
                   key={flight.id}
