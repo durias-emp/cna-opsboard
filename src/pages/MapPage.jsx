@@ -5,7 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { useWaypoints } from '../hooks/useWaypoints'
 import { useAircraft } from '../context/AircraftContext'
 import { useFlights } from '../hooks/useFlights'
-import { formatDMS, parseCoords } from '../lib/geo'
+import { formatDMS, parseCoords, haversineNm } from '../lib/geo'
 import { computeQuote } from '../lib/quote'
 import { useQuoteProfile } from '../hooks/useQuoteProfile'
 import { useRouteWinds } from '../hooks/useRouteWinds'
@@ -813,6 +813,43 @@ export default function MapPage() {
 
                 {quote ? (
                   <>
+                    {/* Per-leg strip — DIST / ETE / FUEL, ForeFlight style */}
+                    {(() => {
+                      const pts = routePoints
+                      const dists = []
+                      for (let i = 1; i < pts.length; i++)
+                        dists.push(haversineNm(pts[i - 1].lat, pts[i - 1].lng, pts[i].lat, pts[i].lng))
+                      const outDist = dists.reduce((s, d) => s + d, 0) || 1
+                      const outAir  = quote.segments[0]?.airHr ?? 0
+                      // Air time shared across legs by distance — totals match the engine
+                      const legs = dists.map((d, i) => ({
+                        from: pts[i], to: pts[i + 1], nm: d, hr: outAir * (d / outDist),
+                      }))
+                      if (roundTrip && quote.segments[1])
+                        legs.push({ from: pts[pts.length - 1], to: pts[0], nm: quote.segments[1].distNm, hr: quote.segments[1].airHr, back: true })
+                      const ete = h => `${Math.floor(h)}h${String(Math.round((h - Math.floor(h)) * 60)).padStart(2, '0')}m`
+                      const tag = w => w.code || (w.diversion ? 'Via' : w.source === 'adhoc' ? 'Pin' : w.name.split(' ')[0])
+                      return (
+                        <div className="rounded-xl bg-white/[0.05] px-3 py-2 mb-2.5 space-y-1">
+                          <div className="flex text-[8.5px] uppercase tracking-wider text-white/30">
+                            <span className="flex-1">Leg</span>
+                            <span className="w-14 text-right">Dist</span>
+                            <span className="w-14 text-right">ETE</span>
+                            <span className="w-12 text-right">Fuel</span>
+                          </div>
+                          {legs.map((l, i) => (
+                            <div key={i} className="flex items-baseline text-[11.5px] tabular-nums">
+                              <span className="flex-1 font-semibold text-white/80 truncate pr-2">
+                                {tag(l.from)} → {tag(l.to)}{l.back && <span className="text-white/30 font-normal"> return</span>}
+                              </span>
+                              <span className="w-14 text-right text-white/60">{l.nm.toFixed(0)} nm</span>
+                              <span className="w-14 text-right text-white/60">{ete(l.hr)}</span>
+                              <span className="w-12 text-right text-white/60">{(l.hr * profile.burn_gph).toFixed(0)} g</span>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })()}
                     {/* Breakdown */}
                     <div className="space-y-1.5 mb-2.5">
                       {quote.lines.map(l => (
