@@ -9,6 +9,7 @@ export const FALLBACK_ROSTER = [
   { name: 'James McBride',   group: 'pilot',      role: 'Pilot',               management: true  },
   { name: 'Jay McMackin',    group: 'pilot',      role: 'Pilot',               management: false },
   { name: 'Daniel Sandoval', group: 'pilot',      role: 'Pilot',               management: false },
+  { name: 'Erick Hidalgo',   group: 'pilot',      role: 'Pilot',               management: false },
   { name: 'Cesar Espinoza',  group: 'mechanic',   role: 'Aircraft Mechanic',   management: false },
   { name: 'Antony Villalta', group: 'mechanic',   role: 'Aircraft Mechanic',   management: false },
   { name: 'Luis Soriano',    group: 'mechanic',   role: 'Aircraft Mechanic',   management: false },
