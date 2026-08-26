@@ -62,10 +62,12 @@ export function formatDMS(lat, lng) {
   const one = (v, pos, neg) => {
     const h = v >= 0 ? pos : neg
     const abs = Math.abs(v)
-    const d = Math.floor(abs)
+    let d = Math.floor(abs)
     const mFloat = (abs - d) * 60
-    const m = Math.floor(mFloat)
-    const s = Math.round((mFloat - m) * 60)
+    let m = Math.floor(mFloat)
+    let s = Math.round((mFloat - m) * 60)
+    if (s === 60) { s = 0; m += 1 }          // carry — never print 60"
+    if (m === 60) { m = 0; d += 1 }
     return `${d}°${String(m).padStart(2, '0')}'${String(s).padStart(2, '0')}"${h}`
   }
   return `${one(lat, 'N', 'S')} ${one(lng, 'E', 'W')}`

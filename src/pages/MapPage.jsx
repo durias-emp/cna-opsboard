@@ -437,13 +437,16 @@ export default function MapPage() {
   useEffect(() => {
     const map = mapRef.current
     if (!map || !ready) return
+    const choosing = routePoints.length < 2   // route not determined yet
     const feats = routePoints.map(w => ({
       type: 'Feature', geometry: { type: 'Point', coordinates: [w.lng, w.lat] },
-      properties: { halo: w.source !== 'adhoc' },   // pinned sites pulse; dropped pins keep their dot
+      // while choosing, pinned sites pulse; once the route is set every point
+      // draws as a plain marker and the pulse retires
+      properties: { halo: choosing && w.source !== 'adhoc' },
     }))
     map.getSource('halo')?.setData({
       type: 'FeatureCollection',
-      features: mode === 'quote' ? feats.filter(f => f.geometry.type === 'Point') : [],
+      features: mode === 'quote' && choosing ? feats.filter(f => f.geometry.type === 'Point') : [],
     })
     if (routePoints.length >= 2) {
       const coords = routePoints.map(w => [w.lng, w.lat])
@@ -465,7 +468,7 @@ export default function MapPage() {
   // ── Halo pulse: the chosen site's ring breathes so "picked" is unmissable ──
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !ready || mode !== 'quote' || routePoints.length === 0) return
+    if (!map || !ready || mode !== 'quote' || routePoints.length !== 1) return
     let raf
     const start = performance.now()
     const tick = now => {
@@ -479,7 +482,7 @@ export default function MapPage() {
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [mode, routePoints.length, ready])
+  }, [mode, routePoints.length, ready])   // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Trips: resolve a flight's legs to waypoints, draw, and fly the crumb ──
   function resolveTrip(flight) {
@@ -567,15 +570,18 @@ export default function MapPage() {
     if (!map || !ready) return
     // While quoting, every site must be tappable regardless of layer prefs
     if (mode === 'quote') {
+      // Choosing: every site tappable. Route determined: the chart clears so
+      // only the route remains, and the camera has already fit to it.
+      const vis = routePoints.length >= 2 ? 'none' : 'visible'
       for (const id of ['aip-dots', 'aip-labels', 'custom-dots', 'custom-labels'])
-        map.setLayoutProperty(id, 'visibility', 'visible')
+        map.setLayoutProperty(id, 'visibility', vis)
     } else {
       for (const id of ['aip-dots', 'aip-labels'])
         map.setLayoutProperty(id, 'visibility', layers.aip ? 'visible' : 'none')
       for (const id of ['custom-dots', 'custom-labels'])
         map.setLayoutProperty(id, 'visibility', layers.custom ? 'visible' : 'none')
     }
-  }, [mode, ready])   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mode, ready, routePoints.length >= 2])   // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── AVIARA layers: visibility follows the toggles, persisted ──
   useEffect(() => {
