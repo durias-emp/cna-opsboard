@@ -7,6 +7,8 @@ import ActionSheet from './ActionSheet'
 import { supabase } from '../lib/supabase'
 import DatePicker from './DatePicker'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
+import { useWaypoints } from '../hooks/useWaypoints'
+import { RouteMiniMap } from './FlightDetailSheet'
 import { HELICOPTER_ICON } from '../assets/navIcons'
 
 const ROUND = (n, decimals = 2) => Math.round(n * 10 ** decimals) / 10 ** decimals
@@ -249,6 +251,8 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
   const [tachNew,       setTachNew]       = useState('')
   const [tachModal,     setTachModal]     = useState(false)
   const [legs,          setLegs]          = useState([emptyLeg()])
+  const [route,         setRoute]         = useState([])   // chips: the route flown, in order
+  const { waypoints }                     = useWaypoints()
   const [cycles,        setCycles]        = useState('1')
   const [passengers,    setPassengers]    = useState([emptyPassenger(), emptyPassenger()])
   const [paxDropdown,   setPaxDropdown]   = useState(null)
@@ -296,6 +300,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       setDate(editFlight.date ?? today)
       setPilot(editFlight.pilot ?? '')
       setCopilot(editFlight.copilot ?? '')
+      setRoute(editFlight.legs?.[0]?.route ?? [])
       setLegs(
         editFlight.legs?.length
           ? editFlight.legs.map(l => ({
@@ -332,6 +337,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       setCopilot('')
       setTachMode(false); setTachNew(''); setTachModal(false)
       setLegs([emptyLeg()])
+      setRoute([])
       setPassengers([emptyPassenger()])
       setCycles('1')
       setFuelStart('')
@@ -412,7 +418,9 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       date,
       pilot:                pilot || null,
       copilot:              copilot || null,
-      legs:                 tachMode ? [] : legs,
+      legs:                 tachMode
+        ? (route.length ? [{ ...emptyLeg(), route }] : [])
+        : legs.map((l, i) => (i === 0 ? { ...l, route } : l)),
       total_minutes:        totalMinutes,
       flight_time_minutes:  ftMins ?? null,
       cycles:               cyclesNum || null,
@@ -837,6 +845,9 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
               </div>
             </div>
           )}
+
+          {/* Route — the flight's track, chips resolving against the chart */}
+          <RouteCard route={route} setRoute={setRoute} waypoints={waypoints} />
 
           {/* Flight Time */}
           <div className={`bg-white/[0.04] rounded-2xl p-4 border space-y-3 ${ftUnderAirTime ? 'border-red-500/30' : 'border-white/[0.06]'}`}>
@@ -1498,6 +1509,85 @@ function FlightTimerModal({ onCancel, onConfirm, initialMins }) {
 }
 
 // ── ICAO picker field ──────────────────────────────────────────────────────────
+
+// ForeFlight-style route entry: one big field of chips. Type SALA, acajutla,
+// MSSS… — the chart resolves each token to a site and the minimap draws the
+// line as the route grows.
+function RouteCard({ route, setRoute, waypoints }) {
+  const [q, setQ] = useState('')
+  const resolve = token => {
+    if (!token) return null
+    const n = token.trim().toUpperCase()
+    if (!n) return null
+    return waypoints.find(w => (w.code ?? '').toUpperCase() === n)
+        ?? waypoints.find(w => (w.code ?? '').toUpperCase().startsWith(n))
+        ?? waypoints.find(w => w.name.toUpperCase().includes(n))
+  }
+  const matches = q.trim().length >= 2
+    ? waypoints.filter(w => {
+        const n = q.trim().toUpperCase()
+        return (w.code ?? '').toUpperCase().startsWith(n) || w.name.toUpperCase().includes(n)
+      }).slice(0, 4)
+    : []
+  const addToken = raw => {
+    const token = raw.trim()
+    if (!token) return
+    const w = resolve(token)
+    setRoute([...route, w ? (w.code || w.name) : token.toUpperCase()])
+    setQ('')
+  }
+  const coords = []
+  for (const label of route) {
+    const w = resolve(label)
+    if (!w) continue
+    const last = coords[coords.length - 1]
+    if (!last || last[0] !== w.lng || last[1] !== w.lat) coords.push([w.lng, w.lat])
+  }
+  return (
+    <div className="bg-white/[0.04] rounded-2xl p-4 space-y-3">
+      <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">Route</p>
+
+      {coords.length >= 2 && <RouteMiniMap coords={coords} />}
+
+      {/* One big field: chips + inline input, ForeFlight style */}
+      <div className="rounded-xl bg-white/[0.05] px-2.5 py-2 flex flex-wrap items-center gap-1.5"
+        onClick={e => e.currentTarget.querySelector('input')?.focus()}>
+        {route.map((r, i) => (
+          <span key={`${r}-${i}`}
+            className="flex items-center gap-1 pl-2.5 pr-1.5 py-1.5 rounded-full bg-white/[0.08] text-[13px] font-semibold text-white">
+            {r}
+            <button type="button" onClick={() => setRoute(route.filter((_, j) => j !== i))}
+              className="text-white/35 px-1 text-[15px] leading-none">×</button>
+          </span>
+        ))}
+        <input value={q}
+          onChange={e => {
+            const v = e.target.value
+            if (v.endsWith(' ')) addToken(v)   // space seals a token, like ForeFlight
+            else setQ(v)
+          }}
+          onKeyDown={e => {
+            if (e.key === 'Enter') { e.preventDefault(); addToken(q) }
+            if (e.key === 'Backspace' && !q && route.length) setRoute(route.slice(0, -1))
+          }}
+          placeholder={route.length ? '' : 'SALA acajutla MSSS…'}
+          className="flex-1 min-w-[110px] bg-transparent outline-none text-[14px] text-white placeholder-white/25 py-1.5" />
+      </div>
+
+      {matches.length > 0 && (
+        <div className="rounded-xl bg-white/[0.05] overflow-hidden">
+          {matches.map(w => (
+            <button key={w.id} type="button" onClick={() => addToken(w.code || w.name)}
+              className="w-full text-left px-3 py-2.5 text-[13px] text-white/80 active:bg-white/[0.1]">
+              <span className="font-semibold">{w.code || w.name}</span>
+              {w.code && <span className="text-white/40"> · {w.name}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function IcaoField({ value, onChange, onConfirm }) {
   const [open,      setOpen]      = useState(false)

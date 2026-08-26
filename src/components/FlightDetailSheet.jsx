@@ -8,7 +8,7 @@ import { loadStyle } from '../lib/mapStyle'
 import { HELICOPTER_ICON } from '../assets/navIcons'
 
 // Static minimap of the route flown — same teal line the live map uses.
-function RouteMiniMap({ coords }) {
+export function RouteMiniMap({ coords }) {
   const boxRef = useRef(null)
   useEffect(() => {
     let map, cancelled = false
