@@ -7,7 +7,6 @@ import ActionSheet from './ActionSheet'
 import { supabase } from '../lib/supabase'
 import DatePicker from './DatePicker'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
-import { useWaypoints } from '../hooks/useWaypoints'
 import { HELICOPTER_ICON } from '../assets/navIcons'
 
 const ROUND = (n, decimals = 2) => Math.round(n * 10 ** decimals) / 10 ** decimals
@@ -250,7 +249,6 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
   const [tachNew,       setTachNew]       = useState('')
   const [tachModal,     setTachModal]     = useState(false)
   const [legs,          setLegs]          = useState([emptyLeg()])
-  const { waypoints }                     = useWaypoints()   // route suggestions
   const [cycles,        setCycles]        = useState('1')
   const [passengers,    setPassengers]    = useState([emptyPassenger(), emptyPassenger()])
   const [paxDropdown,   setPaxDropdown]   = useState(null)
@@ -929,7 +927,6 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
           ) : (
             legs.map((leg, i) => (
               <LegCard
-                waypoints={waypoints}
                 key={i}
                 index={i}
                 leg={leg}
@@ -1502,50 +1499,6 @@ function FlightTimerModal({ onCancel, onConfirm, initialMins }) {
 
 // ── ICAO picker field ──────────────────────────────────────────────────────────
 
-// "Where did you go?" — chips of the places visited en route, so the flight's
-// real track (SALA → Acajutla → SALA) survives into the logbook and its minimap
-function ViaChips({ via, onChange, waypoints }) {
-  const [q, setQ] = useState('')
-  const query = q.trim().toUpperCase()
-  const matches = query.length >= 2
-    ? (waypoints ?? []).filter(w =>
-        (w.code ?? '').toUpperCase().startsWith(query) || w.name.toUpperCase().includes(query)
-      ).slice(0, 4)
-    : []
-  const add = label => { if (!label) return; onChange([...via, label]); setQ('') }
-  return (
-    <div>
-      <label className="label block mb-1.5">Route · where did you go?</label>
-      {via.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-1.5">
-          {via.map((v, i) => (
-            <span key={`${v}-${i}`}
-              className="flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full bg-white/[0.07] text-[12px] font-semibold text-white">
-              {v}
-              <button onClick={() => onChange(via.filter((_, j) => j !== i))}
-                className="text-white/35 px-1 text-[14px] leading-none">×</button>
-            </span>
-          ))}
-        </div>
-      )}
-      <input value={q} onChange={e => setQ(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(q.trim()) } }}
-        placeholder="Acajutla, La Unión…"
-        className="input-field w-full" />
-      {matches.length > 0 && (
-        <div className="mt-1 rounded-xl bg-white/[0.05] overflow-hidden">
-          {matches.map(w => (
-            <button key={w.id} onClick={() => add(w.code || w.name)}
-              className="w-full text-left px-3 py-2 text-[13px] text-white/80 active:bg-white/[0.1]">
-              {w.code ? `${w.code} · ${w.name}` : w.name}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 function IcaoField({ value, onChange, onConfirm }) {
   const [open,      setOpen]      = useState(false)
   const [custom,    setCustom]    = useState(false)
@@ -1665,7 +1618,7 @@ function IcaoField({ value, onChange, onConfirm }) {
 
 // ── Leg card ───────────────────────────────────────────────────────────────────
 
-function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTach, onLegComplete, hasTimeError, waypoints }) {
+function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTach, onLegComplete, hasTimeError }) {
   const mins    = calcLegMinutes(leg)
   const rawMins = calcLegMinutesRaw(leg)
   const [adjustOpen, setAdjustOpen] = useState(false)
@@ -1751,8 +1704,6 @@ function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTac
         <div className="w-2 h-2 rounded-full bg-white/20 flex-shrink-0" />
       </div>
 
-      {/* Route flown — the places visited between takeoff and landing */}
-      <ViaChips via={leg.via ?? []} onChange={v => onChange('via', v)} waypoints={waypoints} />
 
       {/* Landing row: same proportions */}
       <div className="flex gap-2 items-stretch">
