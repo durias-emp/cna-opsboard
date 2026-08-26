@@ -512,11 +512,15 @@ export default function MapPage() {
           ?? waypointsRef.current.find(w => w.name.toUpperCase().includes(n))
     }
     const coords = []
+    const push = w => {
+      if (!w) return
+      const last = coords[coords.length - 1]
+      if (!last || last[0] !== w.lng || last[1] !== w.lat) coords.push([w.lng, w.lat])
+    }
     for (const leg of flight.legs ?? []) {
-      const a = find(leg.takeoff_location), b = find(leg.landing_location)
-      if (a && !coords.length) coords.push([a.lng, a.lat])
-      if (a && coords.length && (coords[coords.length - 1][0] !== a.lng)) coords.push([a.lng, a.lat])
-      if (b) coords.push([b.lng, b.lat])
+      push(find(leg.takeoff_location))
+      for (const v of leg.via ?? []) push(find(v))
+      push(find(leg.landing_location))
     }
     return coords.length >= 2 ? coords : null
   }
