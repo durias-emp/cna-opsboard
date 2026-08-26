@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase'
 import DatePicker from './DatePicker'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 import { useWaypoints } from '../hooks/useWaypoints'
+import { RouteMiniMap } from './FlightDetailSheet'
 import { HELICOPTER_ICON } from '../assets/navIcons'
 
 const ROUND = (n, decimals = 2) => Math.round(n * 10 ** decimals) / 10 ** decimals
@@ -944,6 +945,30 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
             ))
           )}
 
+          {/* Live preview of the route being logged */}
+          {!tachMode && (() => {
+            const find = name => {
+              if (!name) return null
+              const n = String(name).trim().toUpperCase()
+              return waypoints.find(w => (w.code ?? '').toUpperCase() === n)
+                  ?? waypoints.find(w => w.name.toUpperCase().includes(n))
+            }
+            const coords = []
+            const push = w => {
+              if (!w) return
+              const last = coords[coords.length - 1]
+              if (!last || last[0] !== w.lng || last[1] !== w.lat) coords.push([w.lng, w.lat])
+            }
+            for (const leg of legs) {
+              push(find(leg.takeoff_location))
+              for (const v of leg.via ?? []) push(find(v))
+              push(find(leg.landing_location))
+            }
+            return coords.length >= 2
+              ? <RouteMiniMap coords={coords} />
+              : null
+          })()}
+
           {/* Cycles */}
           <div className="bg-white/[0.04] rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
@@ -1724,22 +1749,27 @@ function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTac
         </div>
       </div>
 
-      {/* Takeoff row: time gets flexible width, ICAO fixed 76px */}
+      {/* Where first: departure → destination, then the places in between */}
       <div className="flex gap-2 items-stretch">
         <div className="flex-1 min-w-0 flex flex-col">
-          <label className="label block mb-1.5">Takeoff</label>
-          <input type="time" value={leg.takeoff_time}
-            onChange={e => onChange('takeoff_time', e.target.value)}
-            className="input-field w-full flex-1" />
-        </div>
-        <div className="w-[76px] flex-shrink-0 flex flex-col">
-          <label className="label block mb-1.5">From</label>
+          <label className="label block mb-1.5">Departure</label>
           <IcaoField
             value={leg.takeoff_location}
             onChange={v => onChange('takeoff_location', v)}
           />
         </div>
+        <div className="flex-1 min-w-0 flex flex-col">
+          <label className="label block mb-1.5">Destination</label>
+          <IcaoField
+            value={leg.landing_location}
+            onChange={v => onChange('landing_location', v)}
+            onConfirm={handleToConfirm}
+          />
+        </div>
       </div>
+
+      {/* Route flown — the places visited between takeoff and landing */}
+      <ViaChips via={leg.via ?? []} onChange={v => onChange('via', v)} waypoints={waypoints} />
 
       <div className="flex items-center gap-2 px-1">
         <div className="w-2 h-2 rounded-full border border-white/20 flex-shrink-0" />
@@ -1751,24 +1781,19 @@ function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTac
         <div className="w-2 h-2 rounded-full bg-white/20 flex-shrink-0" />
       </div>
 
-      {/* Route flown — the places visited between takeoff and landing */}
-      <ViaChips via={leg.via ?? []} onChange={v => onChange('via', v)} waypoints={waypoints} />
-
-      {/* Landing row: same proportions */}
+      {/* Times */}
       <div className="flex gap-2 items-stretch">
+        <div className="flex-1 min-w-0 flex flex-col">
+          <label className="label block mb-1.5">Takeoff</label>
+          <input type="time" value={leg.takeoff_time}
+            onChange={e => onChange('takeoff_time', e.target.value)}
+            className="input-field w-full flex-1" />
+        </div>
         <div className="flex-1 min-w-0 flex flex-col">
           <label className="label block mb-1.5">Landing</label>
           <input type="time" value={leg.landing_time}
             onChange={e => { onChange('landing_time', e.target.value); onChange('actual_minutes', null) }}
             className="input-field w-full flex-1" />
-        </div>
-        <div className="w-[76px] flex-shrink-0 flex flex-col">
-          <label className="label block mb-1.5">To</label>
-          <IcaoField
-            value={leg.landing_location}
-            onChange={v => onChange('landing_location', v)}
-            onConfirm={handleToConfirm}
-          />
         </div>
       </div>
 

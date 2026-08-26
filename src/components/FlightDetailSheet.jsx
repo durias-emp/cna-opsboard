@@ -8,8 +8,9 @@ import { loadStyle } from '../lib/mapStyle'
 import { HELICOPTER_ICON } from '../assets/navIcons'
 
 // Static minimap of the route flown — same teal line the live map uses.
-function RouteMiniMap({ coords }) {
+export function RouteMiniMap({ coords }) {
   const boxRef = useRef(null)
+  const coordsKey = JSON.stringify(coords)   // rebuild only when the route actually changes
   useEffect(() => {
     let map, cancelled = false
     loadStyle().then(style => {
@@ -42,7 +43,7 @@ function RouteMiniMap({ coords }) {
       })
     })
     return () => { cancelled = true; map?.remove() }
-  }, [coords])
+  }, [coordsKey])   // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="relative rounded-2xl overflow-hidden" style={{ height: 170 }}>
       {/* position/inset inline — maplibre-gl.css sets position:relative on this
