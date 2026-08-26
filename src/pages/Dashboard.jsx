@@ -255,8 +255,8 @@ export default function Dashboard() {
 
             {/* Minimap — a tile like its siblings: rounded, inside the card
                 padding, sized like the Hobbs + tiles area combined */}
-            <button className="relative block w-full overflow-hidden select-none active:opacity-90 rounded-[14px]"
-              style={{ height: 280 }}
+            <button className="relative block w-full overflow-hidden select-none rounded-[14px]"
+              style={{ height: 280, WebkitTapHighlightColor: 'transparent' }}
               onClick={() => navigate('/map')} aria-label="Open map and waypoints">
               <MiniMap height={280} />
               {/* dark veil: the clear chart dims to sit inside the dark UI */}
