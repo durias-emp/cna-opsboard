@@ -5,6 +5,7 @@ import { useAircraft } from '../context/AircraftContext'
 import { useFlights } from '../hooks/useFlights'
 import { useTank, TANK_MAX_GAL, SUPPLIERS } from '../hooks/useTank'
 import { useJerryCans } from '../hooks/useJerryCans'
+import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 import PageHeader from '../components/PageHeader'
 import SectionHeader from '../components/SectionHeader'
 import TankFillupDrawer from '../components/TankFillupDrawer'
@@ -269,6 +270,7 @@ function FlightFuelRow({ flight, isLast }) {
 
 function JerryCanSection({ cans, loading, setLevel, totalCurrentGal, totalCapacityGal }) {
   const [showModal, setShowModal] = useState(false)
+  const { handleProps, panelProps, panelStyle } = useDrawerSwipe(() => setShowModal(false))
 
   if (loading) return <div className="card animate-pulse h-48" />
 
@@ -359,21 +361,33 @@ function JerryCanSection({ cans, loading, setLevel, totalCurrentGal, totalCapaci
         </div>
       </div>
 
-      {/* Update modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-[60] flex items-end" onClick={() => setShowModal(false)}>
-          <div className="absolute inset-0 bg-black/60" />
-          <div
-            className="relative w-full rounded-t-2xl border-t border-white/[0.05] p-5 pb-10 space-y-3"
-            style={{ background: '#111113' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-sm font-bold text-white">Update Jerry Can Levels</p>
-              <button onClick={() => setShowModal(false)}
-                className="text-white/40 text-xs active:text-white/70">Done</button>
-            </div>
+      {/* Update drawer — same glass sheet as every other drawer in the app */}
+      <div
+        className={`drawer-overlay ${showModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setShowModal(false)}
+      />
+      <div
+        className={`drawer-panel ${showModal ? 'translate-y-0' : 'translate-y-full'}`}
+        style={panelStyle} {...panelProps}
+      >
+        {/* Handle */}
+        <div className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab" {...handleProps}>
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
 
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3 flex-shrink-0">
+          <div>
+            <h2 className="text-base font-semibold text-white">Jerry Cans</h2>
+            <p className="text-[11px] text-white/35 mt-0.5">{cans.length} cans · tap the level after each fill or pour</p>
+          </div>
+          <button onClick={() => setShowModal(false)}
+            className="text-[12px] font-semibold text-white px-3 py-1.5 rounded-full bg-white/[0.08] active:bg-white/[0.15]">Done</button>
+        </div>
+
+        {/* Cans */}
+        <div className="overflow-y-auto flex-1 px-5 pb-8" style={{ overscrollBehavior: 'contain' }}>
+          <div className="trow-group">
             {cans.map((can, i) => {
               const cap       = parseFloat(can.capacity_gallons)
               const cur       = parseFloat(can.current_gallons)
@@ -381,14 +395,13 @@ function JerryCanSection({ cans, loading, setLevel, totalCurrentGal, totalCapaci
               const level     = fillRatio >= 1 ? 'full' : cur > 0 ? 'half' : 'empty'
 
               return (
-                <div key={can.id} className="flex items-center justify-between py-2.5
-                  border-b border-white/[0.05] last:border-0">
+                <div key={can.id} className="trow justify-between">
                   <div>
-                    <p className="text-xs font-semibold text-white">Can {i + 1}</p>
-                    <p className="text-[10px] text-white/30 capitalize mt-0.5">{can.material} · {cap} gal</p>
+                    <p className="text-[13px] font-semibold text-white">Can {i + 1}</p>
+                    <p className="text-[11px] text-white/35 capitalize mt-0.5">{can.material} · {cap} gal</p>
                   </div>
-                  {/* Segmented toggle */}
-                  <div className="flex rounded-xl overflow-hidden text-[10px] font-bold">
+                  {/* Segmented control — the app's pill language */}
+                  <div className="flex gap-1 rounded-full bg-white/[0.06] p-1 flex-shrink-0">
                     {[
                       { key: 'empty', label: 'Empty', val: 0 },
                       { key: 'half',  label: 'Half',  val: parseFloat((cap / 2).toFixed(1)) },
@@ -397,10 +410,10 @@ function JerryCanSection({ cans, loading, setLevel, totalCurrentGal, totalCapaci
                       <button
                         key={opt.key}
                         onClick={() => setLevel(can, opt.val).catch(err => alert(err.message))}
-                        className={`px-3 py-2 select-none transition-colors
+                        className={`px-3 py-1.5 rounded-full text-[11px] font-semibold select-none transition-colors
                           ${level === opt.key
                             ? 'bg-white text-black'
-                            : 'bg-white/[0.04] text-white/40 active:bg-white/[0.10]'
+                            : 'text-white/45 active:bg-white/[0.10]'
                           }`}
                       >
                         {opt.label}
@@ -412,7 +425,7 @@ function JerryCanSection({ cans, loading, setLevel, totalCurrentGal, totalCapaci
             })}
           </div>
         </div>
-      )}
+      </div>
     </>
   )
 }
