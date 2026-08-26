@@ -1,7 +1,16 @@
+import { useEffect, useState } from 'react'
 import { useTeam } from '../context/TeamContext'
 
 export default function IdentityScreen({ takenNames, onSelect, registering, error }) {
   const { names: TEAM } = useTeam()
+  // Inline two-tap confirm for registered names — window.confirm() is silently
+  // swallowed by iOS home-screen web apps, so no native dialogs here
+  const [confirming, setConfirming] = useState(null)
+  useEffect(() => {
+    if (!confirming) return
+    const t = setTimeout(() => setConfirming(null), 5000)
+    return () => clearTimeout(t)
+  }, [confirming])
   return (
     <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center px-6"
          style={{ background: '#171717' }}>
@@ -27,25 +36,31 @@ export default function IdentityScreen({ takenNames, onSelect, registering, erro
                 // A registered name is still selectable — clearing the browser
                 // cache wipes the local identity while the registration row
                 // survives, and that person must be able to claim themselves
-                // back. Re-registering simply moves notifications here.
-                if (taken && !window.confirm(
-                  `${name} is already registered on another device.\n\nContinue as ${name} on this phone? Notifications will move here.`)) return
+                // back. First tap arms, second tap within 5 s confirms.
+                if (taken && confirming !== name) { setConfirming(name); return }
                 onSelect(name)
               }}
               disabled={registering}
               className="w-full py-3.5 px-5 rounded-2xl text-left font-semibold text-sm
                          transition-all active:scale-[0.98]"
               style={{
-                background:  taken ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.07)',
-                color:       taken ? 'rgba(255,255,255,0.55)' : 'white',
-                border:      taken ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(255,255,255,0.1)',
+                background:  confirming === name ? 'rgba(44,185,189,0.15)'
+                           : taken ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.07)',
+                color:       taken && confirming !== name ? 'rgba(255,255,255,0.55)' : 'white',
+                border:      confirming === name ? '1px solid rgba(44,185,189,0.5)'
+                           : taken ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(255,255,255,0.1)',
               }}
             >
-              <span>{name}</span>
-              {taken && (
+              <span>{confirming === name ? `Tap again to continue as ${name}` : name}</span>
+              {taken && confirming !== name && (
                 <span className="float-right text-xs font-normal"
                       style={{ color: 'rgba(255,255,255,0.25)' }}>
                   Registered
+                </span>
+              )}
+              {confirming === name && (
+                <span className="block text-[11px] font-normal mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                  Notifications will move to this device
                 </span>
               )}
             </button>
