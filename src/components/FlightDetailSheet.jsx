@@ -1,6 +1,58 @@
+import { useEffect, useMemo, useRef } from 'react'
+import * as maplibregl from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
 import { toHobbs, formatDate } from '../lib/utils'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
+import { useWaypoints } from '../hooks/useWaypoints'
+import { loadStyle } from '../lib/mapStyle'
 import { HELICOPTER_ICON } from '../assets/navIcons'
+
+// Static minimap of the route flown — same teal line the live map uses.
+function RouteMiniMap({ coords }) {
+  const boxRef = useRef(null)
+  useEffect(() => {
+    let map, cancelled = false
+    loadStyle().then(style => {
+      if (cancelled) return
+      map = new maplibregl.Map({
+        container: boxRef.current, style,
+        center: coords[0], zoom: 9,
+        interactive: false, attributionControl: false,
+      })
+      map.on('load', () => {
+        map.addSource('trip', { type: 'geojson', data: { type: 'FeatureCollection', features: [
+          { type: 'Feature', geometry: { type: 'LineString', coordinates: coords }, properties: {} },
+          ...[coords[0], coords[coords.length - 1]].map(c => (
+            { type: 'Feature', geometry: { type: 'Point', coordinates: c }, properties: {} })),
+        ] } })
+        map.addLayer({
+          id: 'trip-line', type: 'line', source: 'trip',
+          filter: ['==', ['geometry-type'], 'LineString'],
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: { 'line-color': '#2CB9BD', 'line-width': 3, 'line-opacity': 0.9 },
+        })
+        map.addLayer({
+          id: 'trip-pts', type: 'circle', source: 'trip',
+          filter: ['==', ['geometry-type'], 'Point'],
+          paint: { 'circle-radius': 4.5, 'circle-color': '#FFFFFF', 'circle-stroke-color': '#2CB9BD', 'circle-stroke-width': 2.5 },
+        })
+        const b = new maplibregl.LngLatBounds()
+        coords.forEach(c => b.extend(c))
+        try { map.fitBounds(b, { padding: 36, maxZoom: 11, duration: 0 }) } catch { /* degenerate bounds */ }
+      })
+    })
+    return () => { cancelled = true; map?.remove() }
+  }, [coords])
+  return (
+    <div className="relative rounded-2xl overflow-hidden" style={{ height: 170 }}>
+      {/* position/inset inline — maplibre-gl.css sets position:relative on this
+          node and out-cascades the Tailwind class, collapsing it to 0 height */}
+      <div ref={boxRef} style={{ position: 'absolute', inset: 0, isolation: 'isolate', background: '#EAE6DE' }} />
+      {/* same dark veil the dashboard minimap wears */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'rgba(14,16,18,0.30)' }} />
+    </div>
+  )
+}
 
 function flightRoute(flight) {
   const first = flight.legs?.[0]
@@ -18,6 +70,27 @@ function formatDuration(mins) {
 // dashboard's Recent-flights shortcuts.
 export default function FlightDetailSheet({ flight, open, onClose }) {
   const { handleProps, panelProps, panelStyle } = useDrawerSwipe(onClose)
+  const { waypoints } = useWaypoints()
+
+  // Resolve the flight's legs to chart coordinates (same matching the map's
+  // Trips view uses); older flights whose names don't match simply show no map
+  const routeCoords = useMemo(() => {
+    const find = name => {
+      if (!name) return null
+      const n = String(name).trim().toUpperCase()
+      return waypoints.find(w => (w.code ?? '').toUpperCase() === n)
+          ?? waypoints.find(w => w.name.toUpperCase().includes(n))
+    }
+    const coords = []
+    for (const leg of flight?.legs ?? []) {
+      const a = find(leg.takeoff_location), b = find(leg.landing_location)
+      if (a && !coords.length) coords.push([a.lng, a.lat])
+      if (a && coords.length && (coords[coords.length - 1][0] !== a.lng)) coords.push([a.lng, a.lat])
+      if (b) coords.push([b.lng, b.lat])
+    }
+    return coords.length >= 2 ? coords : null
+  }, [flight, waypoints])
+
   if (!flight) return null
 
   const legs = flight.legs ?? []
@@ -66,6 +139,14 @@ export default function FlightDetailSheet({ flight, open, onClose }) {
 
         {/* Body */}
         <div className="overflow-y-auto flex-1 px-5 pb-6 space-y-4">
+
+          {/* Route flown */}
+          {open && routeCoords && (
+            <div>
+              <p className="label mb-3">Route</p>
+              <RouteMiniMap coords={routeCoords} />
+            </div>
+          )}
 
           {/* Legs */}
           <div>
