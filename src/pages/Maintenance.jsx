@@ -473,13 +473,13 @@ export default function Maintenance() {
           )}
         </div>
 
-        {/* Filter chips — single row, horizontal scroll */}
-        <div className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-hide">
+        {/* Filter chips — all five fit on screen, no horizontal scroll */}
+        <div className="flex gap-1.5 mt-3 pb-1">
           {FILTERS.map(f => (
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className={`text-xs font-semibold px-3.5 py-1.5 rounded-full border transition-colors select-none
+              className={`text-xs font-semibold px-2.5 py-1.5 rounded-full border transition-colors select-none whitespace-nowrap
                 ${filter === f.id
                   ? 'bg-white text-black border-white'
                   : 'bg-white/[0.05] text-white/50 border-white/10 active:bg-white/10'}`}
