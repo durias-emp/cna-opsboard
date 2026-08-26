@@ -759,7 +759,11 @@ export default function MapPage() {
         {mode === 'quote' && (
           <div className="px-4 pt-3.5 pb-4">
             <div className="flex items-center justify-between mb-2.5">
-              <p className="text-[15px] font-bold text-white">Quote</p>
+              <button onClick={() => setRoundTrip(v => !v)}
+                className={`px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors
+                  ${roundTrip ? 'bg-accent text-black' : 'bg-white/[0.08] text-white/50'}`}>
+                Round trip
+              </button>
               <div className="flex gap-2">
                 {routePoints.length > 0 && (
                   <button onClick={() => setRoutePoints([])}
@@ -824,11 +828,6 @@ export default function MapPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mb-3">
-                  <button onClick={() => setRoundTrip(v => !v)}
-                    className={`px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors
-                      ${roundTrip ? 'bg-accent text-black' : 'bg-white/[0.08] text-white/50'}`}>
-                    Round trip
-                  </button>
                   <div className="flex items-center gap-1 ml-auto">
                     <span className="text-[11px] text-white/40 mr-1">Waiting</span>
                     <button onClick={() => setWaitingHr(h => Math.max(0, +(h - 0.5).toFixed(1)))}
