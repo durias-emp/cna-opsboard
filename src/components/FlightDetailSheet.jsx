@@ -87,10 +87,15 @@ export default function FlightDetailSheet({ flight, open, onClose }) {
       const last = coords[coords.length - 1]
       if (!last || last[0] !== w.lng || last[1] !== w.lat) coords.push([w.lng, w.lat])
     }
-    for (const leg of flight?.legs ?? []) {
-      push(find(leg.takeoff_location))
-      for (const v of leg.via ?? []) push(find(v))
-      push(find(leg.landing_location))
+    const chips = (flight?.legs ?? flight.legs ?? [])[0]?.route
+    if (chips?.length >= 2) {
+      for (const c of chips) push(find(c))   // the logged ROUTE chips are the authority
+    } else {
+      for (const leg of flight?.legs ?? []) {
+        push(find(leg.takeoff_location))
+        for (const v of leg.via ?? []) push(find(v))
+        push(find(leg.landing_location))
+      }
     }
     return coords.length >= 2 ? coords : null
   }, [flight, waypoints])
