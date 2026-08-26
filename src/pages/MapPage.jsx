@@ -152,7 +152,22 @@ export default function MapPage() {
   }
 
   const containerRef = useRef(null)
+  const cardRef = useRef(null)
   const mapRef = useRef(null)
+  // Frame the whole route in the map area the quote card leaves visible
+  const fitRoute = () => {
+    const map = mapRef.current
+    const pts = routePointsRef.current
+    if (!map || pts.length < 2) return
+    const b = new maplibregl.LngLatBounds()
+    pts.forEach(w => b.extend([w.lng, w.lat]))
+    const cardH = cardRef.current?.getBoundingClientRect().height ?? 300
+    const boxH  = containerRef.current?.clientHeight ?? 800
+    const bottom = Math.min(cardH + 28, Math.max(140, boxH - 200))
+    try {
+      map.fitBounds(b, { padding: { top: 110, left: 56, right: 56, bottom }, maxZoom: 12, duration: 700 })
+    } catch { /* container smaller than padding — skip rather than crash */ }
+  }
   const waypointsRef = useRef(waypoints)
   waypointsRef.current = waypoints
 
@@ -458,12 +473,22 @@ export default function MapPage() {
       })
     }
     map.getSource('route')?.setData({ type: 'FeatureCollection', features: feats })
-    if (routePoints.length >= 2) {
-      const b = new maplibregl.LngLatBounds()
-      routePoints.forEach(w => b.extend([w.lng, w.lat]))
-      map.fitBounds(b, { padding: { top: 120, left: 60, right: 60, bottom: 300 }, maxZoom: 10, duration: 700 })
-    }
-  }, [routePoints, roundTrip, mode, ready])
+    if (routePoints.length >= 2) fitRoute()
+  }, [routePoints, roundTrip, mode, ready])   // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The card grows when the breakdown appears — re-frame so it never swallows
+  // the route the user just built
+  useEffect(() => {
+    const el = cardRef.current
+    if (mode !== 'quote' || !el || typeof ResizeObserver === 'undefined') return
+    let last = el.getBoundingClientRect().height
+    const ro = new ResizeObserver(() => {
+      const h = el.getBoundingClientRect().height
+      if (Math.abs(h - last) > 24) { last = h; fitRoute() }
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [mode])   // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Halo pulse: the chosen site's ring breathes so "picked" is unmissable ──
   useEffect(() => {
@@ -718,7 +743,7 @@ export default function MapPage() {
       )}
 
       {/* ── Ops card — floating context card at the bottom ── */}
-      <div className="absolute left-3 right-3 z-10 rounded-3xl overflow-hidden"
+      <div ref={cardRef} className="absolute left-3 right-3 z-10 rounded-3xl overflow-hidden"
         style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.8rem)',
                  background: 'rgba(30,30,32,0.62)', backdropFilter: 'blur(40px) saturate(200%)',
                  WebkitBackdropFilter: 'blur(40px) saturate(200%)',
