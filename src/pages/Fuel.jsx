@@ -56,6 +56,17 @@ function TankGauge({ currentLevel, fillPercent, last, onAdd, onWithdraw }) {
           {isLow && currentLevel !== null && (
             <span className="badge bg-white text-black text-[10px] animate-pulse">Low</span>
           )}
+          {/* Oil-drum icon — tap starts a fill-up, mirroring the jerry-can card */}
+          <button className="no-press -m-2 p-2" onClick={onAdd} aria-label="Fill up the facility tank">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={1.8}
+              strokeLinecap="round" className="w-8 h-8 opacity-40">
+              <ellipse cx="12" cy="4.6" rx="8" ry="2.6" />
+              <path d="M4 4.6v14.8M20 4.6v14.8" />
+              <path d="M4 11.9c0 1.45 3.58 2.6 8 2.6s8-1.15 8-2.6" />
+              <path d="M4 19.4c0 1.45 3.58 2.6 8 2.6s8-1.15 8-2.6" />
+              <path d="M15.2 4.2h1.9" strokeWidth={2.2} />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -283,7 +294,10 @@ function JerryCanSection({ cans, loading, setLevel, totalCurrentGal, totalCapaci
           </div>
           <div className="flex items-center gap-2">
             {isLow && <span className="badge bg-white text-black text-[10px] animate-pulse">Low</span>}
-            <img src="/combustible.png" alt="jerry cans" className="w-8 h-8 object-contain opacity-40" style={{ filter: 'brightness(0) invert(1)' }} />
+            {/* Jerry-can icon — tap opens the level editor, same as Update levels */}
+            <button className="no-press -m-2 p-2" onClick={() => setShowModal(true)} aria-label="Update jerry can levels">
+              <img src="/combustible.png" alt="jerry cans" className="w-8 h-8 object-contain opacity-40" style={{ filter: 'brightness(0) invert(1)' }} />
+            </button>
           </div>
         </div>
 
