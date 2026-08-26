@@ -22,21 +22,29 @@ export default function IdentityScreen({ takenNames, onSelect, registering, erro
           return (
             <button
               key={name}
-              onClick={() => !taken && !registering && onSelect(name)}
-              disabled={taken || registering}
+              onClick={() => {
+                if (registering) return
+                // A registered name is still selectable — clearing the browser
+                // cache wipes the local identity while the registration row
+                // survives, and that person must be able to claim themselves
+                // back. Re-registering simply moves notifications here.
+                if (taken && !window.confirm(
+                  `${name} is already registered on another device.\n\nContinue as ${name} on this phone? Notifications will move here.`)) return
+                onSelect(name)
+              }}
+              disabled={registering}
               className="w-full py-3.5 px-5 rounded-2xl text-left font-semibold text-sm
                          transition-all active:scale-[0.98]"
               style={{
-                background:  taken ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.07)',
-                color:       taken ? 'rgba(255,255,255,0.2)'  : 'white',
-                border:      taken ? '1px solid rgba(255,255,255,0.04)' : '1px solid rgba(255,255,255,0.1)',
-                cursor:      taken ? 'not-allowed' : 'pointer',
+                background:  taken ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.07)',
+                color:       taken ? 'rgba(255,255,255,0.55)' : 'white',
+                border:      taken ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(255,255,255,0.1)',
               }}
             >
               <span>{name}</span>
               {taken && (
                 <span className="float-right text-xs font-normal"
-                      style={{ color: 'rgba(255,255,255,0.2)' }}>
+                      style={{ color: 'rgba(255,255,255,0.25)' }}>
                   Registered
                 </span>
               )}
