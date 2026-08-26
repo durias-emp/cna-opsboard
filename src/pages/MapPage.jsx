@@ -735,7 +735,7 @@ export default function MapPage() {
 
       {/* ── Ops card — floating context card at the bottom ── */}
       <div ref={cardRef} className="absolute left-3 right-3 z-10 rounded-3xl overflow-hidden"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.8rem)',
+        style={{ bottom: 'max(env(safe-area-inset-bottom, 0px), 0.5rem)',
                  background: 'rgba(30,30,32,0.62)', backdropFilter: 'blur(40px) saturate(200%)',
                  WebkitBackdropFilter: 'blur(40px) saturate(200%)',
                  border: '0.5px solid rgba(255,255,255,0.10)',
@@ -856,7 +856,7 @@ export default function MapPage() {
                       if (roundTrip && quote.segments[1])
                         legs.push({ from: pts[pts.length - 1], to: pts[0], nm: quote.segments[1].distNm, hr: quote.segments[1].airHr, back: true })
                       const ete = h => `${Math.floor(h)}h${String(Math.round((h - Math.floor(h)) * 60)).padStart(2, '0')}m`
-                      const tag = w => w.code || (w.diversion ? 'Via' : w.source === 'adhoc' ? 'Pin' : w.name.split(' ')[0])
+                      const tag = w => w.code || (w.diversion ? 'Via' : w.source === 'adhoc' ? 'Pin' : w.name)
                       return (
                         <div className="rounded-xl bg-white/[0.05] px-3 py-2 mb-2.5 space-y-1">
                           <div className="flex text-[8.5px] uppercase tracking-wider text-white/30">
