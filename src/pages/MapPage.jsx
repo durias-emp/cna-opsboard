@@ -21,6 +21,25 @@ const toFeature = w => ({
 })
 const fc = list => ({ type: 'FeatureCollection', features: list.map(toFeature) })
 
+// ── AIP map pins: teardrop marker, plane for airports (blue), circled H for
+// heliports (orange). Inline SVG → Image so no assets ship separately.
+const PIN_BODY = 'M12 1.5C7.31 1.5 3.5 5.31 3.5 10c0 5.8 8.5 12.5 8.5 12.5S20.5 15.8 20.5 10C20.5 5.31 16.69 1.5 12 1.5z'
+const PLANE = 'M21 16v-2l-8-5V3.5C13 2.67 12.33 2 11.5 2S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z'
+const pinSvg = (fill, inner) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24">` +
+  `<path d="${PIN_BODY}" fill="${fill}" stroke="#FFFFFF" stroke-width="1.1"/>${inner}</svg>`
+const AIRPORT_PIN = pinSvg('#2E6FBF',
+  `<g transform="translate(12 9.6) rotate(45) scale(0.52) translate(-11.5 -12)"><path d="${PLANE}" fill="#FFFFFF"/></g>`)
+const HELIPORT_PIN = pinSvg('#F0821E',
+  `<circle cx="12" cy="9.6" r="5.6" fill="none" stroke="#FFFFFF" stroke-width="1.5"/>` +
+  `<path d="M9.9 6.9v5.4M14.1 6.9v5.4M9.9 9.6h4.2" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" fill="none"/>`)
+const loadPin = svg => new Promise((resolve, reject) => {
+  const img = new Image(56, 56)
+  img.onload = () => resolve(img)
+  img.onerror = reject
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
+})
+
 // ── Ops workspace ──
 const glassBtn = {
   background: 'rgba(30,30,32,0.55)', backdropFilter: 'blur(24px) saturate(180%)',
@@ -159,19 +178,25 @@ export default function MapPage() {
           ?.classList.remove('maplibregl-compact-show')
       })
 
-      map.on('load', () => {
+      map.on('load', async () => {
         map.addSource('aip',    { type: 'geojson', data: fc([]) })
         map.addSource('custom', { type: 'geojson', data: fc([]) })
 
+        // Pin images must exist before the symbol layer references them
+        try {
+          const [airportImg, heliImg] = await Promise.all([loadPin(AIRPORT_PIN), loadPin(HELIPORT_PIN)])
+          map.addImage('pin-airport',  airportImg, { pixelRatio: 2 })
+          map.addImage('pin-heliport', heliImg,    { pixelRatio: 2 })
+        } catch { /* pins missing → labels still render */ }
+
         map.addLayer({
-          id: 'aip-dots', type: 'circle', source: 'aip',
-          paint: {
-            'circle-radius': ['case', ['==', ['get', 'kind'], 'heliport'], 3.5, 4.5],
-            // heliports in chart blue, aerodromes in gray — tell them apart at a glance
-            'circle-color': ['case', ['==', ['get', 'kind'], 'heliport'], '#3D7BC4', '#7A828A'],
-            'circle-stroke-color': '#FFFFFF',
-            'circle-stroke-width': 1.2,
-            'circle-opacity': 0.9,
+          id: 'aip-dots', type: 'symbol', source: 'aip',
+          layout: {
+            // airports = blue plane pin, heliports = orange circled-H pin
+            'icon-image': ['case', ['==', ['get', 'kind'], 'heliport'], 'pin-heliport', 'pin-airport'],
+            'icon-size': ['interpolate', ['linear'], ['zoom'], 5, 0.55, 9, 0.8, 12, 1],
+            'icon-anchor': 'bottom',
+            'icon-allow-overlap': true,
           },
         })
         map.addLayer({
@@ -181,10 +206,10 @@ export default function MapPage() {
             'text-field': ['coalesce', ['get', 'code'], ''],
             'text-font': ['Noto Sans Regular'],
             'text-size': 10,
-            'text-offset': [0, 1.1],
+            'text-offset': [0, 0.4],
             'text-anchor': 'top',
           },
-          paint: { 'text-color': ['case', ['==', ['get', 'kind'], 'heliport'], '#2B5E9C', '#3E464D'], 'text-halo-color': 'rgba(255,255,255,0.8)', 'text-halo-width': 1 },
+          paint: { 'text-color': ['case', ['==', ['get', 'kind'], 'heliport'], '#B55E08', '#2B5E9C'], 'text-halo-color': 'rgba(255,255,255,0.8)', 'text-halo-width': 1 },
         })
         map.addLayer({
           id: 'custom-dots', type: 'circle', source: 'custom',
