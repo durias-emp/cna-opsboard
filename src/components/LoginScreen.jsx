@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { CNA_LOGO } from '../assets/brand'
 
 export default function LoginScreen() {
   const { signIn } = useAuth()
@@ -20,7 +21,7 @@ export default function LoginScreen() {
   return (
     <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center px-6"
          style={{ background: '#171717' }}>
-      <img src="/cna-logo.png" alt="CNA" className="h-10 mb-8 opacity-90" />
+      <img src={CNA_LOGO} alt="CNA" className="h-10 mb-8 opacity-90" />
       <h1 className="text-2xl font-bold text-white mb-1">Sign in</h1>
       <p className="text-sm text-white/40 mb-8">CNA OpsBoard is for Cielo Norte Aviación staff.</p>
 

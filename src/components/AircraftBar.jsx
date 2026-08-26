@@ -1,4 +1,5 @@
 import { useAircraft } from '../context/AircraftContext'
+import { CNA_LOGO } from '../assets/brand'
 
 export default function AircraftBar() {
   const { aircraft, selectedAircraft, setSelectedAircraft, loading } = useAircraft()
@@ -12,7 +13,7 @@ export default function AircraftBar() {
     >
       {/* Logo */}
       <img
-        src="/cna-logo.png"
+        src={CNA_LOGO}
         alt="Cielo Norte Aviación"
         className="h-7 w-auto max-w-[160px] select-none object-contain object-left"
         style={{ filter: 'brightness(0) invert(1)' }}

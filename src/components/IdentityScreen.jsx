@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTeam } from '../context/TeamContext'
+import { CNA_LOGO } from '../assets/brand'
 
 export default function IdentityScreen({ takenNames, onSelect, registering, error }) {
   const { names: TEAM } = useTeam()
@@ -16,7 +17,7 @@ export default function IdentityScreen({ takenNames, onSelect, registering, erro
          style={{ background: '#171717' }}>
 
       {/* Logo */}
-      <img src="/cna-logo.png" alt="CNA" className="w-16 h-16 object-contain mb-8 opacity-90" />
+      <img src={CNA_LOGO} alt="CNA" className="w-16 h-16 object-contain mb-8 opacity-90" />
 
       {/* Heading */}
       <h1 className="text-2xl font-bold text-white mb-1 tracking-tight">Welcome to CNA OS</h1>

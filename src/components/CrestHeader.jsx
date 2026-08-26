@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAircraft } from '../context/AircraftContext'
 import PullDownMenu from './PullDownMenu'
+import { CNA_MARK_WHITE } from '../assets/brand'
 
 // App-wide header: CNA crest pinned top-center, shrinking under the finger as
 // the page scrolls (scroll-driven, like the tab bar), with the aircraft pill
@@ -72,7 +73,7 @@ export default function CrestHeader({ switcher = false }) {
         }}
       >
         <div className="flex items-center justify-center" style={{ padding: `${0.8 - 0.2 * p}rem 0` }}>
-          <img src="/cna-mark-white.png" alt="CNA" className="opacity-90 select-none" draggable="false"
+          <img src={CNA_MARK_WHITE} alt="CNA" className="opacity-90 select-none" draggable="false"
             style={{ height: `${1.5 - 0.5 * p}rem` }} />
         </div>
       </div>

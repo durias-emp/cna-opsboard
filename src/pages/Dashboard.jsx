@@ -180,7 +180,16 @@ export default function Dashboard() {
       <button onClick={() => setHobbsHistoryOpen(true)} className="hero-stage block w-full select-none">
         <div className="hero-shadow" aria-hidden />
         <img src="/heli-hero.png" alt={selectedAircraft?.make_model ?? 'Bell 206B3 JetRanger'}
-          className="hero-heli" draggable="false" />
+          className="hero-heli" draggable="false"
+          onError={e => {
+            // A dropped request paints iOS's "?" box forever — retry with a
+            // cache-buster a few times instead of staying broken
+            const img = e.currentTarget
+            const tries = +(img.dataset.tries ?? 0)
+            if (tries >= 5) return
+            img.dataset.tries = tries + 1
+            setTimeout(() => { img.src = `/heli-hero.png?retry=${tries + 1}` }, 1500 * (tries + 1))
+          }} />
       </button>
 
       <div className="px-4 pb-6 pt-4 space-y-5">
