@@ -13,6 +13,7 @@ import CrestHeader from '../components/CrestHeader'
 import HobbsHistoryDrawer from '../components/HobbsHistoryDrawer'
 import FlightDetailSheet from '../components/FlightDetailSheet'
 import { useTank } from '../hooks/useTank'
+import { HELICOPTER_ICON } from '../assets/navIcons'
 
 // YS-CNA cruise burn (owner-provided, also used for quoting)
 const CRUISE_BURN_GPH = 27
@@ -114,7 +115,7 @@ function useAnimatedNumber(target, duration = 1.2) {
 }
 
 const IconFlight = () => (
-  <img src="/helicopter.png" alt="helicopter" className="w-5 h-5 object-contain opacity-50"
+  <img src={HELICOPTER_ICON} alt="helicopter" className="w-5 h-5 object-contain opacity-50"
     style={{ filter: 'brightness(0) invert(1)' }} />
 )
 function flightRoute(flight) {

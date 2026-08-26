@@ -8,6 +8,7 @@ import { useJerryCans } from '../hooks/useJerryCans'
 import PageHeader from '../components/PageHeader'
 import SectionHeader from '../components/SectionHeader'
 import TankFillupDrawer from '../components/TankFillupDrawer'
+import { HELICOPTER_ICON, FUEL_PUMP_ICON } from '../assets/navIcons'
 
 const TOTAL_FACILITY_CAPACITY = 190 // 150 tank + 40 jerry cans
 
@@ -20,7 +21,7 @@ const IconDrop = () => (
   </svg>
 )
 const IconFillup = () => (
-  <img src="/gasoline-pump.png" alt="fuel" className="w-4 h-4 object-contain"
+  <img src={FUEL_PUMP_ICON} alt="fuel" className="w-4 h-4 object-contain"
     style={{ filter: 'brightness(0) invert(1)', opacity: 0.3 }} />
 )
 const IconDollar = () => (
@@ -581,7 +582,7 @@ export default function Fuel() {
           </div>
           <div className="card text-center py-3">
             <div className="flex justify-center mb-1.5 text-white/30">
-              <img src="/helicopter.png" alt="helicopter" className="w-4 h-4 object-contain"
+              <img src={HELICOPTER_ICON} alt="helicopter" className="w-4 h-4 object-contain"
                 style={{ filter: 'brightness(0) invert(1)', opacity: 0.3 }} />
             </div>
             <p className="text-lg font-bold text-white">

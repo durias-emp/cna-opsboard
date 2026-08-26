@@ -7,6 +7,7 @@ import ActionSheet from './ActionSheet'
 import { supabase } from '../lib/supabase'
 import DatePicker from './DatePicker'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
+import { HELICOPTER_ICON } from '../assets/navIcons'
 
 const ROUND = (n, decimals = 2) => Math.round(n * 10 ** decimals) / 10 ** decimals
 
@@ -1694,7 +1695,7 @@ function LegCard({ index, leg, showIndex, onRemove, onChange, onAddLeg, onUseTac
       <div className="flex items-center gap-2 px-1">
         <div className="w-2 h-2 rounded-full border border-white/20 flex-shrink-0" />
         <div className="flex-1 border-t border-dashed border-white/10" />
-        <img src="/helicopter.png" alt="helicopter"
+        <img src={HELICOPTER_ICON} alt="helicopter"
           className="w-3.5 h-3.5 object-contain flex-shrink-0 opacity-20"
           style={{ filter: 'brightness(0) invert(1)' }} />
         <div className="flex-1 border-t border-dashed border-white/10" />
@@ -1880,7 +1881,7 @@ function LegConfirmModal({ calculatedMins, calculatedLabel, currentMins, from, t
             {/* Flight path */}
             <div className="flex-1 flex items-center gap-1.5 px-2">
               <div className="flex-1 border-t border-dashed border-white/[0.12]" />
-              <img src="/helicopter.png" alt=""
+              <img src={HELICOPTER_ICON} alt=""
                 className="w-4 h-4 object-contain opacity-30 flex-shrink-0"
                 style={{ filter: 'brightness(0) invert(1)' }} />
               <div className="flex-1 border-t border-dashed border-white/[0.12]" />

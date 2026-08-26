@@ -1,5 +1,6 @@
 import { toHobbs, formatDate } from '../lib/utils'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
+import { HELICOPTER_ICON } from '../assets/navIcons'
 
 function flightRoute(flight) {
   const first = flight.legs?.[0]
@@ -85,7 +86,7 @@ export default function FlightDetailSheet({ flight, open, onClose }) {
                     <div className="flex-1 flex flex-col items-center gap-1">
                       <div className="flex items-center w-full gap-1">
                         <div className="flex-1 border-t border-dashed border-white/15" />
-                        <img src="/helicopter.png" alt=""
+                        <img src={HELICOPTER_ICON} alt=""
                           className="w-4 h-4 object-contain opacity-20"
                           style={{ filter: 'brightness(0) invert(1)' }} />
                         <div className="flex-1 border-t border-dashed border-white/15" />

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { HELICOPTER_ICON, FUEL_PUMP_ICON } from '../assets/navIcons'
 
 const TABS = [
   {
@@ -18,7 +19,7 @@ const TABS = [
     to: '/flights',
     label: 'Flights',
     icon: (
-      <img src="/helicopter.png" alt="helicopter" className="w-5 h-5 object-contain"
+      <img src={HELICOPTER_ICON} alt="helicopter" className="w-5 h-5 object-contain"
         style={{ filter: 'brightness(0) invert(1)' }} />
     ),
   },
@@ -35,7 +36,7 @@ const TABS = [
     to: '/fuel',
     label: 'Fuel',
     icon: (
-      <img src="/gasoline-pump.png" alt="fuel" className="w-5 h-5 object-contain"
+      <img src={FUEL_PUMP_ICON} alt="fuel" className="w-5 h-5 object-contain"
         style={{ filter: 'brightness(0) invert(1)' }} />
     ),
   },

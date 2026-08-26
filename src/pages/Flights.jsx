@@ -12,9 +12,10 @@ import FlightDrawer from '../components/FlightDrawer'
 import ItineraryDrawer from '../components/ItineraryDrawer'
 import ItineraryRecordsDrawer from '../components/ItineraryRecordsDrawer'
 import WeightBalanceCalculator from '../components/WeightBalanceCalculator'
+import { HELICOPTER_ICON } from '../assets/navIcons'
 
 const IconFlight = () => (
-  <img src="/helicopter.png" alt="helicopter" className="w-5 h-5 object-contain opacity-50"
+  <img src={HELICOPTER_ICON} alt="helicopter" className="w-5 h-5 object-contain opacity-50"
     style={{ filter: 'brightness(0) invert(1)' }} />
 )
 const IconClock = () => (
