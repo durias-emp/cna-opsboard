@@ -74,6 +74,9 @@ export default function MapPage() {
   const [mode, setMode] = useState('menu')
   const modeRef = useRef(mode)
   modeRef.current = mode
+  const routePointsRef = useRef([])
+  const roundTripRef = useRef(true)
+  const insertDiversionRef = useRef(null)
   const [routePoints, setRoutePoints] = useState([])     // quote route, in tap order
   const [trip, setTrip] = useState(null)                 // selected past flight
   const animRef = useRef(null)                           // breadcrumb rAF id
@@ -82,6 +85,14 @@ export default function MapPage() {
   const { flights } = useFlights(selectedAircraft?.id)
   const profile = useQuoteProfile(selectedAircraft?.id)
   const [roundTrip, setRoundTrip] = useState(true)
+  routePointsRef.current = routePoints
+  roundTripRef.current = roundTrip
+  // Drag the route line → insert a diversion point at that leg (set here so the
+  // map's native handlers, bound once, always call the fresh state setters)
+  insertDiversionRef.current = (legIdx, lat, lng) => {
+    const w = { ...pinToPoint({ lat, lng }), diversion: true }
+    setRoutePoints(ps => { const n = [...ps]; n.splice(legIdx + 1, 0, w); return n })
+  }
   const [waitingHr, setWaitingHr] = useState(0)
   const [cruiseAltFt, setCruiseAltFt] = useState(null)   // null → profile default
   const [picking, setPicking]     = useState(null)   // 'from' | 'to' | 'stop' → search sheet
@@ -106,13 +117,10 @@ export default function MapPage() {
   }
 
   function pinToPoint(p) {
-    const short = (v, pos, neg) => {
-      const abs = Math.abs(v), d = Math.floor(abs), m = ((abs - d) * 60).toFixed(1)
-      return `${d}°${m}′${v >= 0 ? pos : neg}`
-    }
+    // DD°MM'SS" with no decimals — pilots paste this straight into ForeFlight
     return {
       id: `adhoc-${p.lat.toFixed(5)},${p.lng.toFixed(5)}`,
-      name: `${short(p.lat, 'N', 'S')} ${short(p.lng, 'E', 'W')}`,
+      name: formatDMS(p.lat, p.lng),
       code: null, lat: p.lat, lng: p.lng, source: 'adhoc',
     }
   }
@@ -262,6 +270,12 @@ export default function MapPage() {
           id: 'crumb-dot', type: 'circle', source: 'crumb',
           paint: { 'circle-radius': 7, 'circle-color': '#2CB9BD', 'circle-stroke-color': '#FFFFFF', 'circle-stroke-width': 2.5 },
         })
+        // Invisible fat line over the route — the grab handle for drag-to-divert
+        map.addLayer({
+          id: 'route-hit', type: 'line', source: 'route',
+          filter: ['==', ['geometry-type'], 'LineString'],
+          paint: { 'line-color': '#000000', 'line-opacity': 0.001, 'line-width': 28 },
+        })
 
         // AVIARA layers: apply saved visibility (aerodromes hidden by default)
         const vis = layersRef.current
@@ -320,6 +334,75 @@ export default function MapPage() {
       map.on('touchend', cancelPress)
       map.on('move', cancelPress)
       map.on('movestart', () => setPin(null))
+
+      // ── Drag the route off water: pull the line aside to add a diversion
+      //    point (pilot request — "not a landing, just a diversion") ──
+      const distToSeg = (p, a, b) => {
+        const dx = b.x - a.x, dy = b.y - a.y
+        const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy || 1)))
+        return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy))
+      }
+      const drag = { active: false, idx: -1, pos: null }
+      const nearestLeg = e => {
+        const pts = routePointsRef.current
+        if (pts.length < 2) return -1
+        let best = -1, bestD = Infinity
+        for (let i = 0; i < pts.length - 1; i++) {
+          const a = map.project([pts[i].lng, pts[i].lat])
+          const b = map.project([pts[i + 1].lng, pts[i + 1].lat])
+          const d = distToSeg(e.point, a, b)
+          if (d < bestD) { bestD = d; best = i }
+        }
+        if (roundTripRef.current) {
+          // The closing leg home is drawn but not draggable — a diversion there
+          // has no slot in the point list (the engine flies the same points back)
+          const a = map.project([pts[pts.length - 1].lng, pts[pts.length - 1].lat])
+          const b = map.project([pts[0].lng, pts[0].lat])
+          if (distToSeg(e.point, a, b) < bestD) return -1
+        }
+        return best
+      }
+      const drawDrag = () => {
+        const pts = routePointsRef.current
+        const coords = pts.map(w => [w.lng, w.lat])
+        coords.splice(drag.idx + 1, 0, [drag.pos.lng, drag.pos.lat])
+        if (roundTripRef.current) coords.push(coords[0])
+        map.getSource('route')?.setData({ type: 'FeatureCollection', features: [
+          { type: 'Feature', geometry: { type: 'LineString', coordinates: coords }, properties: {} },
+          ...coords.slice(0, -1).map(c => ({ type: 'Feature', geometry: { type: 'Point', coordinates: c }, properties: {} })),
+        ] })
+      }
+      const startRouteDrag = e => {
+        if (modeRef.current !== 'quote') return
+        const idx = nearestLeg(e)
+        if (idx < 0) return
+        e.preventDefault()
+        cancelPress()
+        drag.active = true; drag.idx = idx; drag.pos = e.lngLat
+        map.dragPan.disable()
+        map.getCanvas().style.cursor = 'grabbing'
+      }
+      const moveRouteDrag = e => {
+        if (!drag.active) return
+        e.preventDefault?.()
+        drag.pos = e.lngLat
+        drawDrag()
+      }
+      const endRouteDrag = () => {
+        if (!drag.active) return
+        drag.active = false
+        map.dragPan.enable()
+        map.getCanvas().style.cursor = ''
+        insertDiversionRef.current?.(drag.idx, drag.pos.lat, drag.pos.lng)
+      }
+      map.on('mousedown',  'route-hit', startRouteDrag)
+      map.on('touchstart', 'route-hit', startRouteDrag)
+      map.on('mousemove', moveRouteDrag)
+      map.on('touchmove', moveRouteDrag)
+      map.on('mouseup',  endRouteDrag)
+      map.on('touchend', endRouteDrag)
+      map.on('mouseenter', 'route-hit', () => { if (modeRef.current === 'quote') map.getCanvas().style.cursor = 'grab' })
+      map.on('mouseleave', 'route-hit', () => { if (!drag.active) map.getCanvas().style.cursor = '' })
     })
 
     return () => { cancelled = true; mapRef.current = null; map?.remove() }
@@ -674,7 +757,7 @@ export default function MapPage() {
                   </button>
                   {stops.map((wp, i) => (
                     <div key={`${wp.id}-${i}`} className="w-full flex items-center gap-2.5 rounded-xl bg-white/[0.06] px-3 py-2.5">
-                      <span className="text-[10px] uppercase tracking-wider text-white/35 w-9 text-left flex-shrink-0">Stop</span>
+                      <span className="text-[10px] uppercase tracking-wider text-white/35 w-9 text-left flex-shrink-0">{wp.diversion ? 'Via' : 'Stop'}</span>
                       <span className="text-[13px] font-semibold text-white">{wpName(wp)}</span>
                       <button className="ml-auto text-white/35 text-[15px] px-1.5"
                         onClick={() => setRoutePoints(ps => ps.filter((_, j) => j !== i + 1))}>×</button>
