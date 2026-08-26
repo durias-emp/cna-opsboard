@@ -211,9 +211,15 @@ export default function MapPage() {
           id: 'aip-labels', type: 'symbol', source: 'aip',
           minzoom: 7.5,
           layout: {
-            'text-field': ['coalesce', ['get', 'code'], ''],
+            'text-field': ['step', ['zoom'],
+              ['coalesce', ['get', 'code'], ''],
+              10.5, ['case',
+                ['==', ['coalesce', ['get', 'code'], ''], ''], ['get', 'name'],
+                ['concat', ['get', 'code'], '\n', ['get', 'name']]],
+            ],
             'text-font': ['Noto Sans Regular'],
-            'text-size': 10,
+            'text-size': ['step', ['zoom'], 10, 10.5, 11],
+            'text-max-width': 9,
             'text-offset': [0, 0.4],
             'text-anchor': 'top',
           },
@@ -261,8 +267,8 @@ export default function MapPage() {
         map.addLayer({
           id: 'route-halo', type: 'circle', source: 'halo',
           paint: {
-            'circle-radius': 10, 'circle-color': '#2CB9BD', 'circle-opacity': 0.3,
-            'circle-stroke-color': '#2CB9BD', 'circle-stroke-width': 2, 'circle-stroke-opacity': 0.8,
+            'circle-radius': 10, 'circle-color': '#000000', 'circle-opacity': 0.3,
+            'circle-stroke-color': '#000000', 'circle-stroke-width': 2, 'circle-stroke-opacity': 0.8,
           },
         }, 'aip-dots')
         map.addSource('crumb', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
