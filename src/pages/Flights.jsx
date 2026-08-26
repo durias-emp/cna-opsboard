@@ -392,19 +392,19 @@ export default function Flights() {
             statsLine={`${stats.total} flights · ${stats.allHours} total · ${stats.monthHours} this month`} />
         )}
 
-        {/* ── Itinerary & tools — Tesla-style rows ── */}
-        <div className="trow-group">
-          <button className="trow" onClick={() => setItineraryOpen(true)}>
-            <p className="text-[14px] font-semibold text-white">Add New Itinerary</p>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="chev w-4 h-4"><path d="M12 5v14M5 12h14" /></svg>
+        {/* ── Itinerary & tools — one row, three equal tiles (same material) ── */}
+        <div className="trow-group grid grid-cols-3">
+          <button className="trow justify-center py-4" onClick={() => setItineraryOpen(true)}>
+            <p className="text-[13px] font-semibold text-white text-center leading-tight">Add New<br />Itinerary</p>
           </button>
-          <button className="trow" onClick={() => setRecordsOpen(true)}>
-            <p className="text-[14px] font-semibold text-white">Itinerary Records</p>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="chev w-4 h-4"><path d="M9 18l6-6-6-6" /></svg>
+          {/* side-by-side rows: the built-in top separator becomes a left one */}
+          <button className="trow justify-center py-4" style={{ borderTop: 'none', borderLeft: '1px solid rgba(255,255,255,0.05)' }}
+            onClick={() => setRecordsOpen(true)}>
+            <p className="text-[13px] font-semibold text-white text-center leading-tight">Itinerary<br />Records</p>
           </button>
-          <button className="trow" onClick={() => setWabOpen(true)}>
-            <p className="text-[14px] font-semibold text-white">Weight &amp; Balance</p>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="chev w-4 h-4"><path d="M9 18l6-6-6-6" /></svg>
+          <button className="trow justify-center py-4" style={{ borderTop: 'none', borderLeft: '1px solid rgba(255,255,255,0.05)' }}
+            onClick={() => setWabOpen(true)}>
+            <p className="text-[13px] font-semibold text-white text-center leading-tight">Weight &amp;<br />Balance</p>
           </button>
         </div>
 
