@@ -94,6 +94,8 @@ export default function MapPage() {
     setRoutePoints(ps => { const n = [...ps]; n.splice(legIdx + 1, 0, w); return n })
   }
   const [waitingHr, setWaitingHr] = useState(0)
+  const [collapsed, setCollapsed] = useState(false)   // quote card folded to a summary bar
+  const swipeY = useRef(null)
   const [cruiseAltFt, setCruiseAltFt] = useState(null)   // null → profile default
   const [picking, setPicking]     = useState(null)   // 'from' | 'to' | 'stop' → search sheet
   const [pin, setPin]             = useState(null)   // MFS-style dropped pin {lat,lng,x,y}
@@ -113,6 +115,7 @@ export default function MapPage() {
     setRoutePoints(home ? [home] : [])
     setRoundTrip(profile.round_trip_default)
     setWaitingHr(0)
+    setCollapsed(false)
     setMode('quote')
   }
 
@@ -572,7 +575,7 @@ export default function MapPage() {
   // ── Leaving a mode clears the overlays; quote mode shows every waypoint ──
   function exitToMenu() {
     cancelAnimationFrame(animRef.current)
-    setRoutePoints([]); setTrip(null); setMode('menu')
+    setRoutePoints([]); setTrip(null); setMode('menu'); setCollapsed(false)
     const map = mapRef.current
     if (map && ready) {
       map.getSource('route')?.setData({ type: 'FeatureCollection', features: [] })
@@ -756,8 +759,35 @@ export default function MapPage() {
           </div>
         )}
 
-        {mode === 'quote' && (
-          <div className="px-4 pt-3.5 pb-4">
+        {mode === 'quote' && collapsed && (
+          <button className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
+            onClick={() => setCollapsed(false)}>
+            <span className="text-[13px] font-semibold text-white truncate">
+              {routePoints.length >= 2
+                ? `${routePoints[0].code || routePoints[0].name} → ${routePoints[routePoints.length - 1].code || routePoints[routePoints.length - 1].name}`
+                : 'Quote'}
+            </span>
+            <span className="flex items-center gap-2.5 flex-shrink-0">
+              {quote && <span className="text-[15px] font-bold text-white tabular-nums">${Math.round(quote.total).toLocaleString('en-US')}</span>}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round"
+                className="w-4 h-4 text-white/40"><path d="M6 15l6-6 6 6" /></svg>
+            </span>
+          </button>
+        )}
+
+        {mode === 'quote' && !collapsed && (
+          <div className="px-4 pt-3.5 pb-4"
+            onTouchStart={e => { swipeY.current = e.touches[0].clientY }}
+            onTouchMove={e => {
+              if (swipeY.current == null) return
+              // Pull the card down → fold it to a summary so the map breathes
+              if (e.touches[0].clientY - swipeY.current > 48 && routePoints.length >= 2) {
+                swipeY.current = null
+                setCollapsed(true)
+              }
+            }}
+            onTouchEnd={() => { swipeY.current = null }}
+            onWheel={e => { if (e.deltaY > 30 && routePoints.length >= 2) setCollapsed(true) }}>
             <div className="flex items-center justify-between mb-2.5">
               <button onClick={() => setRoundTrip(v => !v)}
                 className={`px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors
