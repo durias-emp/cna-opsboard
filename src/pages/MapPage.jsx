@@ -815,28 +815,26 @@ export default function MapPage() {
             {routePoints.length >= 2 && (
               <>
 
-                {/* Adjustments */}
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="text-[11px] text-white/40">Cruise alt</span>
+                {/* Adjustments — altitude and waiting share one row */}
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-[11px] text-white/40">Alt</span>
                   <button onClick={() => setCruiseAltFt(a => Math.max(1500, (a ?? profile.default_cruise_alt_ft) - 500))}
                     className="w-7 h-7 rounded-full bg-white/[0.08] text-white/70 text-[15px] leading-none active:bg-white/[0.15]">−</button>
                   <span className="text-[12px] font-bold text-white tabular-nums">{altFt.toLocaleString('en-US')} ft</span>
                   <button onClick={() => setCruiseAltFt(a => Math.min(12000, (a ?? profile.default_cruise_alt_ft) + 500))}
                     className="w-7 h-7 rounded-full bg-white/[0.08] text-white/70 text-[15px] leading-none active:bg-white/[0.15]">+</button>
-                  <span className="text-[10px] text-white/30 ml-auto">
-                    {wind ? `wind ${Math.round(wind.kts)} kt / ${Math.round(wind.dirDeg)}° (${wind.level})` : 'winds unavailable'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="flex items-center gap-1 ml-auto">
-                    <span className="text-[11px] text-white/40 mr-1">Waiting</span>
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    <span className="text-[11px] text-white/40">Waiting</span>
                     <button onClick={() => setWaitingHr(h => Math.max(0, +(h - 0.5).toFixed(1)))}
                       className="w-7 h-7 rounded-full bg-white/[0.08] text-white/70 text-[15px] leading-none active:bg-white/[0.15]">−</button>
-                    <span className="text-[12px] font-bold text-white tabular-nums w-9 text-center">{waitingHr} h</span>
+                    <span className="text-[12px] font-bold text-white tabular-nums w-8 text-center">{waitingHr} h</span>
                     <button onClick={() => setWaitingHr(h => +(h + 0.5).toFixed(1))}
                       className="w-7 h-7 rounded-full bg-white/[0.08] text-white/70 text-[15px] leading-none active:bg-white/[0.15]">+</button>
                   </div>
                 </div>
+                <p className="text-[10px] text-white/30 text-right mb-2.5">
+                  {wind ? `wind ${Math.round(wind.kts)} kt / ${Math.round(wind.dirDeg)}° (${wind.level})` : 'winds unavailable'}
+                </p>
 
                 {quote ? (
                   <>
