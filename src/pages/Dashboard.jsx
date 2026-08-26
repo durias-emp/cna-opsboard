@@ -246,10 +246,10 @@ export default function Dashboard() {
                 <p className="vital-label">Month</p>
                 <div className="vital-zone">
                   <p className="vital-value-sm">
-                    {stats.total ? `+${stats.allHours ?? stats.monthHours}` : '0h'}
+                    {stats.monthCount ? `+${stats.monthHours}` : '0h'}
                   </p>
                 </div>
-                <p className="vital-foot">{stats.total ? `${stats.total} flights` : 'no flights'}</p>
+                <p className="vital-foot">{stats.monthCount ? `${stats.monthCount} flight${stats.monthCount === 1 ? '' : 's'}` : 'no flights'}</p>
               </button>
             </div>
 
