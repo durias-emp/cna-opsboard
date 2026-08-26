@@ -392,19 +392,16 @@ export default function Flights() {
             statsLine={`${stats.total} flights · ${stats.allHours} total · ${stats.monthHours} this month`} />
         )}
 
-        {/* ── Itinerary & tools — one row, three equal tiles (same material) ── */}
-        <div className="trow-group grid grid-cols-3">
-          <button className="trow justify-center py-4" onClick={() => setItineraryOpen(true)}>
-            <p className="text-[13px] font-semibold text-white text-center leading-tight">Add New<br />Itinerary</p>
+        {/* ── Itinerary & tools — three separate tiles, one-line labels ── */}
+        <div className="grid grid-cols-[1.1fr_0.75fr_1.25fr] gap-2.5">
+          <button className="vital-tile items-center justify-center py-4 px-1" onClick={() => setItineraryOpen(true)}>
+            <span className="text-[12px] font-semibold text-white leading-none whitespace-nowrap">New Itinerary</span>
           </button>
-          {/* side-by-side rows: the built-in top separator becomes a left one */}
-          <button className="trow justify-center py-4" style={{ borderTop: 'none', borderLeft: '1px solid rgba(255,255,255,0.05)' }}
-            onClick={() => setRecordsOpen(true)}>
-            <p className="text-[13px] font-semibold text-white text-center leading-tight">Itinerary<br />Records</p>
+          <button className="vital-tile items-center justify-center py-4 px-1" onClick={() => setRecordsOpen(true)}>
+            <span className="text-[12px] font-semibold text-white leading-none whitespace-nowrap">Records</span>
           </button>
-          <button className="trow justify-center py-4" style={{ borderTop: 'none', borderLeft: '1px solid rgba(255,255,255,0.05)' }}
-            onClick={() => setWabOpen(true)}>
-            <p className="text-[13px] font-semibold text-white text-center leading-tight">Weight &amp;<br />Balance</p>
+          <button className="vital-tile items-center justify-center py-4 px-1" onClick={() => setWabOpen(true)}>
+            <span className="text-[12px] font-semibold text-white leading-none whitespace-nowrap">Weight &amp; Balance</span>
           </button>
         </div>
 
