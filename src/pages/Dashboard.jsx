@@ -262,40 +262,39 @@ export default function Dashboard() {
               </button>
             </div>
 
-            {/* Minimap — a tile like its siblings: rounded, inside the card
-                padding, sized like the Hobbs + tiles area combined */}
-            <button className="no-press relative block w-full overflow-hidden select-none rounded-[14px]"
+            {/* Minimap — a tile like its siblings; the ops shortcuts float
+                over the chart itself (tapping the chart opens the map) */}
+            <div className="no-press relative block w-full overflow-hidden select-none rounded-[14px] cursor-pointer"
               style={{ height: 280, WebkitTapHighlightColor: 'transparent' }}
-              onClick={() => navigate('/map')} aria-label="Open map and waypoints">
+              onClick={() => navigate('/map')} role="button" aria-label="Open map and waypoints">
               <MiniMap height={280} />
               {/* dark veil: the clear chart dims to sit inside the dark UI */}
               <div className="absolute inset-0 pointer-events-none"
                 style={{ background: 'rgba(14, 16, 18, 0.38)' }} />
-              {/* readability scrim + floating title */}
-              <div className="absolute inset-x-0 bottom-0 h-16 pointer-events-none"
-                style={{ background: 'linear-gradient(to top, rgba(17,17,18,0.85), transparent)' }} />
-              <div className="absolute left-4 bottom-3 text-left pointer-events-none">
-                <p className="text-[14px] font-semibold text-white leading-none">Map &amp; Waypoints</p>
-                <p className="text-[11px] text-white/45 mt-1 leading-none">275 aerodromes · hold to add your own sites</p>
-              </div>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"
-                className="absolute right-4 bottom-4 w-4 h-4 text-white/40"><path d="M9 18l6-6-6-6" /></svg>
-            </button>
+              {/* readability scrim under the floating buttons */}
+              <div className="absolute inset-x-0 bottom-0 h-20 pointer-events-none"
+                style={{ background: 'linear-gradient(to top, rgba(17,17,18,0.75), transparent)' }} />
 
-            {/* Ops shortcuts — three equal words, straight into each flow */}
-            <div className="grid grid-cols-3 gap-2.5">
-              <button className="vital-tile items-center justify-center py-3.5"
-                onClick={() => window.open(AVIARA_URL, '_blank')}>
-                <span className="text-[13px] font-semibold text-white leading-none">Flight plan</span>
-              </button>
-              <button className="vital-tile items-center justify-center py-3.5"
-                onClick={() => navigate('/map', { state: { mode: 'quote' } })}>
-                <span className="text-[13px] font-semibold text-white leading-none">Quote</span>
-              </button>
-              <button className="vital-tile items-center justify-center py-3.5"
-                onClick={() => navigate('/map', { state: { mode: 'trips' } })}>
-                <span className="text-[13px] font-semibold text-white leading-none">Trips</span>
-              </button>
+              {/* Ops shortcuts — the map screen's crystal buttons, riding the chart */}
+              <div className="absolute inset-x-3 bottom-3 grid grid-cols-3 gap-2.5">
+                {[
+                  { label: 'Flight plan', go: () => window.open(AVIARA_URL, '_blank') },
+                  { label: 'Quote',       go: () => navigate('/map', { state: { mode: 'quote' } }) },
+                  { label: 'Trips',       go: () => navigate('/map', { state: { mode: 'trips' } }) },
+                ].map(({ label, go }) => (
+                  <button key={label}
+                    onClick={e => { e.stopPropagation(); go() }}
+                    className="rounded-[14px] py-3.5 flex items-center justify-center select-none active:scale-[0.98] transition-transform"
+                    style={{
+                      background: 'rgba(30,30,32,0.55)',
+                      backdropFilter: 'blur(24px) saturate(180%)',
+                      WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 0.5px rgba(255,255,255,0.08)',
+                    }}>
+                    <span className="text-[13px] font-semibold text-white leading-none">{label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
