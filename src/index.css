@@ -49,7 +49,7 @@
   /* Universal iOS-style press feedback on touch devices: every enabled button
      dims on press, on top of whatever local active style it has. */
   @media (hover: none) {
-    button:not(:disabled):active { filter: brightness(0.8); }
+    button:not(:disabled):not(.no-press):active { filter: brightness(0.8); }
   }
 }
 
