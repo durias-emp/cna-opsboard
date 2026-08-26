@@ -1547,8 +1547,6 @@ function RouteCard({ route, setRoute, waypoints }) {
     <div className="bg-white/[0.04] rounded-2xl p-4 space-y-3">
       <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">Route</p>
 
-      {coords.length >= 2 && <RouteMiniMap coords={coords} />}
-
       {/* One big field: chips + inline input, ForeFlight style */}
       <div className="rounded-xl bg-white/[0.05] px-2.5 py-2 flex flex-wrap items-center gap-1.5"
         onClick={e => e.currentTarget.querySelector('input')?.focus()}>
@@ -1585,6 +1583,8 @@ function RouteCard({ route, setRoute, waypoints }) {
           ))}
         </div>
       )}
+
+      {coords.length >= 2 && <RouteMiniMap coords={coords} />}
     </div>
   )
 }
