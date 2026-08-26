@@ -81,7 +81,7 @@ function TankGauge({ currentLevel, fillPercent, last, onAdd, onWithdraw }) {
               strokeWidth="10"
               strokeDasharray={circ}
               strokeDashoffset={offset}
-              strokeLinecap="round"
+              strokeLinecap="butt"
               style={{ transition: 'stroke-dashoffset 0.8s ease, stroke 0.4s ease' }}
             />
           </svg>
@@ -312,7 +312,7 @@ function JerryCanSection({ cans, loading, setLevel, totalCurrentGal, totalCapaci
                 strokeWidth="10"
                 strokeDasharray={circ}
                 strokeDashoffset={offset}
-                strokeLinecap="round"
+                strokeLinecap="butt"
                 style={{ transition: 'stroke-dashoffset 0.8s ease, stroke 0.4s ease' }}
               />
             </svg>
@@ -440,7 +440,7 @@ function TotalFacilityCard({ tankLevel, canTotal }) {
       {/* Progress bar */}
       <div className="w-full h-2 bg-white/[0.06] rounded-full overflow-hidden mb-3">
         <div
-          className={`h-full rounded-full transition-all duration-700 ${barColor}`}
+          className={`h-full transition-all duration-700 ${barColor}`}
           style={{ width: `${fillRatio * 100}%` }}
         />
       </div>
