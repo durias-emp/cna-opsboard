@@ -243,9 +243,20 @@ export default function MapPage() {
         })
         map.addLayer({
           id: 'route-pts', type: 'circle', source: 'route',
-          filter: ['==', ['geometry-type'], 'Point'],
+          // Sites picked for a quote carry halo:true and get the pulsing ring
+          // instead of this static dot (which doubled up under their pin)
+          filter: ['all', ['==', ['geometry-type'], 'Point'], ['!=', ['get', 'halo'], true]],
           paint: { 'circle-radius': 5, 'circle-color': '#FFFFFF', 'circle-stroke-color': '#2CB9BD', 'circle-stroke-width': 2.5 },
         })
+        // Selection halo: breathes under a site's pin when chosen for the route
+        map.addSource('halo', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+        map.addLayer({
+          id: 'route-halo', type: 'circle', source: 'halo',
+          paint: {
+            'circle-radius': 10, 'circle-color': '#2CB9BD', 'circle-opacity': 0.3,
+            'circle-stroke-color': '#2CB9BD', 'circle-stroke-width': 2, 'circle-stroke-opacity': 0.8,
+          },
+        }, 'aip-dots')
         map.addSource('crumb', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
         map.addLayer({
           id: 'crumb-dot', type: 'circle', source: 'crumb',
@@ -338,8 +349,13 @@ export default function MapPage() {
     const map = mapRef.current
     if (!map || !ready) return
     const feats = routePoints.map(w => ({
-      type: 'Feature', geometry: { type: 'Point', coordinates: [w.lng, w.lat] }, properties: {},
+      type: 'Feature', geometry: { type: 'Point', coordinates: [w.lng, w.lat] },
+      properties: { halo: w.source !== 'adhoc' },   // pinned sites pulse; dropped pins keep their dot
     }))
+    map.getSource('halo')?.setData({
+      type: 'FeatureCollection',
+      features: mode === 'quote' ? feats.filter(f => f.geometry.type === 'Point') : [],
+    })
     if (routePoints.length >= 2) {
       const coords = routePoints.map(w => [w.lng, w.lat])
       if (roundTrip && mode === 'quote') coords.push(coords[0])   // the return home
@@ -356,6 +372,25 @@ export default function MapPage() {
       map.fitBounds(b, { padding: { top: 120, left: 60, right: 60, bottom: 300 }, maxZoom: 10, duration: 700 })
     }
   }, [routePoints, roundTrip, mode, ready])
+
+  // ── Halo pulse: the chosen site's ring breathes so "picked" is unmissable ──
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready || mode !== 'quote' || routePoints.length === 0) return
+    let raf
+    const start = performance.now()
+    const tick = now => {
+      const t = ((now - start) % 1600) / 1600
+      if (map.getLayer('route-halo')) {
+        map.setPaintProperty('route-halo', 'circle-radius', 8 + t * 16)
+        map.setPaintProperty('route-halo', 'circle-opacity', 0.3 * (1 - t))
+        map.setPaintProperty('route-halo', 'circle-stroke-opacity', 0.9 * (1 - t))
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [mode, routePoints.length, ready])
 
   // ── Trips: resolve a flight's legs to waypoints, draw, and fly the crumb ──
   function resolveTrip(flight) {
@@ -434,6 +469,7 @@ export default function MapPage() {
     if (map && ready) {
       map.getSource('route')?.setData({ type: 'FeatureCollection', features: [] })
       map.getSource('crumb')?.setData({ type: 'FeatureCollection', features: [] })
+      map.getSource('halo')?.setData({ type: 'FeatureCollection', features: [] })
     }
   }
 
@@ -479,7 +515,7 @@ export default function MapPage() {
           .maplibregl-map { position: relative } on this node at init, which
           out-cascades the Tailwind class and collapses the box to 0 height */}
       <div ref={containerRef} className="z-0"
-        style={{ position: 'absolute', inset: 0, isolation: 'isolate', background: '#EAE6DE' }} />
+        style={{ position: 'absolute', inset: 0, isolation: 'isolate', background: 'var(--bg-base)' }} />
 
       {/* Floating back button + hint + layers */}
       <div className="absolute top-0 left-0 right-0 z-10 flex items-center gap-3 px-4"
