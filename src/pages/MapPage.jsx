@@ -374,20 +374,12 @@ export default function MapPage() {
           const d = distToSeg(e.point, a, b)
           if (d < bestD) { bestD = d; best = i }
         }
-        if (roundTripRef.current) {
-          // The closing leg home is drawn but not draggable — a diversion there
-          // has no slot in the point list (the engine flies the same points back)
-          const a = map.project([pts[pts.length - 1].lng, pts[pts.length - 1].lat])
-          const b = map.project([pts[0].lng, pts[0].lat])
-          if (distToSeg(e.point, a, b) < bestD) return -1
-        }
         return best
       }
       const drawDrag = () => {
         const pts = routePointsRef.current
         const coords = pts.map(w => [w.lng, w.lat])
         coords.splice(drag.idx + 1, 0, [drag.pos.lng, drag.pos.lat])
-        if (roundTripRef.current) coords.push(coords[0])
         map.getSource('route')?.setData({ type: 'FeatureCollection', features: [
           { type: 'Feature', geometry: { type: 'LineString', coordinates: coords }, properties: {} },
           ...coords.slice(0, -1).map(c => ({ type: 'Feature', geometry: { type: 'Point', coordinates: c }, properties: {} })),
@@ -465,7 +457,6 @@ export default function MapPage() {
     })
     if (routePoints.length >= 2) {
       const coords = routePoints.map(w => [w.lng, w.lat])
-      if (roundTrip && mode === 'quote') coords.push(coords[0])   // the return home
       feats.push({
         type: 'Feature',
         geometry: { type: 'LineString', coordinates: coords },
