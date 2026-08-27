@@ -77,6 +77,8 @@ export default function MapPage() {
   const routePointsRef = useRef([])
   const roundTripRef = useRef(true)
   const insertDiversionRef = useRef(null)
+  const pickingRef = useRef(null)
+  const pickPointRef = useRef(null)
   const [routePoints, setRoutePoints] = useState([])     // quote route, in tap order
   const [trip, setTrip] = useState(null)                 // selected past flight
   const animRef = useRef(null)                           // breadcrumb rAF id
@@ -98,6 +100,10 @@ export default function MapPage() {
   const swipeY = useRef(null)
   const [cruiseAltFt, setCruiseAltFt] = useState(null)   // null → profile default
   const [picking, setPicking]     = useState(null)   // 'from' | 'to' | 'stop' → search sheet
+  pickingRef.current = picking
+  // While the picker is open, a tap on the chart resolves right into the slot:
+  // a site if one is under the finger, otherwise the exact pilot coordinates
+  pickPointRef.current = (w) => placeWaypoint(w, pickingRef.current)
   const [pin, setPin]             = useState(null)   // MFS-style dropped pin {lat,lng,x,y}
 
   // Default departure: last one used, else Salamanca (CNA's base)
@@ -326,13 +332,24 @@ export default function MapPage() {
         const w = waypointsRef.current.find(x => String(x.id) === String(f.properties.id))
         if (!w) return
         if (modeRef.current === 'quote') {
-          setRoutePoints(ps => (ps[ps.length - 1]?.id === w.id ? ps : [...ps, w]))
+          if (pickingRef.current) pickPointRef.current?.(w)
+          else setRoutePoints(ps => (ps[ps.length - 1]?.id === w.id ? ps : [...ps, w]))
         } else {
           setSelected(w)
         }
       }
       map.on('click', 'aip-dots', pick)
       map.on('click', 'custom-dots', pick)
+      map.on('click', e => {
+        if (!pickingRef.current) return
+        const layers = ['aip-dots', 'custom-dots'].filter(id => map.getLayer(id))
+        if (map.queryRenderedFeatures(e.point, { layers }).length) return   // a site claimed it
+        pickPointRef.current?.({
+          id: `adhoc-${e.lngLat.lat.toFixed(5)},${e.lngLat.lng.toFixed(5)}`,
+          name: formatDMS(e.lngLat.lat, e.lngLat.lng),
+          code: null, lat: e.lngLat.lat, lng: e.lngLat.lng, source: 'adhoc',
+        })
+      })
       map.on('mouseenter', 'aip-dots',    () => { map.getCanvas().style.cursor = 'pointer' })
       map.on('mouseleave', 'aip-dots',    () => { map.getCanvas().style.cursor = '' })
       map.on('mouseenter', 'custom-dots', () => { map.getCanvas().style.cursor = 'pointer' })
@@ -517,7 +534,7 @@ export default function MapPage() {
       const last = coords[coords.length - 1]
       if (!last || last[0] !== w.lng || last[1] !== w.lat) coords.push([w.lng, w.lat])
     }
-    const chips = (flight?.legs ?? flight.legs ?? [])[0]?.route
+    const chips = flight?.legs?.[0]?.route
     if (chips?.length >= 2) {
       for (const c of chips) push(find(c))   // the logged ROUTE chips are the authority
     } else {
@@ -1057,17 +1074,21 @@ function WaypointPicker({ waypoints, slot, onSelect, onClose }) {
 
   return (
     <>
-      <div className="fixed inset-0 z-[80]" onClick={onClose} />
       <div className="fixed bottom-0 left-0 right-0 z-[90] rounded-t-3xl flex flex-col"
-        style={{ maxHeight: '70dvh',
+        style={{ maxHeight: '42dvh',
                  background: 'rgba(30,30,32,0.72)', backdropFilter: 'blur(50px) saturate(200%)',
                  WebkitBackdropFilter: 'blur(50px) saturate(200%)',
                  border: '0.5px solid rgba(255,255,255,0.10)' }}>
         <div className="px-4 pt-4 pb-2 flex-shrink-0">
-          <p className="text-[15px] font-bold text-white mb-2.5">{titles[slot]}</p>
-          <input autoFocus value={q} onChange={e => setQ(e.target.value)}
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="text-[15px] font-bold text-white">{titles[slot]}</p>
+            <button onClick={onClose}
+              className="text-[12px] font-semibold text-white px-3 py-1.5 rounded-full bg-white/[0.08] active:bg-white/[0.15]">Close</button>
+          </div>
+          <input value={q} onChange={e => setQ(e.target.value)}
             placeholder="Name, code, or coordinates"
             className="input-field w-full" />
+          <p className="text-[11px] text-white/35 mt-2">…or tap anywhere on the chart to use that exact spot</p>
         </div>
         <div className="overflow-y-auto flex-1 px-2 pb-6" style={{ overscrollBehavior: 'contain' }}>
           {coords && (
