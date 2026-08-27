@@ -289,7 +289,6 @@ export default function Dashboard() {
                       background: 'rgba(30,30,32,0.55)',
                       backdropFilter: 'blur(24px) saturate(180%)',
                       WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 0.5px rgba(255,255,255,0.08)',
                     }}>
                     <span className="text-[13px] font-semibold text-white leading-none">{label}</span>
                   </button>
