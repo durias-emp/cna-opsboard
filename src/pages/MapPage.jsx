@@ -11,6 +11,7 @@ import { useQuoteProfile } from '../hooks/useQuoteProfile'
 import { useRouteWinds } from '../hooks/useRouteWinds'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 import { loadStyle, SALVADOR_CENTER, AVIARA_URL } from '../lib/mapStyle'
+import { addEsriToMapLibre } from '../lib/esriSatellite'
 
 const LONG_PRESS_MS = 450
 
@@ -53,9 +54,9 @@ const LAYERS_KEY = 'cna:mapLayers'        // localStorage: AVIARA-style layer vi
 function loadLayerPrefs() {
   try {
     const v = JSON.parse(localStorage.getItem(LAYERS_KEY))
-    if (v && typeof v === 'object') return { aip: !!v.aip, custom: v.custom !== false }
+    if (v && typeof v === 'object') return { aip: !!v.aip, custom: v.custom !== false, sat: !!v.sat }
   } catch { /* shipped defaults */ }
-  return { aip: false, custom: true }     // aerodromes OFF by default (AVIARA layers)
+  return { aip: false, custom: true, sat: false }   // aerodromes and satellite OFF by default
 }
 
 export default function MapPage() {
@@ -307,12 +308,23 @@ export default function MapPage() {
           paint: { 'line-color': '#000000', 'line-opacity': 0.001, 'line-width': 28 },
         })
 
+        // Esri satellite (AVIARA's shared module): mounted once under every
+        // overlay, shown or hidden by the layers toggle. Anonymous endpoint
+        // until VITE_ARCGIS_KEY exists — see the licence block in the module.
+        addEsriToMapLibre(map, {
+          key: import.meta.env.VITE_ARCGIS_KEY || null,
+          labels: true,
+          beforeId: 'route-halo',
+        })
+
         // AVIARA layers: apply saved visibility (aerodromes hidden by default)
         const vis = layersRef.current
         for (const id of ['aip-dots', 'aip-labels'])
           map.setLayoutProperty(id, 'visibility', vis.aip ? 'visible' : 'none')
         for (const id of ['custom-dots', 'custom-labels'])
           map.setLayoutProperty(id, 'visibility', vis.custom ? 'visible' : 'none')
+        for (const id of ['esri-imagery', 'esri-roads', 'esri-places'])
+          if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis.sat ? 'visible' : 'none')
 
         // Intro flight: whole globe → dive onto the region, once per session
         if (playIntro) {
@@ -637,6 +649,8 @@ export default function MapPage() {
       map.setLayoutProperty(id, 'visibility', layers.aip ? 'visible' : 'none')
     for (const id of ['custom-dots', 'custom-labels'])
       map.setLayoutProperty(id, 'visibility', layers.custom ? 'visible' : 'none')
+    for (const id of ['esri-imagery', 'esri-roads', 'esri-places'])
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', layers.sat ? 'visible' : 'none')
   }, [layers, ready])
 
   // ── Keep sources in sync with waypoint data ──
@@ -697,6 +711,7 @@ export default function MapPage() {
                        border: '0.5px solid rgba(255,255,255,0.12)',
                        boxShadow: '0 16px 48px rgba(0,0,0,0.55)' }}>
               {[
+                { key: 'sat',    label: 'Satellite',    sub: 'Esri imagery + labels' },
                 { key: 'aip',    label: 'Aerodromes',   sub: '275 CA-4 sites' },
                 { key: 'custom', label: 'My waypoints', sub: 'saved sites' },
               ].map(({ key, label, sub }, i) => (
