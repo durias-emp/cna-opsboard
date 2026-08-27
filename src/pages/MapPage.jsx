@@ -873,14 +873,14 @@ export default function MapPage() {
 
                 {/* Adjustments — altitude and waiting share one row */}
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-[11px] text-white/40">Alt</span>
+                  <span className="text-[12px] text-white/60">Alt</span>
                   <button onClick={() => setCruiseAltFt(a => Math.max(1500, (a ?? profile.default_cruise_alt_ft) - 500))}
                     className="w-7 h-7 rounded-full bg-white/[0.08] text-white/70 text-[15px] leading-none active:bg-white/[0.15]">−</button>
                   <span className="text-[12px] font-bold text-white tabular-nums">{altFt.toLocaleString('en-US')} ft</span>
                   <button onClick={() => setCruiseAltFt(a => Math.min(12000, (a ?? profile.default_cruise_alt_ft) + 500))}
                     className="w-7 h-7 rounded-full bg-white/[0.08] text-white/70 text-[15px] leading-none active:bg-white/[0.15]">+</button>
                   <div className="flex items-center gap-1.5 ml-auto">
-                    <span className="text-[11px] text-white/40">Waiting</span>
+                    <span className="text-[12px] text-white/60">Waiting</span>
                     <button onClick={() => setWaitingHr(h => Math.max(0, +(h - 0.5).toFixed(1)))}
                       className="w-7 h-7 rounded-full bg-white/[0.08] text-white/70 text-[15px] leading-none active:bg-white/[0.15]">−</button>
                     <span className="text-[12px] font-bold text-white tabular-nums w-8 text-center">{waitingHr} h</span>
@@ -912,20 +912,20 @@ export default function MapPage() {
                       const tag = w => w.code || (w.diversion ? 'Via' : w.source === 'adhoc' ? 'Pin' : w.name)
                       return (
                         <div className="rounded-xl bg-white/[0.05] px-3 py-2 mb-2.5 space-y-1">
-                          <div className="flex text-[8.5px] uppercase tracking-wider text-white/30">
+                          <div className="flex text-[9.5px] uppercase tracking-wider text-white/40">
                             <span className="flex-1">Leg</span>
                             <span className="w-14 text-right">Dist</span>
                             <span className="w-14 text-right">ETE</span>
                             <span className="w-12 text-right">Fuel</span>
                           </div>
                           {legs.map((l, i) => (
-                            <div key={i} className="flex items-baseline text-[11.5px] tabular-nums">
-                              <span className="flex-1 font-semibold text-white/80 truncate pr-2">
+                            <div key={i} className="flex items-baseline text-[12.5px] tabular-nums">
+                              <span className="flex-1 font-semibold text-white/90 truncate pr-2">
                                 {tag(l.from)} → {tag(l.to)}{l.back && <span className="text-white/30 font-normal"> return</span>}
                               </span>
-                              <span className="w-14 text-right text-white/60">{l.nm.toFixed(0)} nm</span>
-                              <span className="w-14 text-right text-white/60">{ete(l.hr)}</span>
-                              <span className="w-12 text-right text-white/60">{(l.hr * profile.burn_gph).toFixed(0)} g</span>
+                              <span className="w-14 text-right text-white/75">{l.nm.toFixed(0)} nm</span>
+                              <span className="w-14 text-right text-white/75">{ete(l.hr)}</span>
+                              <span className="w-12 text-right text-white/75">{(l.hr * profile.burn_gph).toFixed(0)} g</span>
                             </div>
                           ))}
                         </div>
@@ -935,24 +935,23 @@ export default function MapPage() {
                     <div className="space-y-1.5 mb-2.5">
                       {quote.lines.map(l => (
                         <div key={l.key} className="flex items-baseline justify-between">
-                          <span className="text-[12px] text-white/55">{l.label}</span>
-                          <span className="text-[12px] font-semibold text-white/80 tabular-nums">
+                          <span className="text-[13.5px] text-white/70">{l.label}</span>
+                          <span className="text-[13.5px] font-semibold text-white tabular-nums">
                             ${Math.round(l.amount).toLocaleString('en-US')}
                           </span>
                         </div>
                       ))}
                       <div className="flex items-baseline justify-between pt-1.5 border-t border-white/[0.08]">
-                        <span className="text-[13px] font-bold text-white">
+                        <span className="text-[15px] font-bold text-white">
                           Total{profile.tax_included && <span className="font-normal text-white/35 text-[11px]"> IVA incluido</span>}
                         </span>
-                        <span className="text-[18px] font-bold text-white tabular-nums">
+                        <span className="text-[22px] font-bold text-white tabular-nums">
                           ${Math.round(quote.total).toLocaleString('en-US')}
                         </span>
                       </div>
                     </div>
-                    <p className="text-[9.5px] text-white/25">
-                      {quote.totalNm.toFixed(0)} nm · air {quote.airHr.toFixed(1)} h · {quote.fuelGal.toFixed(0)} gal ·
-                      {' '}climb {profile.climb_kts}/{profile.climb_fpm} · cruise {profile.cruise_kts} kt · desc {profile.descent_kts}/{profile.descent_fpm}
+                    <p className="text-[11px] text-white/40">
+                      {quote.totalNm.toFixed(0)} nm · air {quote.airHr.toFixed(1)} h + 0.2 start/stop · {quote.fuelGal.toFixed(0)} gal
                       {quote.tailKts ? ` · ${quote.tailKts > 0 ? 'tail' : 'head'}wind ${Math.abs(quote.tailKts).toFixed(0)} kt` : ''}
                     </p>
                   </>

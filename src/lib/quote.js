@@ -104,7 +104,7 @@ export function computeQuote({
   const flightCost = flightHr * profile.rate_hr
   lines.push({
     key: 'flight',
-    label: `Flight ${flightHr.toFixed(1)} h (air ${airHr.toFixed(1)} + ${profile.airtime_allowance_hr} start/stop) × $${profile.rate_hr.toLocaleString('en-US')}`,
+    label: `Flight ${flightHr.toFixed(1)} h × $${profile.rate_hr.toLocaleString('en-US')}/h`,
     amount: flightCost,
   })
 
