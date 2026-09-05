@@ -49,6 +49,19 @@ function testConnection() {
   if (res.getResponseCode() !== 200) throw new Error('Conexión falló: HTTP ' + res.getResponseCode());
 }
 
+/**
+ * Correr UNA vez tras actualizar el script: quita la etiqueta NOTAM-INGESTED
+ * de todos los hilos para que la próxima corrida de ingestNotams los vuelva a
+ * subir, ahora con adjuntos. No duplica nada (merge-duplicates + id único).
+ */
+function resetIngestLabels() {
+  var done = GmailApp.getUserLabelByName(DONE_LABEL);
+  if (!done) { Logger.log('No hay etiqueta ' + DONE_LABEL); return; }
+  var threads = GmailApp.search('label:' + DONE_LABEL, 0, 200);
+  threads.forEach(function (t) { t.removeLabel(done); });
+  Logger.log('Etiqueta quitada de ' + threads.length + ' hilos. Ahora corre ingestNotams.');
+}
+
 function ingestNotams() {
   var c = props_();
   var done = GmailApp.getUserLabelByName(DONE_LABEL) || GmailApp.createLabel(DONE_LABEL);
@@ -59,6 +72,19 @@ function ingestNotams() {
   threads.forEach(function (thread) {
     try {
       var rows = thread.getMessages().map(function (m) {
+        // Adjuntos reales (sin imágenes inline: firmas y logos no son NOTAMs).
+        // Crudos en base64 — el parser de fase 2 decodifica; aquí no se
+        // interpreta nada. Tope 4 MB por adjunto para no reventar la fila.
+        var atts = m.getAttachments({ includeInlineImages: false, includeAttachments: true })
+          .map(function (a) {
+            var size = a.getSize();
+            return {
+              filename: a.getName(),
+              mime: a.getContentType(),
+              size_bytes: size,
+              data_b64: size <= 4 * 1024 * 1024 ? Utilities.base64Encode(a.getBytes()) : null,
+            };
+          });
         return {
           gmail_message_id: m.getId(),
           gmail_thread_id: thread.getId(),
@@ -67,15 +93,18 @@ function ingestNotams() {
           received_at: m.getDate().toISOString(),
           body_text: m.getPlainBody(),
           body_html: m.getBody(),
+          attachments: atts,
         };
       });
-      var res = UrlFetchApp.fetch(c.url + '/rest/v1/notam_raw', {
+      // merge-duplicates: re-correr sobre un hilo ya subido ACTUALIZA la fila
+      // (así el histórico ganó adjuntos sin duplicarse)
+      var res = UrlFetchApp.fetch(c.url + '/rest/v1/notam_raw?on_conflict=gmail_message_id', {
         method: 'post',
         contentType: 'application/json',
         headers: {
           apikey: c.key,
           Authorization: 'Bearer ' + c.key,
-          Prefer: 'resolution=ignore-duplicates,return=minimal',
+          Prefer: 'resolution=merge-duplicates,return=minimal',
         },
         payload: JSON.stringify(rows),
         muteHttpExceptions: true,
