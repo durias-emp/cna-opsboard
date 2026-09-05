@@ -128,4 +128,144 @@ function ingestNotams() {
       failures.join('\n\n'));
   }
   Logger.log('Subidos: ' + ok + ' mensajes · Fallas: ' + failures.length);
+  parseNotams();   // fase 2 corre en el mismo ciclo de 15 min
+}
+
+/* ── FASE 2: extracción de texto y parser ICAO ─────────────────────────────
+ *
+ * REQUIERE el servicio avanzado "Drive API" (v2): en el editor, menú
+ * izquierdo "Services" → + → Drive API → Add. Los PDF/DOCX se convierten a
+ * Google Doc temporal (con OCR para PDF), se lee el texto y se borra el Doc.
+ *
+ * El parser es determinista: regex sobre el formato ICAO (Q/A/B/C/D/E/F/G),
+ * desarrollado y validado contra los 10 NOTAMs reales del histórico de AIS.
+ * Nada generativo. El campo E se guarda tal como lo emitió AIS.
+ */
+
+function extractAttachmentText_(att) {
+  if (!att.data_b64) return '';
+  var mime = att.mime || '';
+  if (mime.indexOf('pdf') < 0 && mime.indexOf('word') < 0 && mime.indexOf('text') < 0) return '';
+  var blob = Utilities.newBlob(Utilities.base64Decode(att.data_b64), mime, att.filename);
+  if (mime.indexOf('text') >= 0) return blob.getDataAsString();
+  var doc = Drive.Files.insert(
+    { title: 'tmp-notam-extract', mimeType: 'application/vnd.google-apps.document' },
+    blob, { ocr: true, ocrLanguage: 'es' });
+  try {
+    return DocumentApp.openById(doc.id).getBody().getText();
+  } finally {
+    Drive.Files.remove(doc.id);
+  }
+}
+
+function parseNotamText_(text) {
+  var out = [];
+  var blocks = text.split(/(?=[A-Z]\d{4}\/\d{2}\s*\n?\s*NOTAM[NRC])/);
+  blocks.forEach(function (b) {
+    var m = b.match(/([A-Z]\d{4}\/\d{2})\s*\n?\s*NOTAM([NRC])(?:\s+([A-Z]\d{4}\/\d{2}))?/);
+    if (!m) return;
+    var n = { notam_id: m[1], type: 'NOTAM' + m[2], replaces_id: m[3] || null, is_permanent: false };
+    var q = b.match(/Q\)\s*([A-Z]{4})\/(Q[A-Z]{4})\/[^\/]*\/[^\/]*\/[^\/]*\/(\d{3})\/(\d{3})\/(\d{4})([NS])(\d{5})([EW])(\d{3})/);
+    if (q) {
+      n.fir = q[1]; n.q_code = q[2];
+      var lat = parseInt(q[5].slice(0,2),10) + parseInt(q[5].slice(2),10)/60;
+      var lng = parseInt(q[7].slice(0,3),10) + parseInt(q[7].slice(3),10)/60;
+      n.center_lat = q[6] === 'N' ? lat : -lat;
+      n.center_lng = q[8] === 'W' ? -lng : lng;
+      n.radius_nm = parseInt(q[9],10);
+      n.lower_limit = q[3] + '00FT'; n.upper_limit = q[4] + '00FT';
+    }
+    var a = b.match(/A\)\s*([A-Z]{4})/);      if (a) n.location = a[1];
+    var ts = function (s) { return '20' + s.slice(0,2) + '-' + s.slice(2,4) + '-' + s.slice(4,6) +
+      'T' + s.slice(6,8) + ':' + s.slice(8,10) + ':00Z'; };
+    var bb = b.match(/B\)\s*(\d{10})/);       if (bb) n.effective_from = ts(bb[1]);
+    var cc = b.match(/C\)\s*(\d{10}|PERM)/);
+    if (cc) { if (cc[1] === 'PERM') n.is_permanent = true; else n.effective_to = ts(cc[1]); }
+    var d = b.match(/D\)\s*([^\n]+)/);
+    if (d && d[1].trim().indexOf('E)') !== 0) n.schedule = d[1].trim();
+    var e = b.match(/E\)\s*([\s\S]*?)(?:\n?\s*F\)|$)/);
+    if (e) n.body = e[1].replace(/\s+/g, ' ').trim();
+    var ec = b.match(/(\d{6})([NS])(\d{7})([EW])/);   // centro preciso del campo E
+    if (ec) {
+      var la = parseInt(ec[1].slice(0,2),10) + parseInt(ec[1].slice(2,4),10)/60 + parseInt(ec[1].slice(4,6),10)/3600;
+      var lo = parseInt(ec[3].slice(0,3),10) + parseInt(ec[3].slice(3,5),10)/60 + parseInt(ec[3].slice(5,7),10)/3600;
+      n.center_lat = ec[2] === 'N' ? la : -la;
+      n.center_lng = ec[4] === 'W' ? -lo : lo;
+    }
+    var er = b.match(/WI\s+(\d+)\s*NM\s+RADIUS/);   if (er) n.radius_nm = parseInt(er[1],10);
+    var f = b.match(/F\)\s*([A-Z0-9 ]+?)\s*G\)/);   if (f) n.lower_limit = f[1].trim();
+    var g = b.match(/G\)\s*([A-Z0-9 ]+)/);            if (g) n.upper_limit = g[1].trim();
+    if (n.body) out.push(n);
+  });
+  return out;
+}
+
+function scoreNotam_(n, rules) {
+  var best = null;
+  rules.forEach(function (r) {
+    var hay = { location: n.location, fir: n.fir, q_code: n.q_code, body: n.body }[r.field] || '';
+    var hit = r.is_regex ? new RegExp(r.pattern, 'i').test(hay)
+                         : hay.toUpperCase().indexOf(r.pattern.toUpperCase()) >= 0;
+    if (hit && (!best || r.score > best.score)) best = r;
+  });
+  if (best) { n.relevance_score = best.score; n.relevance_rule = best.label; }
+  return n;
+}
+
+function parseNotams() {
+  var c = props_();
+  var H = { apikey: c.key, Authorization: 'Bearer ' + c.key };
+  var rules = JSON.parse(UrlFetchApp.fetch(
+    c.url + '/rest/v1/notam_rules?is_active=eq.true&select=label,field,pattern,is_regex,score',
+    { headers: H }).getContentText());
+  var raws = JSON.parse(UrlFetchApp.fetch(
+    c.url + '/rest/v1/notam_raw?parse_status=eq.pending&select=id,subject,body_text,attachments&order=received_at&limit=12',
+    { headers: H }).getContentText());
+  if (!raws.length) { Logger.log('Nada pendiente.'); return; }
+
+  var parsedRows = 0, notamCount = 0, failures = [];
+  raws.forEach(function (raw) {
+    var status = 'not_notam', err = null;
+    try {
+      var text = raw.body_text || '';
+      (raw.attachments || []).forEach(function (att) {
+        try { text += '\n' + extractAttachmentText_(att); }
+        catch (ex) { err = 'adjunto ' + att.filename + ': ' + ex.message; }
+      });
+      var notams = parseNotamText_(text).map(function (n) {
+        n.notam_raw_id = raw.id;
+        return scoreNotam_(n, rules);
+      });
+      if (notams.length) {
+        var res = UrlFetchApp.fetch(c.url + '/rest/v1/notams?on_conflict=notam_id,location', {
+          method: 'post', contentType: 'application/json',
+          headers: { apikey: c.key, Authorization: 'Bearer ' + c.key,
+                     Prefer: 'resolution=merge-duplicates,return=minimal' },
+          payload: JSON.stringify(notams), muteHttpExceptions: true });
+        if (res.getResponseCode() >= 300) throw new Error('insert notams HTTP ' + res.getResponseCode() + ': ' + res.getContentText().slice(0,200));
+        // NOTAMR reemplaza, NOTAMC cancela al anterior
+        notams.forEach(function (n) {
+          if ((n.type === 'NOTAMR' || n.type === 'NOTAMC') && n.replaces_id) {
+            UrlFetchApp.fetch(c.url + '/rest/v1/notams?notam_id=eq.' + encodeURIComponent(n.replaces_id), {
+              method: 'patch', contentType: 'application/json',
+              headers: H,
+              payload: JSON.stringify({ status: n.type === 'NOTAMR' ? 'replaced' : 'cancelled' }),
+              muteHttpExceptions: true });
+          }
+        });
+        status = 'parsed'; notamCount += notams.length;
+      }
+      if (err && status !== 'parsed') { status = 'failed'; }
+    } catch (ex) { status = 'failed'; err = ex.message; failures.push(raw.subject + ': ' + ex.message); }
+    UrlFetchApp.fetch(c.url + '/rest/v1/notam_raw?id=eq.' + raw.id, {
+      method: 'patch', contentType: 'application/json', headers: H,
+      payload: JSON.stringify({ parse_status: status, parse_error: err, parsed_at: new Date().toISOString() }),
+      muteHttpExceptions: true });
+    parsedRows++;
+  });
+  Logger.log('Procesados: ' + parsedRows + ' correos · NOTAMs extraídos: ' + notamCount + ' · Fallas: ' + failures.length);
+  if (failures.length && c.alert) {
+    MailApp.sendEmail(c.alert, 'CNA NOTAM Parse: ' + failures.length + ' falla(s)', failures.join('\n\n'));
+  }
+  if (raws.length === 12) parseNotams();   // drena el backlog en tandas
 }

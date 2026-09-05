@@ -9,6 +9,7 @@ import { formatDMS, parseCoords, haversineNm } from '../lib/geo'
 import { computeQuote } from '../lib/quote'
 import { useQuoteProfile } from '../hooks/useQuoteProfile'
 import { useRouteWinds } from '../hooks/useRouteWinds'
+import { useNotams, notamCircle } from '../hooks/useNotams'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 import { loadStyle, SALVADOR_CENTER, AVIARA_URL } from '../lib/mapStyle'
 import { addEsriToMapLibre } from '../lib/esriSatellite'
@@ -54,9 +55,9 @@ const LAYERS_KEY = 'cna:mapLayers'        // localStorage: AVIARA-style layer vi
 function loadLayerPrefs() {
   try {
     const v = JSON.parse(localStorage.getItem(LAYERS_KEY))
-    if (v && typeof v === 'object') return { aip: !!v.aip, custom: v.custom !== false, sat: !!v.sat }
+    if (v && typeof v === 'object') return { aip: !!v.aip, custom: v.custom !== false, sat: !!v.sat, notam: v.notam !== false }
   } catch { /* shipped defaults */ }
-  return { aip: false, custom: true, sat: false }   // aerodromes and satellite OFF by default
+  return { aip: false, custom: true, sat: false, notam: true }   // NOTAMs ON by default — safety info
 }
 
 export default function MapPage() {
@@ -106,6 +107,8 @@ export default function MapPage() {
   // a site if one is under the finger, otherwise the exact pilot coordinates
   pickPointRef.current = (w) => placeWaypoint(w, pickingRef.current)
   const [pin, setPin]             = useState(null)   // MFS-style dropped pin {lat,lng,x,y}
+  const notams = useNotams()
+  const [selectedNotam, setSelectedNotam] = useState(null)
 
   // Default departure: last one used, else Salamanca (CNA's base)
   function defaultFrom() {
@@ -308,6 +311,25 @@ export default function MapPage() {
           paint: { 'line-color': '#000000', 'line-opacity': 0.001, 'line-width': 28 },
         })
 
+        // NOTAM circles: red translucent areas with the NOTAM id on them.
+        map.addSource('notams', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+        map.addLayer({
+          id: 'notam-fill', type: 'fill', source: 'notams',
+          paint: { 'fill-color': '#E5484D', 'fill-opacity': 0.13 },
+        }, 'route-halo')
+        map.addLayer({
+          id: 'notam-line', type: 'line', source: 'notams',
+          paint: { 'line-color': '#E5484D', 'line-width': 1.6, 'line-dasharray': [3, 2] },
+        }, 'route-halo')
+        map.addLayer({
+          id: 'notam-label', type: 'symbol', source: 'notams',
+          layout: {
+            'text-field': ['get', 'notam_id'], 'text-font': ['Noto Sans Regular'],
+            'text-size': 10.5, 'symbol-placement': 'point',
+          },
+          paint: { 'text-color': '#C62A30', 'text-halo-color': 'rgba(255,255,255,0.9)', 'text-halo-width': 1.2 },
+        }, 'route-halo')
+
         // Esri satellite (AVIARA's shared module): mounted once under every
         // overlay, shown or hidden by the layers toggle. Anonymous endpoint
         // until VITE_ARCGIS_KEY exists — see the licence block in the module.
@@ -446,6 +468,11 @@ export default function MapPage() {
       map.on('touchmove', moveRouteDrag)
       map.on('mouseup',  endRouteDrag)
       map.on('touchend', endRouteDrag)
+      map.on('click', 'notam-fill', e => {
+        if (modeRef.current === 'quote' || pickingRef.current) return
+        const f = e.features?.[0]
+        if (f) setSelectedNotam(JSON.parse(JSON.stringify(f.properties)))
+      })
       map.on('mouseenter', 'route-hit', () => { if (modeRef.current === 'quote') map.getCanvas().style.cursor = 'grab' })
       map.on('mouseleave', 'route-hit', () => { if (!drag.active) map.getCanvas().style.cursor = '' })
     })
@@ -651,7 +678,25 @@ export default function MapPage() {
       map.setLayoutProperty(id, 'visibility', layers.custom ? 'visible' : 'none')
     for (const id of ['esri-imagery', 'esri-roads', 'esri-places'])
       if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', layers.sat ? 'visible' : 'none')
+    for (const id of ['notam-fill', 'notam-line', 'notam-label'])
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', layers.notam ? 'visible' : 'none')
   }, [layers, ready])
+
+  // ── NOTAM geometry → the chart ──
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready) return
+    map.getSource('notams')?.setData({
+      type: 'FeatureCollection',
+      features: notams
+        .filter(n => n.center_lat != null && n.center_lng != null && n.radius_nm)
+        .map(n => ({
+          type: 'Feature',
+          geometry: { type: 'Polygon', coordinates: [notamCircle(n.center_lat, n.center_lng, n.radius_nm)] },
+          properties: n,
+        })),
+    })
+  }, [notams, ready])
 
   // ── Keep sources in sync with waypoint data ──
   useEffect(() => {
@@ -712,6 +757,7 @@ export default function MapPage() {
                        boxShadow: '0 16px 48px rgba(0,0,0,0.55)' }}>
               {[
                 { key: 'sat',    label: 'Satellite',    sub: 'Esri imagery + labels' },
+                { key: 'notam',  label: 'NOTAMs',       sub: 'active airspace notices' },
                 { key: 'aip',    label: 'Aerodromes',   sub: '275 CA-4 sites' },
                 { key: 'custom', label: 'My waypoints', sub: 'saved sites' },
               ].map(({ key, label, sub }, i) => (
@@ -774,6 +820,35 @@ export default function MapPage() {
           <div className="absolute left-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-accent"
             style={{ transform: 'translateX(-50%)',
                      [pin.y > 190 ? 'bottom' : 'top']: '-19px' }} />
+        </div>
+      )}
+
+      {/* ── NOTAM detail — tap a red area on the chart ── */}
+      {selectedNotam && mode === 'menu' && (
+        <div className="absolute left-3 right-3 z-20 rounded-3xl overflow-hidden p-4"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.2rem)',
+                   background: 'rgba(30,30,32,0.72)', backdropFilter: 'blur(40px) saturate(200%)',
+                   WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+                   border: '0.5px solid rgba(229,72,77,0.35)',
+                   boxShadow: '0 16px 48px rgba(0,0,0,0.5)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[15px] font-bold text-white">
+              <span style={{ color: '#FF7A7F' }}>{selectedNotam.notam_id}</span>
+              <span className="text-white/40 font-normal text-[12px] ml-2">{selectedNotam.type}</span>
+            </p>
+            <button onClick={() => setSelectedNotam(null)}
+              className="text-[12px] font-semibold text-white px-3 py-1.5 rounded-full bg-white/[0.08] active:bg-white/[0.15]">Close</button>
+          </div>
+          {/* the original E field verbatim — a summary never replaces it */}
+          <p className="text-[13px] text-white/85 leading-snug font-mono">{selectedNotam.body}</p>
+          <p className="text-[11px] text-white/45 mt-2">
+            {selectedNotam.effective_from?.slice(0, 16).replace('T', ' ')}Z
+            {' → '}
+            {selectedNotam.is_permanent ? 'PERM' : `${selectedNotam.effective_to?.slice(0, 16).replace('T', ' ')}Z`}
+            {selectedNotam.schedule ? ` · ${selectedNotam.schedule}` : ''}
+            {' · '}{selectedNotam.lower_limit}–{selectedNotam.upper_limit}
+            {selectedNotam.relevance_rule ? ` · ${selectedNotam.relevance_rule}` : ''}
+          </p>
         </div>
       )}
 
