@@ -148,14 +148,37 @@ function extractAttachmentText_(att) {
   if (mime.indexOf('pdf') < 0 && mime.indexOf('word') < 0 && mime.indexOf('text') < 0) return '';
   var blob = Utilities.newBlob(Utilities.base64Decode(att.data_b64), mime, att.filename);
   if (mime.indexOf('text') >= 0) return blob.getDataAsString();
-  var doc = Drive.Files.insert(
-    { title: 'tmp-notam-extract', mimeType: 'application/vnd.google-apps.document' },
-    blob, { ocr: true, ocrLanguage: 'es' });
-  try {
-    return DocumentApp.openById(doc.id).getBody().getText();
-  } finally {
-    Drive.Files.remove(doc.id);
+  // Drive convierte a Doc temporal y de ahí se lee el texto. Falla intermitente
+  // por límites de tasa → 3 intentos con pausa creciente, OCR como plan B.
+  var lastErr = null;
+  for (var i = 0; i < 3; i++) {
+    if (i > 0) Utilities.sleep(2000 * i);
+    var opts = i < 2 ? { convert: true } : { ocr: true, ocrLanguage: 'es' };
+    try {
+      var doc = Drive.Files.insert(
+        { title: 'tmp-notam-extract', mimeType: 'application/vnd.google-apps.document' },
+        blob, opts);
+      try {
+        return DocumentApp.openById(doc.id).getBody().getText();
+      } finally {
+        Drive.Files.remove(doc.id);
+      }
+    } catch (ex) { lastErr = ex; }
   }
+  throw lastErr;
+}
+
+/** Corre esto a mano para reintentar los correos que quedaron en 'failed'. */
+function reparseFailed() {
+  var c = props_();
+  var res = UrlFetchApp.fetch(c.url + '/rest/v1/notam_raw?parse_status=eq.failed', {
+    method: 'patch', contentType: 'application/json',
+    headers: { apikey: c.key, Authorization: 'Bearer ' + c.key },
+    payload: JSON.stringify({ parse_status: 'pending', parse_error: null }),
+    muteHttpExceptions: true,
+  });
+  Logger.log('Marcados como pending: HTTP ' + res.getResponseCode() + '. Ahora corre parseNotams.');
+  parseNotams();
 }
 
 function parseNotamText_(text) {
