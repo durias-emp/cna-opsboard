@@ -23,6 +23,49 @@ serve(async (req) => {
   }
 
   try {
+    const body = await req.json()
+
+    // ── NOTAM broadcast (2026-09-05) ───────────────────────────────────────
+    // Called by the CNA NOTAM Ingest Apps Script right after a relevant NOTAM
+    // lands. Auth: the caller proves itself with the service_role key in
+    // x-notam-key. Pushes to EVERY registered device — airspace notices are
+    // for the whole team, not one assignee.
+    if (body.notam) {
+      if (req.headers.get('x-notam-key') !== SERVICE_KEY) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+      const n = body.notam
+      const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
+      const { data: rows } = await supabase.from('device_tokens').select('name, subscription')
+      if (!rows?.length) {
+        return new Response(JSON.stringify({ sent: 0, reason: 'no devices' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+      const until = n.effective_to
+        ? ' · hasta ' + new Date(n.effective_to).toISOString().slice(5, 16).replace('T', ' ') + 'Z'
+        : (n.is_permanent ? ' · PERM' : '')
+      const payload = JSON.stringify({
+        title: '⚠️ NOTAM ' + (n.notam_id ?? ''),
+        body:  String(n.body ?? '').slice(0, 140) + until,
+        url:   '/map',
+      })
+      let sent = 0
+      for (const { name, subscription } of rows) {
+        try {
+          await webpush.sendNotification(subscription, payload)
+          sent++
+        } catch (e) {
+          console.error('NOTAM push failed for', name, ':', e.message)
+          if (e.statusCode === 410 || e.statusCode === 404) {
+            await supabase.from('device_tokens').delete().eq('name', name)
+          }
+        }
+      }
+      return new Response(JSON.stringify({ sent }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
     // Hardening (2026-08-22): when the REQUIRE_USER secret is 'true', the caller must
     // be a signed-in Supabase user — the public anon JWT alone is rejected, so
     // outsiders can't push arbitrary notification text to staff phones.
@@ -37,7 +80,7 @@ serve(async (req) => {
       }
     }
 
-    const { assignee, title, due_date, assigned_by } = await req.json()
+    const { assignee, title, due_date, assigned_by } = body
 
     if (!assignee || !title) {
       return new Response(JSON.stringify({ error: 'assignee and title required' }),

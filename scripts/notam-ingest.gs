@@ -30,6 +30,7 @@
 var SOURCE_LABEL = 'NOTAM-AIS';
 var DONE_LABEL = 'NOTAM-INGESTED';
 var BATCH_THREADS = 40; // por corrida; el trigger de 15 min drena el resto
+var PUSH_MIN_SCORE = 60; // puntaje mínimo para notificar push al equipo
 
 function props_() {
   var p = PropertiesService.getScriptProperties();
@@ -291,4 +292,39 @@ function parseNotams() {
     MailApp.sendEmail(c.alert, 'CNA NOTAM Parse: ' + failures.length + ' falla(s)', failures.join('\n\n'));
   }
   if (raws.length === 12) parseNotams();   // drena el backlog en tandas
+  else notifyRelevantNotams_();            // backlog drenado → avisar lo nuevo
+}
+
+/**
+ * Push a TODO el equipo por cada NOTAM relevante (score >= PUSH_MIN_SCORE),
+ * vigente y aún no notificado. Dedup por notams.pushed_at: cada NOTAM avisa
+ * UNA sola vez, aunque el ciclo corra cada 15 minutos.
+ */
+function notifyRelevantNotams_() {
+  var c = props_();
+  var H = { apikey: c.key, Authorization: 'Bearer ' + c.key };
+  var now = new Date().toISOString();
+  var url = c.url + '/rest/v1/notams?pushed_at=is.null&status=eq.active' +
+    '&relevance_score=gte.' + PUSH_MIN_SCORE +
+    '&or=(is_permanent.is.true,effective_to.gt.' + encodeURIComponent(now) + ')' +
+    '&select=id,notam_id,body,effective_to,is_permanent,relevance_rule';
+  var due = JSON.parse(UrlFetchApp.fetch(url, { headers: H }).getContentText());
+  if (!due.length) return;
+  due.forEach(function (n) {
+    var res = UrlFetchApp.fetch(c.url + '/functions/v1/send-push', {
+      method: 'post', contentType: 'application/json',
+      headers: { Authorization: 'Bearer ' + c.key, 'x-notam-key': c.key },
+      payload: JSON.stringify({ notam: n }),
+      muteHttpExceptions: true,
+    });
+    Logger.log('Push NOTAM ' + n.notam_id + ': HTTP ' + res.getResponseCode() + ' ' +
+      res.getContentText().slice(0, 120));
+    if (res.getResponseCode() < 300) {
+      UrlFetchApp.fetch(c.url + '/rest/v1/notams?id=eq.' + n.id, {
+        method: 'patch', contentType: 'application/json', headers: H,
+        payload: JSON.stringify({ pushed_at: new Date().toISOString() }),
+        muteHttpExceptions: true,
+      });
+    }
+  });
 }
