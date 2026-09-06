@@ -324,7 +324,7 @@ export default function MapPage() {
         map.addLayer({
           id: 'notam-label', type: 'symbol', source: 'notams',
           layout: {
-            'text-field': ['get', 'notam_id'], 'text-font': ['Noto Sans Regular'],
+            'text-field': ['concat', 'NOTAM ', ['get', 'notam_id']], 'text-font': ['Noto Sans Regular'],
             'text-size': 10.5, 'symbol-placement': 'point',
           },
           paint: { 'text-color': '#C62A30', 'text-halo-color': 'rgba(255,255,255,0.9)', 'text-halo-width': 1.2 },
