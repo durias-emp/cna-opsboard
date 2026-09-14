@@ -253,6 +253,25 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
   const [legs,          setLegs]          = useState([emptyLeg()])
   const [route,         setRoute]         = useState([])   // chips: the route flown, in order
   const { waypoints }                     = useWaypoints()
+
+  // The route chips are the authority: first chip fills FROM on the first leg,
+  // last chip fills TO on the last leg (still editable by hand afterwards)
+  useEffect(() => {
+    if (!route.length) return
+    const label = r => (r && typeof r === 'object' ? r.label : r)
+    const from = label(route[0]) ?? ''
+    const to   = label(route[route.length - 1]) ?? ''
+    setLegs(prev => {
+      const li = prev.length - 1
+      if (prev[0]?.takeoff_location === from && prev[li]?.landing_location === to) return prev
+      return prev.map((l, i) => {
+        let n = l
+        if (i === 0  && l.takeoff_location !== from) n = { ...n, takeoff_location: from }
+        if (i === li && n.landing_location !== to)   n = { ...n, landing_location: to }
+        return n
+      })
+    })
+  }, [route])
   const [cycles,        setCycles]        = useState('1')
   const [passengers,    setPassengers]    = useState([emptyPassenger(), emptyPassenger()])
   const [paxDropdown,   setPaxDropdown]   = useState(null)
