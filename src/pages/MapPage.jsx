@@ -452,6 +452,25 @@ export default function MapPage() {
       map.on('move', cancelPress)
       map.on('movestart', () => setPin(null))
 
+      // Desktop: holding the left button works like the mobile long-press.
+      // A short click still pans/picks as before — only a 450 ms hold drops
+      // the pin, and a few px of mouse jitter shouldn't cancel it.
+      let pressStartPt = null
+      map.on('mousedown', e => {
+        if (e.originalEvent.button !== 0) return
+        if (modeRef.current !== 'menu' && modeRef.current !== 'quote') return
+        const layers = ['aip-dots', 'custom-dots', 'route-hit'].filter(id => map.getLayer(id))
+        if (map.queryRenderedFeatures(e.point, { layers }).length) return
+        pressAt = e.lngLat
+        pressStartPt = e.point
+        pressTimer = setTimeout(() => setPin({ lat: pressAt.lat, lng: pressAt.lng, x: pressStartPt.x, y: pressStartPt.y }), LONG_PRESS_MS)
+      })
+      map.on('mousemove', e => {
+        if (pressTimer == null || !pressStartPt) return
+        if (Math.hypot(e.point.x - pressStartPt.x, e.point.y - pressStartPt.y) > 6) cancelPress()
+      })
+      map.on('mouseup', cancelPress)
+
       // ── Drag the route off water: pull the line aside to add a diversion
       //    point (pilot request — "not a landing, just a diversion") ──
       const distToSeg = (p, a, b) => {
