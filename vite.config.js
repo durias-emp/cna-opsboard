@@ -27,7 +27,15 @@ export default defineConfig({
         icons: [
           { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml' }
         ]
-      }
+      },
+      // The push handlers live in public/push-sw.js. The plugin GENERATES
+      // /sw.js (the file usePushRegistration registers), which used to
+      // silently clobber the hand-written sw.js — pushes were accepted by
+      // FCM/APNs but no notification ever showed. importScripts folds the
+      // handlers into the generated worker.
+      workbox: {
+        importScripts: ['push-sw.js'],
+      },
     })
   ]
 })
