@@ -27,11 +27,21 @@ serve(async (req) => {
 
     // ── NOTAM broadcast (2026-09-05) ───────────────────────────────────────
     // Called by the CNA NOTAM Ingest Apps Script right after a relevant NOTAM
-    // lands. Auth: the caller proves itself with the service_role key in
-    // x-notam-key. Pushes to EVERY registered device — airspace notices are
-    // for the whole team, not one assignee.
+    // lands. Auth: the platform gateway has already verified the Bearer JWT's
+    // signature before we run, so it's enough to check the token's role claim
+    // is service_role (an anon-key caller reads as role "anon" and is
+    // refused). String-comparing keys broke when the script's copy of the
+    // key stopped matching the injected env var byte-for-byte.
+    // Pushes to EVERY registered device — airspace notices are for the whole
+    // team, not one assignee.
     if (body.notam) {
-      if (req.headers.get('x-notam-key') !== SERVICE_KEY) {
+      let role = ''
+      try {
+        const jwt = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '')
+        const payload = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+        role = JSON.parse(atob(payload)).role ?? ''
+      } catch { /* not a JWT — falls through to the refusal */ }
+      if (role !== 'service_role' && req.headers.get('x-notam-key') !== SERVICE_KEY) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
       }
