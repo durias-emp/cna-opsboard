@@ -20,6 +20,32 @@ export function usePushRegistration() {
 
   const needsSetup = !identity
 
+  // Self-healing: a device with an identity and granted permission should
+  // always hold a live subscription row. Apple rotates subscriptions and the
+  // push sender deletes dead ones (410), which used to leave a phone silently
+  // unregistered forever — registration only ran once, at name claim.
+  useEffect(() => {
+    if (!identity || identity === '__skipped__') return
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
+    ;(async () => {
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js')
+        await navigator.serviceWorker.ready
+        const sub = (await reg.pushManager.getSubscription())
+          ?? (await reg.pushManager.subscribe({
+               userVisibleOnly: true,
+               applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC),
+             }))
+        await supabase.from('device_tokens').upsert(
+          { name: identity, subscription: sub.toJSON(), updated_at: new Date().toISOString() },
+          { onConflict: 'name' })
+      } catch (e) {
+        console.warn('Push re-registration failed:', e.message)
+      }
+    })()
+  }, [identity])
+
   // Load taken names from Supabase when setup is needed
   useEffect(() => {
     if (!needsSetup) return
