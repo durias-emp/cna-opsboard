@@ -216,7 +216,13 @@ function parseNotamText_(text) {
       n.center_lat = ec[2] === 'N' ? la : -la;
       n.center_lng = ec[4] === 'W' ? -lo : lo;
     }
-    var er = b.match(/WI\s+(\d+)\s*NM\s+RADIUS/);   if (er) n.radius_nm = parseInt(er[1],10);
+    // Radio en cualquiera de las redacciones que usa el AIS:
+    // "WI 5NM RADIUS", "7NM RADIUS CENTERED AT", "RADIUS OF 5 NM", "RADIO DE 5 MN/NM"
+    var er = b.match(/WI\s+(\d+(?:\.\d+)?)\s*NM\s+RADIUS/) ||
+             b.match(/(\d+(?:\.\d+)?)\s*NM\s+RADIUS/) ||
+             b.match(/RADIUS\s+(?:OF\s+)?(\d+(?:\.\d+)?)\s*NM/) ||
+             b.match(/RADIO\s+DE\s+(\d+(?:\.\d+)?)\s*(?:NM|MN)/);
+    if (er) n.radius_nm = parseFloat(er[1]);
     var f = b.match(/F\)\s*([A-Z0-9 ]+?)\s*G\)/);   if (f) n.lower_limit = f[1].trim();
     var g = b.match(/G\)\s*([A-Z0-9 ]+)/);            if (g) n.upper_limit = g[1].trim();
     if (n.body) out.push(n);
