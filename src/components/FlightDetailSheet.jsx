@@ -10,7 +10,9 @@ import { HELICOPTER_ICON } from '../assets/navIcons'
 // Static minimap of the route flown — same teal line the live map uses.
 // With onPick it becomes a picker: pan/zoom enabled, a tap hands back the
 // lngLat so the caller can add an ad-hoc waypoint (Log Flight route card).
-export function RouteMiniMap({ coords, onPick }) {
+// onExpand draws a corner button (caller opens its own full-screen view);
+// fill makes the box stretch to its parent instead of the 170 px card.
+export function RouteMiniMap({ coords, onPick, onExpand, fill }) {
   const boxRef = useRef(null)
   const onPickRef = useRef(onPick)
   onPickRef.current = onPick
@@ -70,7 +72,8 @@ export function RouteMiniMap({ coords, onPick }) {
     onTouchEnd:   e => e.stopPropagation(),
   } : {}
   return (
-    <div className="relative rounded-2xl overflow-hidden" style={{ height: 170 }} {...trap}>
+    <div className={`relative overflow-hidden ${fill ? 'w-full h-full' : 'rounded-2xl'}`}
+      style={fill ? undefined : { height: 170 }} {...trap}>
       {/* position/inset inline — maplibre-gl.css sets position:relative on this
           node and out-cascades the Tailwind class, collapsing it to 0 height */}
       <div ref={boxRef} style={{ position: 'absolute', inset: 0, isolation: 'isolate', background: '#EAE6DE' }} />
@@ -78,6 +81,16 @@ export function RouteMiniMap({ coords, onPick }) {
           chart reads clearly while aiming */}
       {!pickable && (
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'rgba(14,16,18,0.30)' }} />
+      )}
+      {onExpand && (
+        <button type="button" onClick={onExpand} aria-label="Expand map"
+          className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center active:scale-95"
+          style={{ background: 'rgba(30,30,32,0.60)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2}
+            strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+          </svg>
+        </button>
       )}
     </div>
   )

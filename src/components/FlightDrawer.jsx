@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useAircraft } from '../context/AircraftContext'
 import { useTeam } from '../context/TeamContext'
 import { RPC_MISSING } from '../lib/softDelete'
@@ -1534,6 +1535,7 @@ function FlightTimerModal({ onCancel, onConfirm, initialMins }) {
 // line as the route grows.
 function RouteCard({ route, setRoute, waypoints }) {
   const [q, setQ] = useState('')
+  const [mapFull, setMapFull] = useState(false)   // full-screen picker chart
   const resolve = token => {
     if (!token) return null
     const n = token.trim().toUpperCase()
@@ -1614,8 +1616,42 @@ function RouteCard({ route, setRoute, waypoints }) {
       )}
 
       {/* Always-on picker chart: tap anywhere to add a WYPNT chip */}
-      <RouteMiniMap coords={coords} onPick={addMapPoint} />
+      <RouteMiniMap coords={coords} onPick={addMapPoint} onExpand={() => setMapFull(true)} />
       <p className="text-[11px] text-white/30 leading-none">Tap the chart to add a waypoint anywhere</p>
+
+      {/* Full-screen picker — portal to body so the drawer's transform doesn't
+          trap the fixed overlay */}
+      {mapFull && createPortal(
+        <div className="fixed inset-0 z-[90]" style={{ background: '#0E1012' }}>
+          <RouteMiniMap coords={coords} onPick={addMapPoint} fill />
+          <button type="button" onClick={() => setMapFull(false)} aria-label="Close full map"
+            className="absolute right-4 w-11 h-11 rounded-full flex items-center justify-center active:scale-95"
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1rem)',
+                     background: 'rgba(30,30,32,0.60)', backdropFilter: 'blur(24px) saturate(180%)',
+                     WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                     boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10)' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2}
+              strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+              <path d="M9 3H3v6M15 21h6v-6M3 3l7 7M21 21l-7-7" />
+            </svg>
+          </button>
+          {/* live chips so the pilot sees the route grow while picking */}
+          <div className="absolute left-4 right-16 flex flex-wrap gap-1.5 pointer-events-none"
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1.25rem)' }}>
+            {route.map((r, i) => (
+              <span key={`${chipLabel(r)}-${i}`}
+                className="px-2.5 py-1 rounded-full text-[12px] font-semibold text-white"
+                style={{ background: 'rgba(30,30,32,0.60)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
+                {chipLabel(r)}
+              </span>
+            ))}
+          </div>
+          <p className="absolute left-0 right-0 text-center text-[12px] text-white/85 pointer-events-none"
+            style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.25rem)', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+            Tap anywhere to add a waypoint
+          </p>
+        </div>,
+        document.body)}
     </div>
   )
 }
