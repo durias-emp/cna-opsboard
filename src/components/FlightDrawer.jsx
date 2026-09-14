@@ -256,10 +256,19 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
   const { waypoints }                     = useWaypoints()
 
   // The route chips are the authority: first chip fills FROM on the first leg,
-  // last chip fills TO on the last leg (still editable by hand afterwards)
+  // last chip fills TO on the last leg (still editable by hand afterwards).
+  // The leg fields hold short ICAO-style codes, so a named site fills as its
+  // code (Salamanca → SALA), never the full name.
   useEffect(() => {
     if (!route.length) return
-    const label = r => (r && typeof r === 'object' ? r.label : r)
+    const label = r => {
+      if (r && typeof r === 'object') return r.label
+      const n = String(r ?? '').trim().toUpperCase()
+      const w = waypoints.find(x => (x.code ?? '').toUpperCase() === n)
+             ?? waypoints.find(x => x.name.toUpperCase() === n)
+             ?? waypoints.find(x => x.name.toUpperCase().includes(n))
+      return (w?.code ?? n).toUpperCase().slice(0, 4) || n
+    }
     const from = label(route[0]) ?? ''
     const to   = label(route[route.length - 1]) ?? ''
     setLegs(prev => {
