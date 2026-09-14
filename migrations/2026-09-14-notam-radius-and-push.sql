@@ -23,6 +23,10 @@ create or replace view v_notams_active as
     and (is_permanent or effective_to is null or effective_to > now())
   order by relevance_score desc nulls first, effective_from desc;
 
+-- 4 · security_invoker: la vista respeta el RLS del que consulta, no el del
+--    dueño (cierra el aviso "Security Definer View" del advisor de Supabase)
+alter view v_notams_active set (security_invoker = true);
+
 -- verificación
 select notam_id, radius_nm, relevance_score, pushed_at, effective_from, effective_to
 from v_notams_active;
