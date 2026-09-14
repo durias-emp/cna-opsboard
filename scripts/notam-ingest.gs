@@ -251,7 +251,10 @@ function parseNotams() {
   var raws = JSON.parse(UrlFetchApp.fetch(
     c.url + '/rest/v1/notam_raw?parse_status=eq.pending&select=id,subject,body_text,attachments&order=received_at&limit=12',
     { headers: H }).getContentText());
-  if (!raws.length) { Logger.log('Nada pendiente.'); return; }
+  // Aun sin nada que parsear, revisar si quedó algún NOTAM relevante sin
+  // avisar (p. ej. parseado en un ciclo donde el push falló o no existía);
+  // pushed_at deduplica, así que nunca se avisa dos veces.
+  if (!raws.length) { Logger.log('Nada pendiente.'); notifyRelevantNotams_(); return; }
 
   var parsedRows = 0, notamCount = 0, failures = [];
   raws.forEach(function (raw) {
@@ -300,6 +303,9 @@ function parseNotams() {
   if (raws.length === 12) parseNotams();   // drena el backlog en tandas
   else notifyRelevantNotams_();            // backlog drenado → avisar lo nuevo
 }
+
+/** Corrida manual desde el dropdown (las funciones con _ no aparecen ahí). */
+function sendPendingPushes() { notifyRelevantNotams_(); }
 
 /**
  * Push a TODO el equipo por cada NOTAM relevante (score >= PUSH_MIN_SCORE),
