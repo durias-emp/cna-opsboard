@@ -636,7 +636,9 @@ export default function MapPage() {
     }
     const chips = flight?.legs?.[0]?.route
     if (chips?.length >= 2) {
-      for (const c of chips) push(find(c))   // the logged ROUTE chips are the authority
+      // the logged ROUTE chips are the authority; ad-hoc WYPNT chips carry
+      // their own coordinates, site chips resolve by code/name
+      for (const c of chips) push(c && typeof c === 'object' ? c : find(c))
     } else {
       for (const leg of flight.legs ?? []) {
         push(find(leg.takeoff_location))

@@ -4,24 +4,38 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { toHobbs, formatDate } from '../lib/utils'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 import { useWaypoints } from '../hooks/useWaypoints'
-import { loadStyle } from '../lib/mapStyle'
+import { loadStyle, SALVADOR_CENTER } from '../lib/mapStyle'
 import { HELICOPTER_ICON } from '../assets/navIcons'
 
 // Static minimap of the route flown — same teal line the live map uses.
-export function RouteMiniMap({ coords }) {
+// With onPick it becomes a picker: pan/zoom enabled, a tap hands back the
+// lngLat so the caller can add an ad-hoc waypoint (Log Flight route card).
+export function RouteMiniMap({ coords, onPick }) {
   const boxRef = useRef(null)
+  const onPickRef = useRef(onPick)
+  onPickRef.current = onPick
+  const pickable = !!onPick
+  // Content key, not array identity: parents rebuild coords every render and a
+  // remount would reset the user's pan/zoom mid-aim
+  const coordsKey = JSON.stringify(coords)
   useEffect(() => {
     let map, cancelled = false
     loadStyle().then(style => {
       if (cancelled) return
       map = new maplibregl.Map({
         container: boxRef.current, style,
-        center: coords[0], zoom: 9,
-        interactive: false, attributionControl: false,
+        center: coords[0] ?? SALVADOR_CENTER, zoom: coords.length ? 9 : 7.6,
+        interactive: pickable, attributionControl: false,
       })
+      if (pickable) {
+        map.getCanvas().style.cursor = 'crosshair'
+        map.on('click', e => onPickRef.current?.(e.lngLat))
+      }
       map.on('load', () => {
         map.addSource('trip', { type: 'geojson', data: { type: 'FeatureCollection', features: [
-          { type: 'Feature', geometry: { type: 'LineString', coordinates: coords }, properties: {} },
+          ...(coords.length >= 2
+            ? [{ type: 'Feature', geometry: { type: 'LineString', coordinates: coords }, properties: {} }]
+            : []),
           ...coords.map(c => (
             { type: 'Feature', geometry: { type: 'Point', coordinates: c }, properties: {} })),
         ] } })
@@ -36,20 +50,35 @@ export function RouteMiniMap({ coords }) {
           filter: ['==', ['geometry-type'], 'Point'],
           paint: { 'circle-radius': 4.5, 'circle-color': '#FFFFFF', 'circle-stroke-color': '#2CB9BD', 'circle-stroke-width': 2.5 },
         })
-        const b = new maplibregl.LngLatBounds()
-        coords.forEach(c => b.extend(c))
-        try { map.fitBounds(b, { padding: 36, maxZoom: 11, duration: 0 }) } catch { /* degenerate bounds */ }
+        if (coords.length >= 2) {
+          const b = new maplibregl.LngLatBounds()
+          coords.forEach(c => b.extend(c))
+          try { map.fitBounds(b, { padding: 36, maxZoom: 11, duration: 0 }) } catch { /* degenerate bounds */ }
+        } else if (coords.length === 1) {
+          map.jumpTo({ center: coords[0], zoom: 10 })
+        }
       })
     })
     return () => { cancelled = true; map?.remove() }
-  }, [coords])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coordsKey, pickable])
+  // A pickable map owns its touches — without this the drawer's swipe-to-close
+  // fights every pan (useDrawerSwipe engages from anywhere on the sheet)
+  const trap = pickable ? {
+    onTouchStart: e => e.stopPropagation(),
+    onTouchMove:  e => e.stopPropagation(),
+    onTouchEnd:   e => e.stopPropagation(),
+  } : {}
   return (
-    <div className="relative rounded-2xl overflow-hidden" style={{ height: 170 }}>
+    <div className="relative rounded-2xl overflow-hidden" style={{ height: 170 }} {...trap}>
       {/* position/inset inline — maplibre-gl.css sets position:relative on this
           node and out-cascades the Tailwind class, collapsing it to 0 height */}
       <div ref={boxRef} style={{ position: 'absolute', inset: 0, isolation: 'isolate', background: '#EAE6DE' }} />
-      {/* same dark veil the dashboard minimap wears */}
-      <div className="absolute inset-0 pointer-events-none" style={{ background: 'rgba(14,16,18,0.30)' }} />
+      {/* same dark veil the dashboard minimap wears — pickers stay bare so the
+          chart reads clearly while aiming */}
+      {!pickable && (
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'rgba(14,16,18,0.30)' }} />
+      )}
     </div>
   )
 }
@@ -89,7 +118,9 @@ export default function FlightDetailSheet({ flight, open, onClose }) {
     }
     const chips = flight?.legs?.[0]?.route
     if (chips?.length >= 2) {
-      for (const c of chips) push(find(c))   // the logged ROUTE chips are the authority
+      // the logged ROUTE chips are the authority; ad-hoc WYPNT chips carry
+      // their own coordinates, site chips resolve by code/name
+      for (const c of chips) push(c && typeof c === 'object' ? c : find(c))
     } else {
       for (const leg of flight?.legs ?? []) {
         push(find(leg.takeoff_location))

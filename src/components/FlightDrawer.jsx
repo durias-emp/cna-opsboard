@@ -1536,9 +1536,19 @@ function RouteCard({ route, setRoute, waypoints }) {
     setRoute([...route, w ? (w.code || w.name) : token.toUpperCase()])
     setQ('')
   }
+  // Tap the minimap → ad-hoc waypoint chip. The chip keeps its coordinates so
+  // the route draws (and replays later) even where no site exists.
+  const chipLabel = r => (r && typeof r === 'object' ? r.label : r)
+  const addMapPoint = ll => {
+    const next = 1 + route.reduce((m, r) => {
+      const n = /^WYPNT(\d+)$/.exec(chipLabel(r) ?? '')
+      return n ? Math.max(m, Number(n[1])) : m
+    }, 0)
+    setRoute([...route, { label: `WYPNT${next}`, lat: ll.lat, lng: ll.lng }])
+  }
   const coords = []
-  for (const label of route) {
-    const w = resolve(label)
+  for (const r of route) {
+    const w = r && typeof r === 'object' ? r : resolve(r)
     if (!w) continue
     const last = coords[coords.length - 1]
     if (!last || last[0] !== w.lng || last[1] !== w.lat) coords.push([w.lng, w.lat])
@@ -1551,9 +1561,9 @@ function RouteCard({ route, setRoute, waypoints }) {
       <div className="rounded-xl bg-white/[0.05] px-2.5 py-2 flex flex-wrap items-center gap-1.5"
         onClick={e => e.currentTarget.querySelector('input')?.focus()}>
         {route.map((r, i) => (
-          <span key={`${r}-${i}`}
+          <span key={`${chipLabel(r)}-${i}`}
             className="flex items-center gap-1 pl-2.5 pr-1.5 py-1.5 rounded-full bg-white/[0.08] text-[13px] font-semibold text-white">
-            {r}
+            {chipLabel(r)}
             <button type="button" onClick={() => setRoute(route.filter((_, j) => j !== i))}
               className="text-white/35 px-1 text-[15px] leading-none">×</button>
           </span>
@@ -1584,7 +1594,9 @@ function RouteCard({ route, setRoute, waypoints }) {
         </div>
       )}
 
-      {coords.length >= 2 && <RouteMiniMap coords={coords} />}
+      {/* Always-on picker chart: tap anywhere to add a WYPNT chip */}
+      <RouteMiniMap coords={coords} onPick={addMapPoint} />
+      <p className="text-[11px] text-white/30 leading-none">Tap the chart to add a waypoint anywhere</p>
     </div>
   )
 }
