@@ -49,7 +49,6 @@ const glassBtn = {
   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 0.5px rgba(255,255,255,0.08)',
 }
 
-const INTRO_KEY = 'cna:mapIntro'          // sessionStorage: intro flight once per session
 const LAYERS_KEY = 'cna:mapLayers'        // localStorage: AVIARA-style layer visibility
 
 function loadLayerPrefs() {
@@ -107,6 +106,59 @@ export default function MapPage() {
   // a site if one is under the finger, otherwise the exact pilot coordinates
   pickPointRef.current = (w) => placeWaypoint(w, pickingRef.current)
   const [pin, setPin]             = useState(null)   // MFS-style dropped pin {lat,lng,x,y}
+
+  // ── GPS: my position on the chart (watchPosition → blue dot + accuracy ring) ──
+  const [locating, setLocating] = useState(false)
+  const geoWatchRef = useRef(null)
+
+  const stopLocate = () => {
+    if (geoWatchRef.current != null) { navigator.geolocation.clearWatch(geoWatchRef.current); geoWatchRef.current = null }
+    setLocating(false)
+    mapRef.current?.getSource('userloc')?.setData({ type: 'FeatureCollection', features: [] })
+  }
+
+  const toggleLocate = () => {
+    if (locating) return stopLocate()
+    if (!('geolocation' in navigator)) return
+    const map = mapRef.current
+    if (!map) return
+    if (!map.getSource('userloc')) {
+      map.addSource('userloc', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+      map.addLayer({
+        id: 'userloc-accuracy', type: 'fill', source: 'userloc',
+        filter: ['==', ['geometry-type'], 'Polygon'],
+        paint: { 'fill-color': '#4A9EFF', 'fill-opacity': 0.12 },
+      })
+      map.addLayer({
+        id: 'userloc-dot', type: 'circle', source: 'userloc',
+        filter: ['==', ['geometry-type'], 'Point'],
+        paint: {
+          'circle-radius': 7, 'circle-color': '#4A9EFF',
+          'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5,
+        },
+      })
+    }
+    setLocating(true)
+    let first = true
+    geoWatchRef.current = navigator.geolocation.watchPosition(pos => {
+      const { latitude: lat, longitude: lng, accuracy } = pos.coords
+      const feats = [{ type: 'Feature', geometry: { type: 'Point', coordinates: [lng, lat] }, properties: {} }]
+      if (accuracy > 0) feats.unshift({
+        type: 'Feature',
+        geometry: { type: 'Polygon', coordinates: [notamCircle(lat, lng, accuracy / 1852)] },
+        properties: {},
+      })
+      mapRef.current?.getSource('userloc')?.setData({ type: 'FeatureCollection', features: feats })
+      if (first) {
+        first = false
+        mapRef.current?.easeTo({ center: [lng, lat], zoom: Math.max(mapRef.current.getZoom(), 10.5), duration: 600 })
+      }
+    }, stopLocate, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 })
+  }
+
+  useEffect(() => () => {
+    if (geoWatchRef.current != null) navigator.geolocation.clearWatch(geoWatchRef.current)
+  }, [])
   const notams = useNotams()
   const [selectedNotam, setSelectedNotam] = useState(null)
 
@@ -192,13 +244,11 @@ export default function MapPage() {
     let map, cancelled = false
     loadStyle().then(style => {
       if (cancelled) return
-      // First map open of the session: start on the whole globe and fly in
-      const playIntro = !sessionStorage.getItem(INTRO_KEY)
       map = new maplibregl.Map({
         container: containerRef.current,
         style,
-        center: playIntro ? [-70, 18] : SALVADOR_CENTER,
-        zoom: playIntro ? 1.1 : 8.5,
+        center: SALVADOR_CENTER,
+        zoom: 8.5,
         attributionControl: { compact: true },
       })
       mapRef.current = map
@@ -347,14 +397,6 @@ export default function MapPage() {
           map.setLayoutProperty(id, 'visibility', vis.custom ? 'visible' : 'none')
         for (const id of ['esri-imagery', 'esri-roads', 'esri-places'])
           if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis.sat ? 'visible' : 'none')
-
-        // Intro flight: whole globe → dive onto the region, once per session
-        if (playIntro) {
-          sessionStorage.setItem(INTRO_KEY, '1')
-          setTimeout(() => {
-            map.flyTo({ center: SALVADOR_CENTER, zoom: 8.5, duration: 3200, curve: 1.42, essential: true })
-          }, 450)
-        }
 
         setReady(true)
       })
@@ -735,8 +777,20 @@ export default function MapPage() {
           <p className="text-[11px] text-white/75 leading-none">Hold anywhere to drop a pin</p>
         </div>
 
+        {/* GPS — my position on the chart */}
+        <button onClick={toggleLocate} aria-label="My location"
+          className="ml-auto w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0
+                     active:scale-95 transition-transform"
+          style={glassBtn}>
+          <svg viewBox="0 0 24 24" fill={locating ? '#4A9EFF' : 'none'}
+            stroke={locating ? '#4A9EFF' : '#fff'} strokeWidth={1.9}
+            strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+            <polygon points="3 11 22 2 13 21 11 13 3 11" />
+          </svg>
+        </button>
+
         {/* Layers — AVIARA system: what draws on the chart is a choice */}
-        <div className="relative ml-auto flex-shrink-0">
+        <div className="relative flex-shrink-0">
           <button onClick={() => setLayersOpen(o => !o)} aria-label="Map layers"
             className="w-11 h-11 rounded-full flex items-center justify-center
                        active:scale-95 transition-transform"
