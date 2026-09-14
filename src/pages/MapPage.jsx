@@ -106,6 +106,7 @@ export default function MapPage() {
   // a site if one is under the finger, otherwise the exact pilot coordinates
   pickPointRef.current = (w) => placeWaypoint(w, pickingRef.current)
   const [pin, setPin]             = useState(null)   // MFS-style dropped pin {lat,lng,x,y}
+  const [pinCopied, setPinCopied] = useState(false)  // "Copied" flash on the pin card
 
   // ── GPS: my position on the chart (watchPosition → blue dot + accuracy ring) ──
   const [locating, setLocating] = useState(false)
@@ -872,10 +873,20 @@ export default function MapPage() {
                      border: '0.5px solid rgba(255,255,255,0.12)',
                      boxShadow: '0 12px 36px rgba(0,0,0,0.55)' }}>
             <div className="px-3.5 pt-3 pb-2.5 flex items-start justify-between gap-3">
-              <div>
+              {/* Text selection is off app-wide, so tapping copies instead —
+                  the DMS string pastes straight into ForeFlight */}
+              <button type="button" className="text-left active:opacity-60"
+                onClick={() => {
+                  navigator.clipboard?.writeText(formatDMS(pin.lat, pin.lng)).then(() => {
+                    setPinCopied(true)
+                    setTimeout(() => setPinCopied(false), 1600)
+                  }).catch(() => {})
+                }}>
                 <p className="text-[12px] font-bold text-white font-mono leading-snug">{formatDMS(pin.lat, pin.lng)}</p>
-                <p className="text-[10px] text-white/35 font-mono mt-0.5">{pin.lat.toFixed(5)}, {pin.lng.toFixed(5)}</p>
-              </div>
+                <p className={`text-[10px] font-mono mt-0.5 ${pinCopied ? 'text-accent' : 'text-white/35'}`}>
+                  {pinCopied ? 'Copied' : `${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)} · tap to copy`}
+                </p>
+              </button>
               <button onClick={() => setPin(null)} className="text-white/40 text-[15px] leading-none px-1 -mr-1">✕</button>
             </div>
             <button onClick={() => pinAsRoute('from')}
