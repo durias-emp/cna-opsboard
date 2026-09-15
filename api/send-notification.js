@@ -220,6 +220,38 @@ async function lookupEmail(name) {
 
 const PRIORITY_COLORS = { high: '#B3261E', medium: '#8F6400', low: '#15803d' }
 
+function buildSnagEmail(d) {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
+<body style="margin:0;padding:0;background:#f2f2f2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f2f2f2;padding:40px 16px">
+<tr><td align="center"><table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%">
+  ${header('Snag &nbsp;·&nbsp; Assigned to You')}
+  <tr><td style="background:#fff;padding:32px;border-radius:0 0 12px 12px">
+
+    <div style="background:#F9E9E7;border-radius:10px;padding:18px 20px;margin-bottom:26px">
+      <p style="margin:0;color:#B3261E;font-size:10px;letter-spacing:2.5px;text-transform:uppercase">Reported Discrepancy</p>
+      <p style="margin:8px 0 0;color:#111;font-size:14px;font-weight:600;line-height:1.55">${d.description ?? ''}</p>
+    </div>
+
+    <table width="100%" cellpadding="0" cellspacing="0">
+      ${row('Assigned To', d.assigned_to)}
+      ${row('Reported By', d.reported_by)}
+      ${row('Type', d.maintenance_type)}
+      ${row('Date', d.date ? formatDate(d.date) : null)}
+      ${row('Aircraft', 'YS-CNA &nbsp;·&nbsp; Bell 206B3')}
+      ${d.aircraft_hours != null ? row('Aircraft Hours', d.aircraft_hours + ' h') : ''}
+    </table>
+
+    <div style="margin-top:26px;text-align:center">
+      <a href="https://cna-opsboard.vercel.app/maintenance" style="display:inline-block;background:#0a0a0a;color:#fff;font-size:13px;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none">Open OpsBoard</a>
+    </div>
+
+  </td></tr>
+  ${footer()}
+</table></td></tr></table>
+</body></html>`
+}
+
 function buildTaskEmail(d) {
   const pr = String(d.priority ?? '').toLowerCase()
   const prColor = PRIORITY_COLORS[pr] ?? '#555'
@@ -300,16 +332,16 @@ export default async function handler(req, res) {
   if (!body.record) return res.status(400).json({ error: 'Expected a database webhook payload' })
 
   // Map Supabase table name → notification type
-  const tableMap = { flights: 'flight_log', flight_itineraries: 'itinerary', todos: 'task' }
+  const tableMap = { flights: 'flight_log', flight_itineraries: 'itinerary', todos: 'task', snags: 'snag' }
   const type = tableMap[body.table]
   if (!type) {
     console.error('[webhook] Unknown table:', body.table)
     return res.status(400).json({ error: 'Unknown table' })
   }
 
-  // Tasks notify on assignment: an INSERT that arrives assigned, or an UPDATE
-  // that changes assigned_to. Everything else fires on INSERT only.
-  if (type === 'task') {
+  // Tasks and snags notify on assignment: an INSERT that arrives assigned,
+  // or an UPDATE that changes assigned_to. Everything else fires on INSERT only.
+  if (type === 'task' || type === 'snag') {
     const assignee   = body.record?.assigned_to
     const reassigned = body.type === 'UPDATE' && body.old_record?.assigned_to !== assignee
     const fresh      = body.type === 'INSERT'
@@ -325,17 +357,19 @@ export default async function handler(req, res) {
 
   if (!type || !data) return res.status(400).json({ error: 'Missing type or data' })
 
-  if (type === 'task') {
+  if (type === 'task' || type === 'snag') {
     // Smart routing: the email goes to the assignee alone (raw name for the
     // lookup — deepEscape is for HTML, not for matching)
     const email = await lookupEmail(body.record.assigned_to)
     if (!email) {
-      console.log(`[notify] No email on file for "${body.record.assigned_to}" — task email skipped`)
+      console.log(`[notify] No email on file for "${body.record.assigned_to}" — ${type} email skipped`)
       return res.status(200).json({ ok: true, skipped: 'assignee has no email' })
     }
     try {
-      await sendEmail('Task Assigned', buildTaskEmail(data), [email])
-      console.log(`[notify] Task email sent to ${data.assigned_to}`)
+      const subject = type === 'snag' ? 'Snag Assigned' : 'Task Assigned'
+      const html    = type === 'snag' ? buildSnagEmail(data) : buildTaskEmail(data)
+      await sendEmail(subject, html, [email])
+      console.log(`[notify] ${subject} email sent to ${data.assigned_to}`)
       return res.status(200).json({ ok: true })
     } catch (err) {
       console.error('[notify] Failed:', err.message)
