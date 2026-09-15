@@ -126,7 +126,15 @@ function MiniMap({ height = 150 }) {
     })
   }, [waypoints, ready])
 
-  return <div ref={boxRef} className="absolute inset-0" style={{ height, isolation: 'isolate', background: '#EAE6DE' }} />
+  return (
+    <div className="absolute inset-0" style={{ height, isolation: 'isolate' }}>
+      {/* position/inset inline — maplibre-gl.css sets position:relative on
+          this node at init and would collapse a Tailwind-classed box */}
+      <div ref={boxRef} style={{ position: 'absolute', inset: 0, background: '#EAE6DE' }} />
+      {/* decorative drifting clouds — two parallax layers, purely cosmetic */}
+      <div className="minimap-clouds" aria-hidden="true" />
+    </div>
+  )
 }
 
 // CNA Monies' balance count-up: one motion value, one animate() call,
