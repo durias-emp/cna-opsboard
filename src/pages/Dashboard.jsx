@@ -25,24 +25,43 @@ const CRUISE_BURN_GPH = 27
 const FUEL_CAP_GAL = 96.7
 const FUEL_LOW_GAL = 20
 
-// Garmin-style arc gauge: gray track, colored sweep, needle, digital readout
+// Garmin G5-style round gauge (modeled on the MAN dial): thin white scale
+// arc, colored range bands riding OUTSIDE it (red radial at empty, yellow to
+// the low-fuel caution, green to full), tick marks, and a pointed needle
+// from the hub. The digital readout stays in the tile below, like the
+// instrument's big digits.
 function FuelArc({ gal }) {
   const f = Math.min(Math.max((gal ?? 0) / FUEL_CAP_GAL, 0), 1)
-  const rad = Math.PI * (1 - f)
-  const nx = 40 + 26 * Math.cos(rad)
-  const ny = 42 - 26 * Math.sin(rad)
-  const low = gal != null && gal <= FUEL_LOW_GAL
-  const sweep = low ? '#FBBF24' : '#4ADE50'
+  const lowF = FUEL_LOW_GAL / FUEL_CAP_GAL
+  const CX = 40, CY = 33, R = 27
+  // Garmin G5 dial: one open 240-degree arc, empty at lower-left, full at
+  // lower-right. No needle, no hub, no tick marks: the indicator is the
+  // white triangle riding the arc, pointing inward.
+  const ang = fr => ((210 - 240 * fr) * Math.PI) / 180
+  const pt = (fr, r) => [CX + r * Math.cos(ang(fr)), CY - r * Math.sin(ang(fr))]
+  const arc = (f1, f2, r) => {
+    const [x1, y1] = pt(f1, r), [x2, y2] = pt(f2, r)
+    return `M ${x1} ${y1} A ${r} ${r} 0 ${f2 - f1 > 0.75 ? 1 : 0} 1 ${x2} ${y2}`
+  }
+  // Triangle marker at the current value: tip on the inner edge of the arc,
+  // base just outside it
+  const th = ang(f)
+  const [tipX, tipY] = pt(f, R - 5.5)
+  const [b1x, b1y] = [CX + (R + 2.5) * Math.cos(th + 0.09), CY - (R + 2.5) * Math.sin(th + 0.09)]
+  const [b2x, b2y] = [CX + (R + 2.5) * Math.cos(th - 0.09), CY - (R + 2.5) * Math.sin(th - 0.09)]
+  // Red limit radial at empty
+  const [r1x, r1y] = pt(0, R - 3.5), [r2x, r2y] = pt(0, R + 3.5)
   return (
-    <svg viewBox="0 0 80 48" className="w-full" style={{ maxWidth: '5.4rem' }}>
-      <path d="M 8 42 A 32 32 0 0 1 72 42" fill="none"
-        stroke="rgba(255,255,255,0.09)" strokeWidth="6" strokeLinecap="butt" />
-      <path d="M 8 42 A 32 32 0 0 1 72 42" fill="none"
-        stroke={sweep} strokeWidth="6" strokeLinecap="butt"
-        strokeDasharray={`${f * 100.5} 999`}
-        style={{ transition: 'stroke-dasharray 0.3s linear' }} />
-      <line x1="40" y1="42" x2={nx} y2={ny} stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
-      <circle cx="40" cy="42" r="2.6" fill="#fff" />
+    <svg viewBox="0 0 80 52" className="w-full" style={{ maxWidth: '6rem' }}>
+      {/* the scale IS one thick arc: white track, green over the normal
+          range, yellow over the caution range */}
+      <path d={arc(0, 1, R)} fill="none" stroke="rgba(255,255,255,0.28)" strokeWidth="4.5" />
+      <path d={arc(0, lowF, R)} fill="none" stroke="#FBBF24" strokeWidth="4.5" />
+      <path d={arc(lowF, 1, R)} fill="none" stroke="#4ADE50" strokeWidth="4.5" />
+      <line x1={r1x} y1={r1y} x2={r2x} y2={r2y} stroke="#EF4444" strokeWidth="2.6" strokeLinecap="butt" />
+      {/* the pointer: a clean white triangle riding the arc */}
+      <polygon points={`${tipX},${tipY} ${b1x},${b1y} ${b2x},${b2y}`} fill="#fff"
+        style={{ transition: 'all 0.3s linear' }} />
     </svg>
   )
 }
