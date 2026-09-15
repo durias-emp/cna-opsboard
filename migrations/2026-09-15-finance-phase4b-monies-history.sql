@@ -60,7 +60,7 @@ from (values
   ('b23', 'BANK', '2026-04-01', 'Cesar Espinoza', -50.00, 0.00, 'labor', false, 'Day rate'),
   ('b24', 'BANK', '2026-04-03', 'Anthony Villalta', -50.00, 0.00, 'labor', false, 'Day rate'),
   ('b25', 'BANK', '2026-04-03', 'Cesar Espinoza', -50.00, 0.00, 'labor', false, 'Day rate'),
-  ('b26', 'BANK', '2026-04-03', 'Juan Rivera', -135.00, 0.00, 'transport', false, 'Transportation of the Julupe workers from Paco\'),
+  ('b26', 'BANK', '2026-04-03', 'Juan Rivera', -135.00, 0.00, 'transport', false, 'Transportation of the Julupe workers from Paco''s island'),
   ('b27', 'BANK', '2026-04-04', 'Luis Soriano', -40.00, 0.00, 'labor', false, 'Day rate'),
   ('b28', 'BANK', '2026-04-05', 'Cesar Espinoza', -62.58, 0.00, 'equipment', false, 'Step ladder for helicopter'),
   ('b29', 'BANK', '2026-04-06', 'Luis Soriano', -40.00, 0.00, 'labor', false, 'Helicopter work — the first payment on April 4th did not go through'),
