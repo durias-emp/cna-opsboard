@@ -5,7 +5,6 @@ import { useAircraft } from '../context/AircraftContext'
 import { useSnags } from '../hooks/useSnags'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 import { useTeam } from '../context/TeamContext'
-import SnagDrawer from './SnagDrawer'
 
 
 // ── Status config ─────────────────────────────────────────────────────────────
@@ -292,7 +291,6 @@ export default function SnagListDrawer({ open, onClose }) {
 
   const [tab,          setTab]          = useState('open')
   const [selectedSnag, setSelectedSnag] = useState(null)
-  const [reportOpen,   setReportOpen]   = useState(false)
 
   const tabSnags = tab === 'open'
     ? [...inProgress, ...openSnags]   // in-progress floats to top of open tab
@@ -340,17 +338,8 @@ export default function SnagListDrawer({ open, onClose }) {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                {/* New snag button */}
-                <button
-                  onClick={() => setReportOpen(true)}
-                  className="fab"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
-                    strokeLinecap="round" className="w-4 h-4">
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                  Report
-                </button>
+                {/* Reporting moved to the Maintenance page's "+ Snag" button —
+                    this drawer is records-only */}
                 {/* Close */}
                 <button
                   onClick={onClose}
@@ -421,12 +410,6 @@ export default function SnagListDrawer({ open, onClose }) {
         )}
       </div>
 
-      {/* Report new snag — layered on top */}
-      <SnagDrawer
-        open={reportOpen}
-        onClose={() => setReportOpen(false)}
-        onSaved={() => { refresh(); setReportOpen(false) }}
-      />
     </>
   )
 }
