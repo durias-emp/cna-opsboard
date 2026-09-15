@@ -5,6 +5,9 @@ import { useAircraft } from '../context/AircraftContext'
 import { useIsManagement } from '../context/TeamContext'
 import { useFinanceSummary } from '../hooks/useFinanceSummary'
 import { useMaintenanceItems } from '../hooks/useMaintenanceItems'
+import { useCostEngine } from '../hooks/useCostEngine'
+import { reserveVsActual } from '../lib/financeCalc'
+import RatesDrawer from '../components/RatesDrawer'
 import { formatDate } from '../lib/utils'
 
 // Finance: the money of running the aircraft, computed from what the app
@@ -55,7 +58,9 @@ export default function Finance() {
   const fin = useFinanceSummary(selectedAircraft?.id)
   const maintItems = useMaintenanceItems(selectedAircraft?.id,
     selectedAircraft?.hobbs_current, selectedAircraft?.cycles_current)
+  const engine = useCostEngine(selectedAircraft?.id)
   const [tab, setTab] = useState('ledger')
+  const [ratesOpen, setRatesOpen] = useState(false)
 
   if (!isManagement) {
     return (
@@ -132,11 +137,105 @@ export default function Finance() {
         </div>
       )}
 
-      {/* Costs: reserves captured so far; rates and cost per hour arrive in Phase 2 */}
+      {/* Costs: the engine's answers, live */}
       {tab === 'costs' && (
         <div className="px-4 mt-3 pb-6 space-y-3">
+          {engine.ratesMissing && (
+            <div className="card border border-amber-400/20">
+              <p className="text-xs text-amber-300 leading-relaxed">
+                The cost_rates table is not migrated yet. Run
+                2026-09-15-finance-phase2-cost-rates.sql; everything below uses
+                fallbacks meanwhile.
+              </p>
+            </div>
+          )}
+
+          {/* Cost per hour breakdown */}
           <div className="card">
-            <p className="label mb-2">Reserves set</p>
+            <p className="label mb-3">Cost per hour</p>
+            <div className="space-y-2">
+              {[
+                ['Fuel',     engine.fuelRate,    'actual purchases × logged burn'],
+                ['Pilot',    engine.pilotRate,   'per flight hour'],
+                ['Reserves', engine.reserveRate, `${reserves.length} costed item${reserves.length === 1 ? '' : 's'}`],
+              ].map(([label, v, sub]) => (
+                <div key={label} className="flex items-baseline justify-between gap-3">
+                  <p className="text-xs text-white/50">{label} <span className="text-white/25">· {sub}</span></p>
+                  <p className="text-xs font-bold font-mono tabular-nums text-white/85">{v != null ? usd(v) : '—'}</p>
+                </div>
+              ))}
+              <div className="flex items-baseline justify-between gap-3 pt-2 border-t border-white/[0.06]">
+                <p className="text-xs font-semibold text-white/70">Variable per hour</p>
+                <p className="text-xs font-bold font-mono tabular-nums text-white">{engine.variableRate != null ? usd(engine.variableRate) : '—'}</p>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-xs text-white/50">
+                  Fixed at current pace
+                  {engine.trailing?.annualized && engine.trailing.months >= 3 && (
+                    <span className="text-amber-300/70"> · annualized from {engine.trailing.months} mo</span>
+                  )}
+                </p>
+                <p className="text-xs font-bold font-mono tabular-nums text-white/85">{engine.fixedRate != null ? usd(engine.fixedRate) : '—'}</p>
+              </div>
+              <div className="flex items-baseline justify-between gap-3 pt-2 border-t border-white/[0.06]">
+                <p className="text-sm font-bold text-white">Fully loaded</p>
+                <p className="text-base font-bold font-mono tabular-nums text-accent">
+                  {engine.fullyLoaded != null ? usd(engine.fullyLoaded) : '—'}<span className="text-[10px] text-white/30 font-normal"> /h</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Breakeven (commercial) */}
+          {commercial && (
+            <div className="card">
+              <p className="label mb-2">Breakeven</p>
+              {engine.breakeven == null ? (
+                <p className="text-xs text-white/30">Needs a target rate and the variable rate.</p>
+              ) : engine.breakeven === Infinity ? (
+                <p className="text-xs text-red-400 leading-relaxed">
+                  The target rate does not cover the variable cost per hour.
+                </p>
+              ) : (
+                <p className="text-xs text-white/60 leading-relaxed">
+                  <span className="text-lg font-bold text-white tabular-nums">{engine.breakeven.toFixed(1)} h</span>
+                  <span className="text-white/40"> per month at </span>
+                  {usd(engine.targetRateNet)} net/h
+                  <span className="text-white/40"> · this month: {fin.month.hours.toFixed(1)} h</span>
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Rates */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-2">
+              <p className="label">Rates</p>
+              <button onClick={() => setRatesOpen(true)}
+                className="px-3 py-1.5 rounded-full bg-white/[0.08] text-xs font-semibold text-white/70 active:bg-white/15">
+                Edit
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+              {[
+                ['Fuel $/gal', engine.rates?.fuel_price_gal],
+                ['Pilot /h',   engine.rates?.pilot_rate_hr],
+                ['Insurance /yr', engine.rates?.insurance_year],
+                ['Hangar /yr', engine.rates?.hangar_year],
+                ['Other fixed /yr', engine.rates?.other_fixed_year],
+                ['Target /h', engine.rates?.target_rate_hr ?? engine.targetRateNet],
+              ].map(([l, v]) => (
+                <div key={l} className="flex justify-between gap-2">
+                  <span className="text-white/35">{l}</span>
+                  <span className="font-mono tabular-nums text-white/75">{v != null ? usd(Number(v)) : '—'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Reserve vs actual */}
+          <div className="card">
+            <p className="label mb-2">Reserves · accrued since last compliance</p>
             {reserves.length === 0 ? (
               <p className="text-xs text-white/30 leading-relaxed">
                 No reserves yet. Set them per item in Maintenance: expand an item
@@ -144,23 +243,32 @@ export default function Finance() {
               </p>
             ) : (
               <div className="divide-y divide-white/[0.05]">
-                {reserves.map(i => (
-                  <div key={i.id} className="flex items-center justify-between py-2.5 gap-3">
-                    <p className="text-xs text-white/70 truncate">{i.description}</p>
-                    <p className="text-xs font-bold text-accent tabular-nums flex-shrink-0">{usd(Number(i.estimated_cost))}</p>
-                  </div>
-                ))}
+                {reserves.map(i => {
+                  const rva = reserveVsActual({
+                    item: { ...i, estimated_cost: Number(i.estimated_cost) },
+                    currentHours: selectedAircraft?.hobbs_current,
+                  })
+                  return (
+                    <div key={i.id} className="flex items-center justify-between py-2.5 gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs text-white/70 truncate">{i.description}</p>
+                        {rva?.accrued != null && (
+                          <p className="text-[10px] text-white/30 mt-0.5">accrued {usd(rva.accrued)}</p>
+                        )}
+                      </div>
+                      <p className="text-xs font-bold text-accent tabular-nums flex-shrink-0">{usd(Number(i.estimated_cost))}</p>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
-          <div className="card">
-            <p className="text-xs text-white/30 leading-relaxed">
-              Rates, cost per hour and reserve vs actual arrive with the cost
-              engine (Phase 2).
-            </p>
-          </div>
         </div>
       )}
+
+      <RatesDrawer open={ratesOpen} onClose={() => setRatesOpen(false)}
+        rates={engine.rates} onSave={engine.saveRates}
+        targetPlaceholder={engine.targetRateNet} />
 
       {/* P&L placeholder */}
       {tab === 'pnl' && (

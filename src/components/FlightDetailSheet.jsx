@@ -7,6 +7,10 @@ import { useWaypoints } from '../hooks/useWaypoints'
 import { loadStyle, SALVADOR_CENTER } from '../lib/mapStyle'
 import { addEsriToMapLibre } from '../lib/esriSatellite'
 import { HELICOPTER_ICON } from '../assets/navIcons'
+import { useIsManagement } from '../context/TeamContext'
+import { useAircraft } from '../context/AircraftContext'
+import { useCostEngine } from '../hooks/useCostEngine'
+import { costOfFlight, marginOfFlight } from '../lib/financeCalc'
 
 // Static minimap of the route flown — same teal line the live map uses.
 // With onPick it becomes a picker: pan/zoom enabled, a tap hands back the
@@ -95,6 +99,45 @@ export function RouteMiniMap({ coords, onPick, onExpand, fill }) {
             <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
           </svg>
         </button>
+      )}
+    </div>
+  )
+}
+
+// Finance Phase 2: the per-flight economics chip row. Renders nothing for
+// non-management, for zero-hour flights, or while the engine has no rates.
+function FlightCostStamp({ flight }) {
+  const isManagement = useIsManagement()
+  const { selectedAircraft } = useAircraft()
+  const engine = useCostEngine(isManagement ? selectedAircraft?.id : null)
+  if (!isManagement) return null
+  const airHours = (flight?.total_minutes ?? 0) / 60
+  if (!(airHours > 0) || engine.variableRate == null) return null
+  const cost = costOfFlight({
+    airTimeHours: airHours,
+    variableRate: engine.variableRate,
+    fixedRate: engine.fixedRate ?? 0,
+  })
+  const margin = marginOfFlight({
+    priceNet: flight?.price != null ? Number(flight.price) : null,
+    cost,
+  })
+  const usd = n => '$' + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return (
+    <div className="flex flex-wrap gap-2">
+      <span className="px-2.5 py-1.5 rounded-full bg-white/[0.06] text-[11px] font-semibold text-white/60">
+        Cost {usd(cost)}
+      </span>
+      {flight?.price != null && (
+        <span className="px-2.5 py-1.5 rounded-full bg-white/[0.06] text-[11px] font-semibold text-white/60">
+          Price {usd(Number(flight.price))}
+        </span>
+      )}
+      {margin != null && (
+        <span className={`px-2.5 py-1.5 rounded-full text-[11px] font-bold
+          ${margin >= 0 ? 'bg-emerald-400/15 text-emerald-400' : 'bg-red-400/15 text-red-400'}`}>
+          {margin >= 0 ? '+' : '−'}{usd(margin)} margin
+        </span>
       )}
     </div>
   )
@@ -196,6 +239,10 @@ export default function FlightDetailSheet({ flight, open, onClose }) {
 
         {/* Body */}
         <div className="overflow-y-auto flex-1 px-5 pb-6 space-y-4">
+
+          {/* Finance stamp (management only): what this flight cost, and the
+              margin when a price is recorded. Same engine as the Costs tab. */}
+          {open && <FlightCostStamp flight={flight} />}
 
           {/* Route flown */}
           {open && routeCoords && (
