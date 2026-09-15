@@ -156,44 +156,51 @@ function FinanceCard() {
   const commercial = (selectedAircraft?.finance_mode ?? 'commercial') === 'commercial'
   const usd = n => '$' + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const net = animNet ?? 0
+  const spendKinds = fin.month.spendByKind.map(s => s.kind)
+  const spendFoot = spendKinds.length === 0 ? 'no spend yet'
+    : spendKinds.length === 1 ? `all ${spendKinds[0]}` : spendKinds.join(' + ')
   return (
     <div className="trow-group glass-card">
-      <div className="p-3">
+      <div className="p-3 space-y-2.5">
+        {/* Hero: eyebrow + the month's net, Hobbs-sized */}
         <button className="vital-tile w-full items-center py-5" onClick={() => navigate('/finance')}>
-          {/* Monies hero: eyebrow, huge figure, three labelled columns */}
           <p className="vital-label" style={{ letterSpacing: '0.18em' }}>Finance · This Month</p>
           <p className={`vital-value tracking-tight tabular-nums ${fin.month.netTotal < 0 ? 'text-red-400' : ''}`}
             style={{ fontSize: 44 }}>
             {fin.month.netTotal < 0 ? '−' : ''}{usd(net)}
           </p>
+        </button>
 
-          <div className="w-full grid grid-cols-3 items-end gap-2 mt-5">
-            {/* Income */}
-            <div className="text-center">
-              <p className="text-[12px] text-white/40 mb-1">Income</p>
-              <p className={`text-[15px] font-bold font-mono tabular-nums ${commercial && fin.month.revenueNet > 0 ? 'text-green-400' : 'text-white/40'}`}>
+        {/* Same skeleton as the vitals tiles above: label / centerpiece / footer */}
+        <div className="grid grid-cols-3 gap-2.5">
+          <button className="vital-tile items-center text-center" onClick={() => navigate('/finance')}>
+            <p className="vital-label">Income</p>
+            <div className="vital-zone">
+              <p className={`vital-value-sm font-mono tabular-nums ${commercial && fin.month.revenueNet > 0 ? 'text-green-400' : ''}`}>
                 {usd(fin.month.revenueNet)}
               </p>
             </div>
+            <p className="vital-foot">this month</p>
+          </button>
 
-            {/* Expenses — the Monies donut: spend breakdown by source */}
-            <div className="flex flex-col items-center">
-              <SpendDonut slices={fin.month.spendByKind} />
-              <p className="text-[12px] text-white/40 mt-1.5 mb-1">Expenses</p>
-              <p className="text-[15px] font-bold font-mono tabular-nums text-red-400">
-                {usd(fin.month.spendNet)}
-              </p>
+          <button className="vital-tile items-center text-center" onClick={() => navigate('/finance')}>
+            <p className="vital-label">Expenses</p>
+            <div className="vital-zone">
+              <SpendDonut slices={fin.month.spendByKind} size={44} />
             </div>
+            <p className="vital-foot text-red-400 font-mono tabular-nums">{usd(fin.month.spendNet)}</p>
+          </button>
 
-            {/* Net */}
-            <div className="text-center">
-              <p className="text-[12px] text-white/40 mb-1">Net</p>
-              <p className={`text-[15px] font-bold font-mono tabular-nums ${fin.month.netTotal >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          <button className="vital-tile items-center text-center" onClick={() => navigate('/finance')}>
+            <p className="vital-label">Net</p>
+            <div className="vital-zone">
+              <p className={`vital-value-sm font-mono tabular-nums ${fin.month.netTotal >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {fin.month.netTotal < 0 ? '−' : ''}{usd(fin.month.netTotal)}
               </p>
             </div>
-          </div>
-        </button>
+            <p className="vital-foot">{spendFoot}</p>
+          </button>
+        </div>
       </div>
     </div>
   )
