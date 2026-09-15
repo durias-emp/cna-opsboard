@@ -21,6 +21,14 @@ export function useFinanceSummary(aircraftId) {
     if (!aircraftId) { setEntries([]); setLoading(false); return }
     setLoading(true)
 
+    // Real ledger rows (phase 4a tables). Absent until the migration runs;
+    // the select degrades to an empty list without complaining.
+    let txs = await supabase.from('finance_transactions')
+      .select('id, date, party, amount_net, iva_amount, category, description, is_pending, deleted_at')
+      .eq('aircraft_id', aircraftId).is('deleted_at', null)
+      .order('date', { ascending: false }).limit(500)
+    if (txs.error) txs = { data: [] }
+
     // flights.deleted_at arrives with migration phase 1b; select degrades
     // gracefully until it has run
     let flights = await supabase.from('flights')
@@ -45,6 +53,23 @@ export function useFinanceSummary(aircraftId) {
     ])
 
     const out = []
+    const INCOME_CATS = new Set(['flight_revenue', 'other_income'])
+    // A transaction is the authority: a derived fuel entry on a date that
+    // already has a fuel transaction would double-count and is skipped.
+    const txFuelDates = new Set()
+    for (const x of txs.data ?? []) {
+      if (x.category === 'fuel') txFuelDates.add(x.date)
+      out.push({
+        kind: INCOME_CATS.has(x.category) ? 'income' : x.category,
+        id: `x-${x.id}`, date: x.date,
+        label: x.party,
+        detail: x.description ?? null,
+        chip: INCOME_CATS.has(x.category) ? 'Income' : x.category.replace(/_/g, ' '),
+        net: Number(x.amount_net),
+        iva: Number(x.iva_amount),
+        pending: x.is_pending,
+      })
+    }
     for (const f of flights.data ?? []) {
       if (f.deleted_at) continue
       out.push({
@@ -56,6 +81,7 @@ export function useFinanceSummary(aircraftId) {
       })
     }
     for (const t of fuel.data ?? []) {
+      if (txFuelDates.has(t.date)) continue
       out.push({
         kind: 'fuel', id: `t-${t.id}`, date: t.date,
         label: `Fuel · ${t.supplier ?? ''}`.trim(),

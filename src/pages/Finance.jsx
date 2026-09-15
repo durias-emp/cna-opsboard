@@ -15,13 +15,13 @@ import { formatDate } from '../lib/utils'
 const usd = n => '$' + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const KIND = {
-  flight:      { chip: 'Flight',      color: 'text-accent',     chipBg: 'bg-accent/15 text-accent' },
-  fuel:        { chip: 'Fuel',        color: 'text-white',      chipBg: 'bg-white/[0.08] text-white/60' },
-  maintenance: { chip: 'Maintenance', color: 'text-white',      chipBg: 'bg-white/[0.08] text-white/60' },
+  flight: { chip: 'Flight', chipBg: 'bg-accent/15 text-accent' },
+  fuel:   { chip: 'Fuel',   chipBg: 'bg-white/[0.08] text-white/60' },
+  income: { chip: 'Income', chipBg: 'bg-emerald-400/15 text-emerald-400' },
 }
 
 function LedgerRow({ e }) {
-  const k = KIND[e.kind] ?? KIND.maintenance
+  const k = KIND[e.kind] ?? { chip: e.chip ?? e.kind, chipBg: 'bg-white/[0.08] text-white/60' }
   const isIncome = (e.net ?? 0) > 0
   return (
     <div className="flex items-center gap-3 px-4 py-3">
@@ -29,8 +29,13 @@ function LedgerRow({ e }) {
         <div className="flex items-center gap-2">
           <p className="text-sm font-semibold text-white truncate">{e.label}</p>
           <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wide flex-shrink-0 ${k.chipBg}`}>
-            {k.chip}
+            {e.chip ?? k.chip}
           </span>
+          {e.pending && (
+            <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wide flex-shrink-0 bg-amber-400/15 text-amber-300">
+              pending
+            </span>
+          )}
         </div>
         <p className="text-[11px] text-white/35 mt-0.5 truncate">
           {formatDate(e.date)}{e.detail ? ` · ${e.detail}` : ''}{e.invoice ? ` · #${e.invoice}` : ''}
