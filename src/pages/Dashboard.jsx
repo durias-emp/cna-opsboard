@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMotionValue, animate } from 'framer-motion'
 import * as maplibregl from 'maplibre-gl'
@@ -45,41 +45,45 @@ function FuelArc({ gal }) {
   )
 }
 
-// MFS-style cumulus for the minimap: clusters of soft radial puffs with a
-// faint ground shadow, drawn fresh with Math.random() on every mount so no
-// two loads look alike. Every puff is painted at x−w, x and x+w, so the
-// horizontal drift loop wraps with no visible seam.
-function cloudTexture(clusters, puffScale, alpha) {
-  const w = 1200, h = 300
+// MFS-style cumulus for the minimap, tuned live against the real chart:
+// clusters of small additive puffs (composite 'lighter' builds bright solid
+// cores instead of grey mush) over a faint offset ground shadow. Painted at
+// the card's native pixel size so nothing stretches into smudges, fresh with
+// Math.random() every mount so no two loads share a sky, and every puff is
+// drawn at x−w, x and x+w so the drift loop wraps without a visible cut.
+function cloudTexture(W, H, clusters, scale, alpha) {
+  const w = W * 2, h = H
   const cv = document.createElement('canvas')
   cv.width = w; cv.height = h
   const ctx = cv.getContext('2d')
-  const blobs = []
+  const puffs = []
   for (let c = 0; c < clusters; c++) {
-    const cx = Math.random() * w, cy = h * (0.15 + 0.7 * Math.random())
-    const spread = (0.6 + Math.random()) * 55 * puffScale
-    const n = 45 + Math.floor(Math.random() * 35)
+    const cx = Math.random() * w, cy = h * (0.08 + 0.84 * Math.random())
+    const spread = (20 + Math.random() * 38) * scale
+    const n = 30 + Math.floor(Math.random() * 26)
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2
-      const d = Math.pow(Math.random(), 0.55) * spread
-      const edge = d / spread          // 0 core → 1 rim: rims get smaller, fainter
-      blobs.push({
-        x: cx + Math.cos(a) * d * 1.8, y: cy + Math.sin(a) * d * 0.6,
-        r: (14 + Math.random() * 22) * puffScale * (1.15 - 0.5 * edge),
-        o: (0.5 + Math.random() * 0.4) * (1 - 0.35 * edge),
+      const d = Math.pow(Math.random(), 0.6) * spread
+      const edge = d / spread          // 0 core → 1 rim: rims smaller
+      puffs.push({
+        x: cx + Math.cos(a) * d * 1.9, y: cy + Math.sin(a) * d * 0.6,
+        r: (6 + Math.random() * 11) * scale * (1.1 - 0.45 * edge),
+        o: 0.55 + 0.4 * Math.random(),
       })
     }
   }
-  const draw = (b, dx, dy, col, oM, rM) => {
+  const blob = (b, dx, dy, col, oM, rM) => {
     const g = ctx.createRadialGradient(b.x + dx, b.y + dy, 0, b.x + dx, b.y + dy, b.r * rM)
     g.addColorStop(0, col + (b.o * oM) + ')')
-    g.addColorStop(0.55, col + (b.o * oM * 0.55) + ')')
+    g.addColorStop(0.6, col + (b.o * oM * 0.5) + ')')
     g.addColorStop(1, col + '0)')
     ctx.fillStyle = g
     ctx.fillRect(b.x + dx - b.r * rM, b.y + dy - b.r * rM, b.r * 2 * rM, b.r * 2 * rM)
   }
-  for (const off of [-w, 0, w]) for (const b of blobs) draw(b, off + 8, 11, 'rgba(18,24,30,', 0.22 * alpha, 1.3)
-  for (const off of [-w, 0, w]) for (const b of blobs) draw(b, off, 0, 'rgba(255,255,255,', alpha, 1)
+  ctx.globalCompositeOperation = 'source-over'
+  for (const off of [-w, 0, w]) for (const p of puffs) blob(p, off + 4, 6, 'rgba(15,20,26,', 0.14 * alpha, 1.5)
+  ctx.globalCompositeOperation = 'lighter'
+  for (const off of [-w, 0, w]) for (const p of puffs) blob(p, off, 0, 'rgba(252,253,255,', 0.68 * alpha, 1)
   return cv.toDataURL('image/png')
 }
 
@@ -92,11 +96,18 @@ function MiniMap({ height = 150 }) {
   const [ready, setReady] = useState(false)
   const { waypoints } = useWaypoints()
   const notams = useNotams()
-  // two parallax cloud decks, regenerated on every mount (never the same sky)
-  const cloudLayers = useMemo(() => [
-    cloudTexture(6, 1.2, 0.95),
-    cloudTexture(4, 0.7, 0.65),
-  ], [])
+  // two parallax cloud decks at the card's real pixel size, regenerated on
+  // every mount (never the same sky) — measured after layout, so state
+  const [cloudLayers, setCloudLayers] = useState(null)
+  useEffect(() => {
+    const el = boxRef.current
+    if (!el?.clientWidth || !el?.clientHeight) return
+    const W = el.clientWidth, H = el.clientHeight
+    setCloudLayers([
+      cloudTexture(W, H, 11, 1.2, 1),
+      cloudTexture(W, H, 7, 0.7, 0.8),
+    ])
+  }, [])
 
   useEffect(() => {
     let map, cancelled = false
@@ -175,10 +186,13 @@ function MiniMap({ height = 150 }) {
           this node at init and would collapse a Tailwind-classed box */}
       <div ref={boxRef} style={{ position: 'absolute', inset: 0, background: '#EAE6DE' }} />
       {/* decorative drifting clouds — two parallax decks, purely cosmetic */}
-      <div className="minimap-clouds" aria-hidden="true">
-        <div className="minimap-cloud-layer" style={{ backgroundImage: `url(${cloudLayers[0]})`, animationDuration: '95s' }} />
-        <div className="minimap-cloud-layer" style={{ backgroundImage: `url(${cloudLayers[1]})`, animationDuration: '160s' }} />
-      </div>
+      {cloudLayers && (
+        <div className="minimap-clouds" aria-hidden="true">
+          {/* seen from altitude: barely-perceptible drift */}
+          <div className="minimap-cloud-layer" style={{ backgroundImage: `url(${cloudLayers[0]})`, animationDuration: '260s' }} />
+          <div className="minimap-cloud-layer" style={{ backgroundImage: `url(${cloudLayers[1]})`, animationDuration: '430s' }} />
+        </div>
+      )}
     </div>
   )
 }
