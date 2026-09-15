@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useAircraft } from '../context/AircraftContext'
-import { useTeam } from '../context/TeamContext'
+import { useTeam, useIsManagement } from '../context/TeamContext'
 import { RPC_MISSING } from '../lib/softDelete'
 import { getAccessToken } from '../context/AuthContext'
 import ActionSheet from './ActionSheet'
@@ -289,6 +289,15 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
   const [fuelStart,     setFuelStart]     = useState('')
   const [fuelEnd,       setFuelEnd]       = useState('')
   const [notes,         setNotes]         = useState('')
+  // Finance: NET price of the flight. Field renders only for management on a
+  // commercial tenant; everyone else never sees money here.
+  const [price,         setPrice]         = useState('')
+  const isManagement = useIsManagement()
+  const showPrice = isManagement && (selectedAircraft?.finance_mode ?? 'commercial') === 'commercial'
+  const parsePrice = v => {
+    const n = parseFloat(String(v).replace(/[^0-9.]/g, ''))
+    return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null
+  }
   const [preflightDone, setPreflightDone] = useState(false)
   const [saving,        setSaving]        = useState(false)
   const [error,         setError]         = useState(null)
@@ -355,6 +364,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       setFuelStart(editFlight.fuel_start_gal != null ? String(editFlight.fuel_start_gal) : '')
       setFuelEnd(editFlight.fuel_end_gal     != null ? String(editFlight.fuel_end_gal)   : '')
       setNotes(editFlight.notes ?? '')
+      setPrice(editFlight.price != null ? String(editFlight.price) : '')
       setPreflightDone(true)
       setTachMode(false); setTachNew(''); setTachModal(false)
       setFtMins(editFlight.flight_time_minutes ?? null)
@@ -372,6 +382,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       setFuelStart('')
       setFuelEnd('')
       setNotes('')
+      setPrice('')
       setPreflightDone(false)
       setPaxDropdown(null)
       setFtMethod(null); setFtMins(null); setFtModal(null); setFtHobbsNew('')
@@ -458,6 +469,9 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       fuel_consumed_gal:    fuelConsumed ?? null,
       passengers:           buildPassengersPayload(),
       notes:                notes.trim() || null,
+      // Finance: NET price of the flight (commercial tenants, management only).
+      // Preserved untouched when the editor can't see the field.
+      ...(showPrice ? { price: parsePrice(price) } : {}),
     }
 
     // ── Preferred path: one atomic server call (flight + aircraft hours together) ──
@@ -1085,6 +1099,23 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
               Pre-flight inspection completed
             </p>
           </button>
+
+          {/* Finance: price of the flight (management + commercial only) */}
+          {showPrice && (
+            <div>
+              <label className="label block mb-1.5">
+                Price <span className="normal-case font-normal text-white/25">(net, optional)</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 text-sm">$</span>
+                <input type="text" inputMode="decimal" value={price}
+                  onChange={e => setPrice(e.target.value)}
+                  placeholder="0.00"
+                  className="input-field w-full pl-7 pr-14" />
+                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] text-white/30">USD</span>
+              </div>
+            </div>
+          )}
 
           {/* Notes */}
           <div>

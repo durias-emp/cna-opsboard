@@ -50,3 +50,10 @@ export function useTeam() {
   if (!ctx) throw new Error('useTeam must be used inside TeamProvider')
   return ctx
 }
+
+// The gate for anything that shows money (Finance): true when this device's
+// claimed identity is a management member. Same rule useTodos applies.
+export function useIsManagement() {
+  const { managementNames } = useTeam()
+  return managementNames.has(localStorage.getItem('cna_identity'))
+}

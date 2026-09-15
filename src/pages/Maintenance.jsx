@@ -10,6 +10,7 @@ import ComplianceDrawer from '../components/ComplianceDrawer'
 import SnagListDrawer from '../components/SnagListDrawer'
 import SnagDrawer from '../components/SnagDrawer'
 import { useSnags } from '../hooks/useSnags'
+import { useIsManagement } from '../context/TeamContext'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -65,8 +66,10 @@ const STATUS = {
 // Item card
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ItemCard({ item, onLogCompliance }) {
+function ItemCard({ item, onLogCompliance, onSetReserve }) {
   const [expanded, setExpanded] = useState(false)
+  const isManagement = useIsManagement()
+  const [reserveDraft, setReserveDraft] = useState(null)   // null = not editing
   const s = STATUS[item.status] ?? STATUS.ok
 
   // Primary remaining value to show on the card (most urgent clock)
@@ -240,6 +243,52 @@ function ItemCard({ item, onLogCompliance }) {
             {item.notes && <p className="text-[11px] text-white/30 italic">{item.notes}</p>}
           </div>
 
+          {/* Finance: reserve on this item (management only). Tap to edit,
+              blank clears, 0 is a valid value. */}
+          {isManagement && (
+            reserveDraft === null ? (
+              <button
+                onClick={() => setReserveDraft(item.estimated_cost?.toString() ?? '')}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl
+                           bg-white/[0.04] text-[11px] active:bg-white/[0.08] transition-colors"
+              >
+                <span className="text-white/35 font-semibold uppercase tracking-wide">Reserve</span>
+                <span className={item.estimated_cost != null ? 'text-accent font-semibold' : 'text-white/25'}>
+                  {item.estimated_cost != null
+                    ? `$${Number(item.estimated_cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                    : 'Set cost'}
+                </span>
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-xs">$</span>
+                  <input autoFocus type="text" inputMode="decimal" value={reserveDraft}
+                    onChange={e => setReserveDraft(e.target.value)}
+                    placeholder="estimated cost, blank clears"
+                    className="input-field w-full pl-6 !py-2 text-xs" />
+                </div>
+                <button
+                  onClick={async () => {
+                    const n = parseFloat(reserveDraft.replace(/[^0-9.]/g, ''))
+                    const value = reserveDraft.trim() === '' ? null
+                      : (Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : undefined)
+                    if (value === undefined) return
+                    await onSetReserve?.(item.id, value)
+                    setReserveDraft(null)
+                  }}
+                  className="px-4 rounded-xl bg-white text-black text-xs font-bold active:scale-95"
+                >
+                  Save
+                </button>
+                <button onClick={() => setReserveDraft(null)}
+                  className="px-3 rounded-xl bg-white/[0.06] text-white/50 text-xs">
+                  ✕
+                </button>
+              </div>
+            )
+          )}
+
           {/* Log compliance button */}
           {item.status !== 'on_condition' && item.status !== 'not_applicable' && (
             <button
@@ -260,7 +309,7 @@ function ItemCard({ item, onLogCompliance }) {
 // Status group
 // ─────────────────────────────────────────────────────────────────────────────
 
-function StatusGroup({ status, items, onLogCompliance, defaultOpen = false, forceOpen = false, scrollRef }) {
+function StatusGroup({ status, items, onLogCompliance, onSetReserve, defaultOpen = false, forceOpen = false, scrollRef }) {
   const [open, setOpen] = useState(defaultOpen)
   const s = STATUS[status]
   if (!items.length) return null
@@ -283,7 +332,7 @@ function StatusGroup({ status, items, onLogCompliance, defaultOpen = false, forc
       {isOpen && (
         <div className="space-y-2">
           {items.map(item => (
-            <ItemCard key={item.id} item={item} onLogCompliance={onLogCompliance} />
+            <ItemCard key={item.id} item={item} onLogCompliance={onLogCompliance} onSetReserve={onSetReserve} />
           ))}
         </div>
       )}
@@ -514,11 +563,11 @@ export default function Maintenance() {
               [1,2,3].map(i => <div key={i} className="rounded-2xl bg-white/[0.04] animate-pulse h-14" />)
             ) : (
               <>
-                <StatusGroup status="overdue"        items={groups.overdue}        onLogCompliance={openCompliance} defaultOpen={true}  forceOpen={!!search.trim() || !!forcedOpen.overdue}   scrollRef={overdueRef} />
-                <StatusGroup status="due_soon"       items={groups.dueSoon}        onLogCompliance={openCompliance} defaultOpen={true}  forceOpen={!!search.trim() || !!forcedOpen.due_soon}  scrollRef={dueSoonRef} />
-                <StatusGroup status="ok"             items={groups.ok}             onLogCompliance={openCompliance} defaultOpen={false} forceOpen={!!search.trim() || !!forcedOpen.ok}        scrollRef={okRef} />
-                <StatusGroup status="on_condition"   items={groups.onCondition}    onLogCompliance={openCompliance} defaultOpen={false} forceOpen={!!search.trim()} />
-                <StatusGroup status="not_applicable" items={groups.notApplicable}  onLogCompliance={openCompliance} defaultOpen={false} forceOpen={!!search.trim()} />
+                <StatusGroup status="overdue"        items={groups.overdue}        onLogCompliance={openCompliance} onSetReserve={maintItems.setEstimatedCost} defaultOpen={true}  forceOpen={!!search.trim() || !!forcedOpen.overdue}   scrollRef={overdueRef} />
+                <StatusGroup status="due_soon"       items={groups.dueSoon}        onLogCompliance={openCompliance} onSetReserve={maintItems.setEstimatedCost} defaultOpen={true}  forceOpen={!!search.trim() || !!forcedOpen.due_soon}  scrollRef={dueSoonRef} />
+                <StatusGroup status="ok"             items={groups.ok}             onLogCompliance={openCompliance} onSetReserve={maintItems.setEstimatedCost} defaultOpen={false} forceOpen={!!search.trim() || !!forcedOpen.ok}        scrollRef={okRef} />
+                <StatusGroup status="on_condition"   items={groups.onCondition}    onLogCompliance={openCompliance} onSetReserve={maintItems.setEstimatedCost} defaultOpen={false} forceOpen={!!search.trim()} />
+                <StatusGroup status="not_applicable" items={groups.notApplicable}  onLogCompliance={openCompliance} onSetReserve={maintItems.setEstimatedCost} defaultOpen={false} forceOpen={!!search.trim()} />
 
                 {groups.overdue.length === 0 && groups.dueSoon.length === 0 &&
                  groups.ok.length === 0 && groups.onCondition.length === 0 && (

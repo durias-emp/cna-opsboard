@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
+import { useIsManagement } from '../context/TeamContext'
+import CostFields, { parseCost } from './CostFields'
 
 function todayLocal() {
   const d = new Date()
@@ -17,6 +19,8 @@ const IconClose = () => (
 export default function ComplianceDrawer({ open, onClose, item, hobbsCurrent, cyclesCurrent, onSaved }) {
   const { handleProps, panelProps, panelStyle } = useDrawerSwipe(onClose)
   const [form,    setForm]    = useState({})
+  const [cost,    setCost]    = useState({})   // Finance: actual cost of the work
+  const isManagement = useIsManagement()
   const [saving,  setSaving]  = useState(false)
   const [success, setSuccess] = useState(false)
   const [errors,  setErrors]  = useState({})
@@ -33,6 +37,7 @@ export default function ComplianceDrawer({ open, onClose, item, hobbsCurrent, cy
       complied_cycles:   cyclesCurrent ?? '',
       notes:             '',
     })
+    setCost({})
   }, [open, item, hobbsCurrent, cyclesCurrent])
 
   function set(field, val) {
@@ -75,6 +80,10 @@ export default function ComplianceDrawer({ open, onClose, item, hobbsCurrent, cy
       p_complied_hours:  compliedHours,
       p_complied_cycles: compliedCycles,
       p_notes:           form.notes.trim() || null,
+      p_actual_cost:     parseCost(cost),
+      p_invoice_ref:     cost.invoice_ref?.trim() || null,
+      p_includes_iva:    cost.includes_iva !== false,
+      p_iva_recoverable: cost.iva_recoverable !== false,
     })
 
     if (rpcErr) { setSaving(false); setErrors({ _: rpcErr.message }); return }
@@ -191,6 +200,13 @@ export default function ComplianceDrawer({ open, onClose, item, hobbsCurrent, cy
               </div>
             )}
           </div>
+
+          {/* Cost of the work (management only, optional) */}
+          {isManagement && (
+            <div className="card">
+              <CostFields value={cost} onChange={setCost} label="Cost of this work (optional)" />
+            </div>
+          )}
 
           {/* Notes */}
           <div className="card">

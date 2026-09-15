@@ -4,7 +4,8 @@ import { formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
 import { useSnags } from '../hooks/useSnags'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
-import { useTeam } from '../context/TeamContext'
+import { useTeam, useIsManagement } from '../context/TeamContext'
+import CostFields, { parseCost } from './CostFields'
 
 
 // ── Status config ─────────────────────────────────────────────────────────────
@@ -17,10 +18,17 @@ const STATUS = {
 // ── Snag detail / resolve panel ───────────────────────────────────────────────
 function SnagDetail({ snag, onClose, onUpdated }) {
   const RESOLVERS = useTeam().mechanics.map(p => p.name)
+  const isManagement = useIsManagement()
   const [resolvedBy,    setResolvedBy]    = useState(snag.resolved_by    ?? '')
   const [resolvedDate,  setResolvedDate]  = useState(snag.resolved_date  ?? '')
   const [resNotes,      setResNotes]      = useState(snag.resolution_notes ?? '')
   const [resolvedHours, setResolvedHours] = useState(snag.resolved_hours?.toString() ?? '')
+  const [cost,          setCost]          = useState({
+    amount:          snag.actual_cost?.toString() ?? '',
+    invoice_ref:     snag.invoice_ref ?? '',
+    includes_iva:    snag.includes_iva !== false,
+    iva_recoverable: snag.iva_recoverable !== false,
+  })
   const [saving,        setSaving]        = useState(false)
   const [error,         setError]         = useState(null)
 
@@ -47,6 +55,11 @@ function SnagDetail({ snag, onClose, onUpdated }) {
         resolved_date:    resolvedDate,
         resolution_notes: resNotes.trim(),
         resolved_hours:   resolvedHoursNum,
+        // Finance: the moment the unscheduled cost is real
+        actual_cost:      parseCost(cost),
+        invoice_ref:      cost.invoice_ref?.trim() || null,
+        includes_iva:     cost.includes_iva !== false,
+        iva_recoverable:  cost.iva_recoverable !== false,
       })
       .eq('id', snag.id)
 
@@ -148,6 +161,15 @@ function SnagDetail({ snag, onClose, onUpdated }) {
                     <p className="text-white font-medium">{snag.resolved_hours?.toLocaleString()}h</p>
                   </div>
                 )}
+                {isManagement && snag.actual_cost != null && (
+                  <div>
+                    <p className="text-white/35 mb-0.5">Cost {snag.includes_iva === false ? '(net)' : '(gross)'}</p>
+                    <p className="text-white font-medium">
+                      ${Number(snag.actual_cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      {snag.invoice_ref ? <span className="text-white/40"> · {snag.invoice_ref}</span> : null}
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="bg-white/[0.04] rounded-2xl p-4">
                 <p className="text-xs text-white/90 leading-relaxed whitespace-pre-wrap">{snag.resolution_notes}</p>
@@ -217,6 +239,11 @@ function SnagDetail({ snag, onClose, onUpdated }) {
                   className="input-field w-full resize-none leading-relaxed"
                 />
               </div>
+
+              {/* Cost of the fix (management only, optional) */}
+              {isManagement && (
+                <CostFields value={cost} onChange={setCost} label="Cost of the fix (optional)" />
+              )}
 
               {error && <p className="text-xs text-red-400">{error}</p>}
 

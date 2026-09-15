@@ -148,5 +148,16 @@ export function useMaintenanceItems(aircraftId, hobbsCurrent, cyclesCurrent) {
     [enriched]
   )
 
-  return { items: enriched, ...groups, byCategory, loading, error, refresh: load }
+  // Finance: reserve amount on an item (net USD; null clears it, 0 is valid)
+  const setEstimatedCost = useCallback(async (id, value) => {
+    const { error: err } = await supabase
+      .from('maintenance_items')
+      .update({ estimated_cost: value, updated_at: new Date().toISOString() })
+      .eq('id', id)
+    if (err) return err.message
+    setItems(prev => prev.map(i => (i.id === id ? { ...i, estimated_cost: value } : i)))
+    return null
+  }, [])
+
+  return { items: enriched, ...groups, byCategory, loading, error, refresh: load, setEstimatedCost }
 }

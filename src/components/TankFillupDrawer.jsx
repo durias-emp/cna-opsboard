@@ -15,6 +15,9 @@ export default function TankFillupDrawer({ open, onClose, onSaved, lastGallonsAf
   const [price,    setPrice]    = useState('')   // fillup only
   const [supplier, setSupplier] = useState('comalapa') // fillup only
   const [notes,    setNotes]    = useState('')
+  // Finance: how the invoice figure carries IVA (fillup only)
+  const [includesIva,    setIncludesIva]    = useState(true)
+  const [ivaRecoverable, setIvaRecoverable] = useState(true)
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState(null)
 
@@ -53,6 +56,8 @@ export default function TankFillupDrawer({ open, onClose, onSaved, lastGallonsAf
       setPrice('')
       setSupplier('comalapa')
       setNotes('')
+      setIncludesIva(true)
+      setIvaRecoverable(true)
       setError(null)
     }
   }, [open, lastGallonsAfter, defaultMode])
@@ -89,6 +94,8 @@ export default function TankFillupDrawer({ open, onClose, onSaved, lastGallonsAf
       price_per_gallon: isFillup ? priceNum : 0,
       supplier:         isFillup ? supplier : 'comalapa', // supplier required by DB; ignored for withdrawals
       notes:            notes || null,
+      includes_iva:     isFillup ? includesIva : true,
+      iva_recoverable:  isFillup ? ivaRecoverable : true,
     }
 
     const { error: err } = await supabase.from('tank_fillups').insert(payload)
@@ -243,6 +250,20 @@ export default function TankFillupDrawer({ open, onClose, onSaved, lastGallonsAf
                     className="input-field w-full pl-7 pr-16" />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-white/30">USD/gal</span>
                 </div>
+              </div>
+
+              {/* IVA flags on the invoice figure */}
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setIncludesIva(v => !v)}
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors select-none
+                    ${includesIva ? 'bg-accent/20 text-accent' : 'bg-white/[0.06] text-white/40'}`}>
+                  Includes IVA
+                </button>
+                <button type="button" onClick={() => setIvaRecoverable(v => !v)}
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors select-none
+                    ${ivaRecoverable ? 'bg-accent/20 text-accent' : 'bg-white/[0.06] text-white/40'}`}>
+                  IVA recoverable
+                </button>
               </div>
 
               {/* Total cost */}
