@@ -8,6 +8,8 @@ import PageHeader from '../components/PageHeader'
 import MaintenanceDrawer from '../components/MaintenanceDrawer'
 import ComplianceDrawer from '../components/ComplianceDrawer'
 import SnagListDrawer from '../components/SnagListDrawer'
+import SnagDrawer from '../components/SnagDrawer'
+import { useSnags } from '../hooks/useSnags'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -343,6 +345,8 @@ export default function Maintenance() {
 
   const maint      = useMaintenance(selectedAircraft?.id, hobbs)
   const maintItems = useMaintenanceItems(selectedAircraft?.id, hobbs, cycles)
+  const snags      = useSnags(selectedAircraft?.id)
+  const openSnagCount = (snags.open?.length ?? 0) + (snags.inProgress?.length ?? 0)
 
   const [filter,        setFilter]        = useState('all')
   const [search,        setSearch]        = useState('')
@@ -351,7 +355,8 @@ export default function Maintenance() {
   const [fluidDrawer,   setFluidDrawer]   = useState(false)
   const [fluidType,     setFluidType]     = useState('engine_oil')
   const [forcedOpen,    setForcedOpen]    = useState({})
-  const [snagOpen,      setSnagOpen]      = useState(false)
+  const [snagOpen,      setSnagOpen]      = useState(false)   // records list
+  const [snagAddOpen,   setSnagAddOpen]   = useState(false)   // report form (header button)
 
   const overdueRef  = useRef(null)
   const dueSoonRef  = useRef(null)
@@ -409,39 +414,49 @@ export default function Maintenance() {
         <PageHeader
           title="Maintenance"
           sub={`${selectedAircraft?.tail_number} · ${hobbs.toLocaleString()}h · ${cycles.toLocaleString()} cyc`}
-          action={{ label: 'Snag List', onClick: () => setSnagOpen(true) }}
+          action={{ label: 'Snag', onClick: () => setSnagAddOpen(true) }}
         />
 
       </div>
 
-      {/* ── 3 Summary cards ── */}
-      <div className="px-4 mt-3 grid grid-cols-3 gap-2.5 relative z-10">
+      {/* ── 4 Summary cards — Snags opens the records list (the header
+             button only ADDS a snag) ── */}
+      <div className="px-4 mt-3 grid grid-cols-4 gap-2 relative z-10">
 
         {/* Overdue */}
         <button
           onClick={() => handleSummaryTap('overdue')}
-          className="rounded-2xl card-sm !p-3.5 text-center active:bg-white/10 transition-colors select-none"
+          className="rounded-2xl card-sm !p-3 text-center active:bg-white/10 transition-colors select-none"
         >
           <p className="text-2xl font-bold text-red-400 leading-none">{maintItems.overdue.length}</p>
-          <p className="text-[11px] font-semibold text-red-400/70 mt-1.5 uppercase tracking-wide">Overdue</p>
+          <p className="text-[10px] font-semibold text-red-400/70 mt-1.5 uppercase tracking-wide">Overdue</p>
         </button>
 
         {/* Due Soon */}
         <button
           onClick={() => handleSummaryTap('due_soon')}
-          className="rounded-2xl card-sm !p-3.5 text-center active:bg-white/10 transition-colors select-none"
+          className="rounded-2xl card-sm !p-3 text-center active:bg-white/10 transition-colors select-none"
         >
           <p className="text-2xl font-bold text-amber-400 leading-none">{maintItems.dueSoon.length}</p>
-          <p className="text-[11px] font-semibold text-amber-400/70 mt-1.5 uppercase tracking-wide">Due Soon</p>
+          <p className="text-[10px] font-semibold text-amber-400/70 mt-1.5 uppercase tracking-wide">Due Soon</p>
         </button>
 
         {/* OK */}
         <button
           onClick={() => handleSummaryTap('ok')}
-          className="rounded-2xl card-sm !p-3.5 text-center active:bg-white/10 transition-colors select-none"
+          className="rounded-2xl card-sm !p-3 text-center active:bg-white/10 transition-colors select-none"
         >
           <p className="text-2xl font-bold text-emerald-400 leading-none">{maintItems.ok.length}</p>
-          <p className="text-[11px] font-semibold text-emerald-400/70 mt-1.5 uppercase tracking-wide">OK</p>
+          <p className="text-[10px] font-semibold text-emerald-400/70 mt-1.5 uppercase tracking-wide">OK</p>
+        </button>
+
+        {/* Snags → records */}
+        <button
+          onClick={() => setSnagOpen(true)}
+          className="rounded-2xl card-sm !p-3 text-center active:bg-white/10 transition-colors select-none"
+        >
+          <p className="text-2xl font-bold text-accent leading-none">{openSnagCount}</p>
+          <p className="text-[10px] font-semibold text-accent/70 mt-1.5 uppercase tracking-wide">Snags</p>
         </button>
       </div>
 
@@ -582,6 +597,13 @@ export default function Maintenance() {
         onClose={() => setFluidDrawer(false)}
         onSaved={maint.refresh}
         defaultType={fluidType}
+      />
+
+      {/* Report-a-snag form — the header button adds, the tile shows */}
+      <SnagDrawer
+        open={snagAddOpen}
+        onClose={() => setSnagAddOpen(false)}
+        onSaved={() => { setSnagAddOpen(false); snags.refresh?.() }}
       />
 
       {/* Snag list drawer */}
