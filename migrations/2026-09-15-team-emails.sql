@@ -11,6 +11,9 @@ update team_profiles set email = 'javier@cielonorteaviacion.com' where name = 'J
 update team_profiles set email = 'alonia@cielonorteaviacion.com' where name = 'Alonia Ascencio';
 update team_profiles set email = 'diego@cielonorteaviacion.com'  where name = 'Diego Urias';
 update team_profiles set email = 'kelly@empoderarsv.com'         where name = 'Kelly Moreno';
+update team_profiles set email = 'dsandoval_76@yahoo.com'        where name = 'Daniel Sandoval';
+update team_profiles set email = 'axlretana@hotmail.com'         where name = 'Erick Hidalgo';
+update team_profiles set email = 'jc.espinozavaneg@hotmail.com'  where name = 'Cesar Espinoza';
 
 -- verificación: quién ya tiene correo y quién falta
 select name, team_group, is_management, email from team_profiles order by name;
