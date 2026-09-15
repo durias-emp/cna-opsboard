@@ -78,28 +78,30 @@ export default function Finance() {
       <CrestHeader />
       <PageHeader title="Finance" sub={`${selectedAircraft?.tail_number} · net USD`} />
 
-      {/* Month hero */}
+      {/* Monies hero: the liquid position, cash view (gross, what moved
+          through the accounts). Includes everything after Monies died, so
+          the figure is today's truth, not May's. */}
       <div className="px-4 mt-3">
-        <div className="card !p-4">
-          <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest text-center">This month</p>
-          <p className={`text-3xl font-bold text-center mt-1.5 tabular-nums
-            ${fin.month.netTotal >= 0 ? 'text-white' : 'text-red-400'}`}>
-            {fin.month.netTotal < 0 ? '−' : ''}{usd(fin.month.netTotal)}
+        <div className="card !p-5">
+          <p className="text-[11px] font-semibold text-white/35 uppercase tracking-[0.18em] text-center">Total liquid position</p>
+          <p className={`text-4xl font-bold text-center mt-2 tabular-nums
+            ${fin.allTime.position >= 0 ? 'text-white' : 'text-red-400'}`}>
+            {fin.allTime.position < 0 ? '−' : ''}{usd(fin.allTime.position)}
           </p>
           <div className="grid grid-cols-3 gap-2 mt-4 text-center">
-            {commercial && (
-              <div>
-                <p className="text-sm font-bold text-emerald-400 tabular-nums">{usd(fin.month.revenueNet)}</p>
-                <p className="text-[10px] text-white/30 uppercase tracking-wide mt-0.5">Revenue</p>
-              </div>
-            )}
             <div>
-              <p className="text-sm font-bold text-white tabular-nums">{usd(fin.month.spendNet)}</p>
-              <p className="text-[10px] text-white/30 uppercase tracking-wide mt-0.5">Spent</p>
+              <p className="text-[13px] text-white/40 mb-0.5">Income</p>
+              <p className="text-[15px] font-bold font-mono tabular-nums text-green-400">{usd(fin.allTime.incomeCash)}</p>
             </div>
             <div>
-              <p className="text-sm font-bold text-white tabular-nums">{fin.month.hours.toFixed(1)}h</p>
-              <p className="text-[10px] text-white/30 uppercase tracking-wide mt-0.5">Flown</p>
+              <p className="text-[13px] text-white/40 mb-0.5">Expenses</p>
+              <p className="text-[15px] font-bold font-mono tabular-nums text-red-400">{usd(fin.allTime.expenseCash)}</p>
+            </div>
+            <div>
+              <p className="text-[13px] text-white/40 mb-0.5">Net</p>
+              <p className={`text-[15px] font-bold font-mono tabular-nums ${fin.allTime.position >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {fin.allTime.position < 0 ? '−' : ''}{usd(fin.allTime.position)}
+              </p>
             </div>
           </div>
         </div>

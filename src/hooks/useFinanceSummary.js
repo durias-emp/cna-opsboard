@@ -59,14 +59,16 @@ export function useFinanceSummary(aircraftId) {
     const txFuelDates = new Set()
     for (const x of txs.data ?? []) {
       if (x.category === 'fuel') txFuelDates.add(x.date)
+      const net = Number(x.amount_net), iva = Number(x.iva_amount)
       out.push({
         kind: INCOME_CATS.has(x.category) ? 'income' : x.category,
         id: `x-${x.id}`, date: x.date,
         label: x.party,
         detail: x.description ?? null,
         chip: INCOME_CATS.has(x.category) ? 'Income' : x.category.replace(/_/g, ' '),
-        net: Number(x.amount_net),
-        iva: Number(x.iva_amount),
+        net, iva,
+        // cash: what actually moved through the account (gross), the Monies view
+        cash: net >= 0 ? net + iva : net - iva,
         pending: x.is_pending,
       })
     }
@@ -87,6 +89,7 @@ export function useFinanceSummary(aircraftId) {
         label: `Fuel · ${t.supplier ?? ''}`.trim(),
         detail: `${Number(t.gallons_added ?? 0).toFixed(1)} gal`,
         net: -toNet(Number(t.total_cost), t.includes_iva),
+        cash: -Number(t.total_cost),   // what left the account, gross
       })
     }
     for (const s of snags.data ?? []) {
@@ -126,8 +129,18 @@ export function useFinanceSummary(aircraftId) {
     .map(([kind, net]) => ({ kind, net: Math.round(net * 100) / 100 }))
     .sort((a, b) => b.net - a.net)
 
+  // The Monies view: total liquid position, cash in and out, gross (what
+  // moved through the accounts). Entries without a cash figure fall back to
+  // net (flight prices, maintenance actuals).
+  const cashOf = e => e.cash ?? e.net ?? 0
+  const allTime = {
+    incomeCash:  Math.round(entries.reduce((s, e) => s + (cashOf(e) > 0 ? cashOf(e) : 0), 0) * 100) / 100,
+    expenseCash: Math.abs(Math.round(entries.reduce((s, e) => s + (cashOf(e) < 0 ? cashOf(e) : 0), 0) * 100) / 100),
+  }
+  allTime.position = Math.round((allTime.incomeCash - allTime.expenseCash) * 100) / 100
+
   return {
-    entries, loading, refresh: load,
+    entries, loading, refresh: load, allTime,
     month: {
       revenueNet: sum(inMonth, e => (e.net ?? 0) > 0 ? e.net : 0),
       spendNet:   Math.abs(sum(inMonth, e => (e.net ?? 0) < 0 ? e.net : 0)),
