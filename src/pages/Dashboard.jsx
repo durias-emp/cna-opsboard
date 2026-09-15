@@ -6,6 +6,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { loadStyle, SALVADOR_CENTER, AVIARA_URL } from '../lib/mapStyle'
 import { addEsriToMapLibre } from '../lib/esriSatellite'
 import { useWaypoints } from '../hooks/useWaypoints'
+import { useNotams, notamCircle } from '../hooks/useNotams'
 import { toHobbs, formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
 import { useFlights } from '../hooks/useFlights'
@@ -52,6 +53,7 @@ function MiniMap({ height = 150 }) {
   const mapRef = useRef(null)
   const [ready, setReady] = useState(false)
   const { waypoints } = useWaypoints()
+  const notams = useNotams()
 
   useEffect(() => {
     let map, cancelled = false
@@ -70,6 +72,17 @@ function MiniMap({ height = 150 }) {
         // Satellite ground (same shared Esri module as the big map and the
         // route minimaps) — added first so the waypoint dots paint on top
         addEsriToMapLibre(map, { key: import.meta.env.VITE_ARCGIS_KEY || null, labels: true })
+        // Active NOTAMs — same red dashed circles as the big chart, so the
+        // dashboard preview warns at a glance
+        map.addSource('notams', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+        map.addLayer({
+          id: 'notam-fill', type: 'fill', source: 'notams',
+          paint: { 'fill-color': '#E5484D', 'fill-opacity': 0.13 },
+        })
+        map.addLayer({
+          id: 'notam-line', type: 'line', source: 'notams',
+          paint: { 'line-color': '#E5484D', 'line-width': 1.6, 'line-dasharray': [3, 2] },
+        })
         map.addSource('wp', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
         map.addLayer({
           id: 'wp-dots', type: 'circle', source: 'wp',
@@ -84,6 +97,21 @@ function MiniMap({ height = 150 }) {
     })
     return () => { cancelled = true; mapRef.current = null; map?.remove() }
   }, [])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready) return
+    map.getSource('notams')?.setData({
+      type: 'FeatureCollection',
+      features: notams
+        .filter(n => n.center_lat != null && n.center_lng != null && n.radius_nm)
+        .map(n => ({
+          type: 'Feature',
+          geometry: { type: 'Polygon', coordinates: [notamCircle(n.center_lat, n.center_lng, n.radius_nm)] },
+          properties: {},
+        })),
+    })
+  }, [notams, ready])
 
   useEffect(() => {
     const map = mapRef.current
