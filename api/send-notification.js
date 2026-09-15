@@ -256,14 +256,25 @@ function buildTaskEmail(d) {
 
 // ── Send via Resend ────────────────────────────────────────────────────────────
 
-async function sendEmail(subject, html, recipients) {
+// HTML-only email is a classic spam signal — every send carries a plain-text
+// alternative, derived from the HTML when no explicit text is given.
+function htmlToText(html) {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, ' ').replace(/\s*\n\s*/g, '\n').trim()
+}
+
+async function sendEmail(subject, html, recipients, text) {
   const resp = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ from: FROM, to: recipients, subject, html }),
+    body: JSON.stringify({ from: FROM, to: recipients, subject, html, text: text ?? htmlToText(html) }),
   })
   if (!resp.ok) {
     const text = await resp.text()
