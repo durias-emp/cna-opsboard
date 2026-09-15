@@ -308,9 +308,11 @@ function parseNotams() {
 function sendPendingPushes() { notifyRelevantNotams_(); }
 
 /**
- * Push a TODO el equipo por cada NOTAM relevante (score >= PUSH_MIN_SCORE),
- * vigente y aún no notificado. Dedup por notams.pushed_at: cada NOTAM avisa
- * UNA sola vez, aunque el ciclo corra cada 15 minutos.
+ * Notifica cada NOTAM relevante (score >= PUSH_MIN_SCORE), vigente y aún no
+ * avisado, por DOS vías: push a todos los dispositivos registrados, y CORREO
+ * a los que corresponde (pilotos + gerencia, con email en team_profiles).
+ * Dedup por notams.pushed_at: cada NOTAM avisa UNA sola vez — se estampa si
+ * cualquiera de las dos vías salió, así nunca se repite el aviso.
  */
 function notifyRelevantNotams_() {
   var c = props_();
@@ -319,9 +321,12 @@ function notifyRelevantNotams_() {
   var url = c.url + '/rest/v1/notams?pushed_at=is.null&status=eq.active' +
     '&relevance_score=gte.' + PUSH_MIN_SCORE +
     '&or=(is_permanent.is.true,effective_to.gt.' + encodeURIComponent(now) + ')' +
-    '&select=id,notam_id,body,effective_to,is_permanent,relevance_rule';
+    '&select=id,notam_id,body,effective_from,effective_to,is_permanent,relevance_rule,lower_limit,upper_limit';
   var due = JSON.parse(UrlFetchApp.fetch(url, { headers: H }).getContentText());
   if (!due.length) return;
+
+  var recipients = notamEmailRecipients_(c, H);
+
   due.forEach(function (n) {
     var res = UrlFetchApp.fetch(c.url + '/functions/v1/send-push', {
       method: 'post', contentType: 'application/json',
@@ -329,9 +334,26 @@ function notifyRelevantNotams_() {
       payload: JSON.stringify({ notam: n }),
       muteHttpExceptions: true,
     });
+    var pushed = res.getResponseCode() < 300;
     Logger.log('Push NOTAM ' + n.notam_id + ': HTTP ' + res.getResponseCode() + ' ' +
       res.getContentText().slice(0, 120));
-    if (res.getResponseCode() < 300) {
+
+    var emailed = false;
+    if (recipients.length) {
+      try {
+        MailApp.sendEmail({
+          to: recipients.join(','),
+          subject: '⚠️ NOTAM ' + n.notam_id + ' — aviso de espacio aéreo',
+          body: notamEmailBody_(n),
+        });
+        emailed = true;
+        Logger.log('Email NOTAM ' + n.notam_id + ' → ' + recipients.length + ' destinatario(s)');
+      } catch (e) {
+        Logger.log('Email NOTAM ' + n.notam_id + ' FALLÓ: ' + e.message);
+      }
+    }
+
+    if (pushed || emailed) {
       UrlFetchApp.fetch(c.url + '/rest/v1/notams?id=eq.' + n.id, {
         method: 'patch', contentType: 'application/json', headers: H,
         payload: JSON.stringify({ pushed_at: new Date().toISOString() }),
@@ -339,4 +361,33 @@ function notifyRelevantNotams_() {
       });
     }
   });
+}
+
+/** Quién recibe correo de NOTAMs: pilotos y gerencia con email en team_profiles. */
+function notamEmailRecipients_(c, H) {
+  try {
+    var rows = JSON.parse(UrlFetchApp.fetch(
+      c.url + '/rest/v1/team_profiles?email=not.is.null' +
+      '&or=(group.eq.pilot,management.is.true)&select=email',
+      { headers: H, muteHttpExceptions: true }).getContentText());
+    if (!rows.map) return [];
+    return rows.map(function (r) { return r.email; }).filter(Boolean);
+  } catch (e) {
+    Logger.log('team_profiles no legible para correos: ' + e.message);
+    return [];
+  }
+}
+
+function notamEmailBody_(n) {
+  var vig = n.is_permanent ? 'PERMANENTE'
+    : ((n.effective_from ? n.effective_from.slice(0, 16).replace('T', ' ') + 'Z' : '?') +
+       ' → ' + (n.effective_to ? n.effective_to.slice(0, 16).replace('T', ' ') + 'Z' : '?'));
+  return 'NOTAM ' + n.notam_id + '\n' +
+    'Vigencia: ' + vig + '\n' +
+    (n.lower_limit || n.upper_limit
+      ? 'Límites: ' + (n.lower_limit || '?') + ' a ' + (n.upper_limit || '?') + '\n' : '') +
+    (n.relevance_rule ? 'Motivo del aviso: ' + n.relevance_rule + '\n' : '') +
+    '\n' + (n.body || '') + '\n\n' +
+    'Ver en el mapa: https://cna-opsboard.vercel.app/map\n' +
+    '— CNA OpsBoard (aviso automático)';
 }

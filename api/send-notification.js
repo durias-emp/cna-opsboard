@@ -202,6 +202,58 @@ function buildItineraryEmail(d) {
 </body></html>`
 }
 
+// ── Task assignment ────────────────────────────────────────────────────────────
+
+// The routing brain: the assignee's email lives in team_profiles. Reads with
+// the anon key (the table is open-read under RLS, same as the app itself).
+async function lookupEmail(name) {
+  const base = (process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL ?? '').replace(/\/$/, '')
+  const key  = process.env.VITE_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY
+  if (!base || !key || !name) return null
+  const resp = await fetch(
+    `${base}/rest/v1/team_profiles?name=eq.${encodeURIComponent(name)}&select=email`,
+    { headers: { apikey: key, Authorization: `Bearer ${key}` } })
+  if (!resp.ok) return null
+  const rows = await resp.json()
+  return rows?.[0]?.email ?? null
+}
+
+const PRIORITY_COLORS = { high: '#B3261E', medium: '#8F6400', low: '#15803d' }
+
+function buildTaskEmail(d) {
+  const pr = String(d.priority ?? '').toLowerCase()
+  const prColor = PRIORITY_COLORS[pr] ?? '#555'
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
+<body style="margin:0;padding:0;background:#f2f2f2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f2f2f2;padding:40px 16px">
+<tr><td align="center"><table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%">
+  ${header('Task &nbsp;·&nbsp; Assigned to You')}
+  <tr><td style="background:#fff;padding:32px;border-radius:0 0 12px 12px">
+
+    <div style="background:#f7f7f7;border-radius:10px;padding:18px 20px;margin-bottom:26px">
+      <p style="margin:0;color:#aaa;font-size:10px;letter-spacing:2.5px;text-transform:uppercase">Task</p>
+      <p style="margin:8px 0 0;color:#111;font-size:17px;font-weight:700">${d.title ?? ''}</p>
+      ${d.description ? `<p style="margin:8px 0 0;color:#555;font-size:13px;line-height:1.5">${d.description}</p>` : ''}
+    </div>
+
+    <table width="100%" cellpadding="0" cellspacing="0">
+      ${row('Assigned To', d.assigned_to)}
+      ${row('Assigned By', d.created_by)}
+      ${d.priority ? row('Priority', `<span style="color:${prColor};text-transform:capitalize">${d.priority}</span>`) : ''}
+      ${row('Category', d.category)}
+      ${row('Due', d.due_date ? formatDate(d.due_date) : null)}
+    </table>
+
+    <div style="margin-top:26px;text-align:center">
+      <a href="https://cna-opsboard.vercel.app" style="display:inline-block;background:#0a0a0a;color:#fff;font-size:13px;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none">Open OpsBoard</a>
+    </div>
+
+  </td></tr>
+  ${footer()}
+</table></td></tr></table>
+</body></html>`
+}
+
 // ── Send via Resend ────────────────────────────────────────────────────────────
 
 async function sendEmail(subject, html, recipients) {
@@ -237,14 +289,23 @@ export default async function handler(req, res) {
   if (!body.record) return res.status(400).json({ error: 'Expected a database webhook payload' })
 
   // Map Supabase table name → notification type
-  const tableMap = { flights: 'flight_log', flight_itineraries: 'itinerary' }
+  const tableMap = { flights: 'flight_log', flight_itineraries: 'itinerary', todos: 'task' }
   const type = tableMap[body.table]
   if (!type) {
     console.error('[webhook] Unknown table:', body.table)
     return res.status(400).json({ error: 'Unknown table' })
   }
-  // Only fire on INSERT (not UPDATE/DELETE)
-  if (body.type !== 'INSERT') {
+
+  // Tasks notify on assignment: an INSERT that arrives assigned, or an UPDATE
+  // that changes assigned_to. Everything else fires on INSERT only.
+  if (type === 'task') {
+    const assignee   = body.record?.assigned_to
+    const reassigned = body.type === 'UPDATE' && body.old_record?.assigned_to !== assignee
+    const fresh      = body.type === 'INSERT'
+    if (!assignee || !(fresh || reassigned)) {
+      return res.status(200).json({ ok: true, skipped: 'no new assignment' })
+    }
+  } else if (body.type !== 'INSERT') {
     return res.status(200).json({ ok: true, skipped: 'not an insert' })
   }
 
@@ -252,6 +313,24 @@ export default async function handler(req, res) {
   const data = deepEscape(body.record)
 
   if (!type || !data) return res.status(400).json({ error: 'Missing type or data' })
+
+  if (type === 'task') {
+    // Smart routing: the email goes to the assignee alone (raw name for the
+    // lookup — deepEscape is for HTML, not for matching)
+    const email = await lookupEmail(body.record.assigned_to)
+    if (!email) {
+      console.log(`[notify] No email on file for "${body.record.assigned_to}" — task email skipped`)
+      return res.status(200).json({ ok: true, skipped: 'assignee has no email' })
+    }
+    try {
+      await sendEmail(`Task Assigned — ${body.record.title ?? ''}`, buildTaskEmail(data), [email])
+      console.log(`[notify] Task email sent to ${data.assigned_to}`)
+      return res.status(200).json({ ok: true })
+    } catch (err) {
+      console.error('[notify] Failed:', err.message)
+      return res.status(500).json({ error: err.message })
+    }
+  }
 
   const isItinerary = type === 'itinerary'
   const subject = isItinerary
