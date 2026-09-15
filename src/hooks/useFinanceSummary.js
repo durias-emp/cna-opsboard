@@ -13,6 +13,39 @@ export const toNet = (amount, includesIva) =>
 
 function monthKey(dateStr) { return (dateStr ?? '').slice(0, 7) }
 
+const cashOf = e => e.cash ?? e.net ?? 0
+
+// Cash sums (gross, what moved through the accounts) over a set of entries
+export function cashSums(entries) {
+  const incomeCash  = Math.round(entries.reduce((s, e) => s + (cashOf(e) > 0 ? cashOf(e) : 0), 0) * 100) / 100
+  const expenseCash = Math.abs(Math.round(entries.reduce((s, e) => s + (cashOf(e) < 0 ? cashOf(e) : 0), 0) * 100) / 100)
+  return { incomeCash, expenseCash, position: Math.round((incomeCash - expenseCash) * 100) / 100 }
+}
+
+// Spend breakdown by source over a set of entries, biggest first (donut)
+export function spendSlices(entries) {
+  const kinds = {}
+  for (const e of entries) {
+    if (cashOf(e) >= 0) continue
+    kinds[e.kind] = (kinds[e.kind] ?? 0) + Math.abs(cashOf(e))
+  }
+  return Object.entries(kinds)
+    .map(([kind, net]) => ({ kind, net: Math.round(net * 100) / 100 }))
+    .sort((a, b) => b.net - a.net)
+}
+
+// Period filter shared by the dashboard card and the Finance page pills:
+// 'all' | 'this_month' | 'last_month'
+export function filterByPeriod(entries, key) {
+  if (key === 'all') return entries
+  const now = new Date()
+  const thisM = now.toISOString().slice(0, 7)
+  now.setDate(1); now.setMonth(now.getMonth() - 1)
+  const lastM = now.toISOString().slice(0, 7)
+  const want = key === 'last_month' ? lastM : thisM
+  return entries.filter(e => monthKey(e.date) === want)
+}
+
 export function useFinanceSummary(aircraftId) {
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
@@ -132,12 +165,8 @@ export function useFinanceSummary(aircraftId) {
   // The Monies view: total liquid position, cash in and out, gross (what
   // moved through the accounts). Entries without a cash figure fall back to
   // net (flight prices, maintenance actuals).
-  const cashOf = e => e.cash ?? e.net ?? 0
-  const allTime = {
-    incomeCash:  Math.round(entries.reduce((s, e) => s + (cashOf(e) > 0 ? cashOf(e) : 0), 0) * 100) / 100,
-    expenseCash: Math.abs(Math.round(entries.reduce((s, e) => s + (cashOf(e) < 0 ? cashOf(e) : 0), 0) * 100) / 100),
-  }
-  allTime.position = Math.round((allTime.incomeCash - allTime.expenseCash) * 100) / 100
+  const allTime = cashSums(entries)
+  allTime.spendByKind = spendSlices(entries)
 
   return {
     entries, loading, refresh: load, allTime,

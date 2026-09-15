@@ -3,7 +3,7 @@ import CrestHeader from '../components/CrestHeader'
 import PageHeader from '../components/PageHeader'
 import { useAircraft } from '../context/AircraftContext'
 import { useIsManagement } from '../context/TeamContext'
-import { useFinanceSummary } from '../hooks/useFinanceSummary'
+import { useFinanceSummary, cashSums, filterByPeriod } from '../hooks/useFinanceSummary'
 import { useMaintenanceItems } from '../hooks/useMaintenanceItems'
 import { useCostEngine } from '../hooks/useCostEngine'
 import { reserveVsActual } from '../lib/financeCalc'
@@ -61,6 +61,7 @@ export default function Finance() {
   const engine = useCostEngine(selectedAircraft?.id)
   const [tab, setTab] = useState('ledger')
   const [ratesOpen, setRatesOpen] = useState(false)
+  const [period, setPeriod] = useState('all')   // pills above the hero
 
   if (!isManagement) {
     return (
@@ -78,34 +79,54 @@ export default function Finance() {
       <CrestHeader />
       <PageHeader title="Finance" sub={`${selectedAircraft?.tail_number} · net USD`} />
 
+      {/* Period pills, dark style, right above the hero card */}
+      <div className="px-4 mt-3 flex gap-2">
+        {[['all', 'All'], ['this_month', 'This month'], ['last_month', 'Last month']].map(([id, label]) => (
+          <button key={id} onClick={() => setPeriod(id)}
+            className={`px-5 py-2.5 rounded-full text-[14px] font-semibold border transition-colors
+              ${period === id
+                ? 'bg-white/[0.10] border-white/25 text-white'
+                : 'bg-white/[0.03] border-white/[0.08] text-white/45'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
       {/* Monies hero: the liquid position, cash view (gross, what moved
-          through the accounts). Includes everything after Monies died, so
-          the figure is today's truth, not May's. */}
-      <div className="px-4 mt-3">
-        <div className="card !p-5">
-          <p className="text-[11px] font-semibold text-white/35 uppercase tracking-[0.18em] text-center">Total liquid position</p>
-          <p className={`text-4xl font-bold text-center mt-2 tabular-nums
-            ${fin.allTime.position >= 0 ? 'text-white' : 'text-red-400'}`}>
-            {fin.allTime.position < 0 ? '−' : ''}{usd(fin.allTime.position)}
-          </p>
-          <div className="grid grid-cols-3 gap-2 mt-4 text-center">
-            <div>
-              <p className="text-[13px] text-white/40 mb-0.5">Income</p>
-              <p className="text-[15px] font-bold font-mono tabular-nums text-green-400">{usd(fin.allTime.incomeCash)}</p>
-            </div>
-            <div>
-              <p className="text-[13px] text-white/40 mb-0.5">Expenses</p>
-              <p className="text-[15px] font-bold font-mono tabular-nums text-red-400">{usd(fin.allTime.expenseCash)}</p>
-            </div>
-            <div>
-              <p className="text-[13px] text-white/40 mb-0.5">Net</p>
-              <p className={`text-[15px] font-bold font-mono tabular-nums ${fin.allTime.position >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {fin.allTime.position < 0 ? '−' : ''}{usd(fin.allTime.position)}
+          through the accounts), scoped by the pills. */}
+      {(() => {
+        const scoped = filterByPeriod(fin.entries, period)
+        const s = cashSums(scoped)
+        const eyebrow = period === 'all' ? 'Total liquid position'
+          : period === 'this_month' ? 'This month' : 'Last month'
+        return (
+          <div className="px-4 mt-3">
+            <div className="card !p-5">
+              <p className="text-[11px] font-semibold text-white/35 uppercase tracking-[0.18em] text-center">{eyebrow}</p>
+              <p className={`text-4xl font-bold text-center mt-2 tabular-nums
+                ${s.position >= 0 ? 'text-white' : 'text-red-400'}`}>
+                {s.position < 0 ? '−' : ''}{usd(s.position)}
               </p>
+              <div className="grid grid-cols-3 gap-2 mt-4 text-center">
+                <div>
+                  <p className="text-[13px] text-white/40 mb-0.5">Income</p>
+                  <p className="text-[15px] font-bold font-mono tabular-nums text-green-400">{usd(s.incomeCash)}</p>
+                </div>
+                <div>
+                  <p className="text-[13px] text-white/40 mb-0.5">Expenses</p>
+                  <p className="text-[15px] font-bold font-mono tabular-nums text-red-400">{usd(s.expenseCash)}</p>
+                </div>
+                <div>
+                  <p className="text-[13px] text-white/40 mb-0.5">Net</p>
+                  <p className={`text-[15px] font-bold font-mono tabular-nums ${s.position >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {s.position < 0 ? '−' : ''}{usd(s.position)}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        )
+      })()}
 
       {/* Tabs */}
       <div className="px-4 mt-4 flex gap-1.5">
@@ -133,7 +154,7 @@ export default function Finance() {
             // below the recent activity instead of hiding under a row cap
             (() => {
               const groups = []
-              for (const e of fin.entries) {
+              for (const e of filterByPeriod(fin.entries, period)) {
                 const m = (e.date ?? '').slice(0, 7)
                 if (!groups.length || groups[groups.length - 1].m !== m) groups.push({ m, rows: [] })
                 groups[groups.length - 1].rows.push(e)

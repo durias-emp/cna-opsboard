@@ -170,23 +170,26 @@ function FinanceCard() {
   const isManagement = useIsManagement()
   const { selectedAircraft } = useAircraft()
   const fin = useFinanceSummary(isManagement ? selectedAircraft?.id : null)
-  const animNet = useAnimatedNumber(isManagement ? fin.month.netTotal : null)
+  const animNet = useAnimatedNumber(isManagement ? fin.allTime.position : null)
   if (!isManagement) return null
   const commercial = (selectedAircraft?.finance_mode ?? 'commercial') === 'commercial'
   const usd = n => '$' + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const net = animNet ?? 0
-  const spendKinds = fin.month.spendByKind.map(s => s.kind)
+  const spendKinds = fin.allTime.spendByKind.map(s => s.kind.replace(/_/g, ' '))
   const spendFoot = spendKinds.length === 0 ? 'no spend yet'
-    : spendKinds.length === 1 ? `all ${spendKinds[0]}` : spendKinds.join(' + ')
+    : spendKinds.length === 1 ? `all ${spendKinds[0]}`
+    : spendKinds.slice(0, 2).join(' + ') + (spendKinds.length > 2 ? ` +${spendKinds.length - 2}` : '')
+  const at = fin.allTime
   return (
     <div className="trow-group glass-card">
       <div className="p-3 space-y-2.5">
-        {/* Hero: eyebrow + the month's net, Hobbs-sized */}
+        {/* Hero: the interior's headline, mirrored. All time by default;
+            the period pills live inside Finance. */}
         <button className="vital-tile w-full items-center py-5" onClick={() => navigate('/finance')}>
-          <p className="vital-label" style={{ letterSpacing: '0.18em' }}>Finance · This Month</p>
-          <p className={`vital-value tracking-tight tabular-nums ${fin.month.netTotal < 0 ? 'text-red-400' : ''}`}
+          <p className="vital-label" style={{ letterSpacing: '0.18em' }}>Total Liquid Position</p>
+          <p className={`vital-value tracking-tight tabular-nums ${at.position < 0 ? 'text-red-400' : ''}`}
             style={{ fontSize: 44 }}>
-            {fin.month.netTotal < 0 ? '−' : ''}{usd(net)}
+            {at.position < 0 ? '\u2212' : ''}{usd(animNet ?? 0)}
           </p>
         </button>
 
@@ -195,26 +198,26 @@ function FinanceCard() {
           <button className="vital-tile items-center text-center" onClick={() => navigate('/finance')}>
             <p className="vital-label">Income</p>
             <div className="vital-zone">
-              <p className={`vital-value-sm font-mono tabular-nums ${commercial && fin.month.revenueNet > 0 ? 'text-green-400' : ''}`}>
-                {usd(fin.month.revenueNet)}
+              <p className={`vital-value-sm font-mono tabular-nums ${commercial && at.incomeCash > 0 ? 'text-green-400' : ''}`}>
+                {usd(at.incomeCash)}
               </p>
             </div>
-            <p className="vital-foot">this month</p>
+            <p className="vital-foot">all time</p>
           </button>
 
           <button className="vital-tile items-center text-center" onClick={() => navigate('/finance')}>
             <p className="vital-label">Expenses</p>
             <div className="vital-zone">
-              <SpendDonut slices={fin.month.spendByKind} size={44} />
+              <SpendDonut slices={at.spendByKind} size={44} />
             </div>
-            <p className="vital-foot text-red-400 font-mono tabular-nums">{usd(fin.month.spendNet)}</p>
+            <p className="vital-foot text-red-400 font-mono tabular-nums">{usd(at.expenseCash)}</p>
           </button>
 
           <button className="vital-tile items-center text-center" onClick={() => navigate('/finance')}>
             <p className="vital-label">Net</p>
             <div className="vital-zone">
-              <p className={`vital-value-sm font-mono tabular-nums ${fin.month.netTotal >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {fin.month.netTotal < 0 ? '−' : ''}{usd(fin.month.netTotal)}
+              <p className={`vital-value-sm font-mono tabular-nums ${at.position >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {at.position < 0 ? '\u2212' : ''}{usd(at.position)}
               </p>
             </div>
             <p className="vital-foot">{spendFoot}</p>
@@ -224,6 +227,7 @@ function FinanceCard() {
     </div>
   )
 }
+
 
 // Live minimap preview: the real chart (same MapLibre engine and shared
 // OpenFreeMap style as the Map screen) with the waypoint dots, non-interactive.
