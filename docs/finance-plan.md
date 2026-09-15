@@ -1,8 +1,21 @@
 # Finance module: plan
 
-Scoping document per the Finance brief (2026-09-15). No code yet. Monies source read
-from `CC projects/Finance Tracker CNA/cna-monies`. Everything money is USD, stored net,
-`numeric(14,2)`; IVA is El Salvador 13%, applied as 13/113 on gross figures.
+Scoping document per the Finance brief (2026-09-15), APPROVED 2026-09-15 with four
+changes (folded in below). Monies source read from
+`CC projects/Finance Tracker CNA/cna-monies`. Everything money is USD, stored net,
+`numeric(14,2)`; IVA is El Salvador 13%, applied as 13/113 on gross figures AT ENTRY:
+transactions store `amount_net` and `iva_amount` computed once when captured, and IVA
+is never recomputed from net afterwards.
+
+Decisions locked in review:
+1. Transactions carry `amount_net` + `iva_amount` (computed at entry). `ivaOwed` sums
+   `iva_amount` on income after the last Hacienda payment; new `ivaRecoverable` sums
+   `iva_amount` on expenses flagged `iva_recoverable`.
+2. Pilot cost is hourly only: 100.00 USD net per flight hour. `pilot_monthly` stays
+   null and the UI shows the hourly field only. `flights.price` moves to Phase 1.
+3. WhatsApp share target is dropped from Phase 4 (backlog only). The photo picker is
+   the path on every platform.
+4. Income categories collapse to `flight_revenue` and `other_income`.
 
 ## 1. What Finance touches in the existing app
 
@@ -61,7 +74,8 @@ create table finance_transactions (
   account_id       uuid references finance_accounts(id) not null,
   date             date not null,
   party            text not null,
-  amount           numeric(14,2) not null,          -- NET, signed
+  amount_net       numeric(14,2) not null,          -- NET, signed (+income / -expense)
+  iva_amount       numeric(14,2) not null default 0, -- computed at entry, never recomputed
   category         text not null,                   -- business list below
   description      text,
   includes_iva     boolean not null default true,   -- source figure was gross
@@ -81,8 +95,8 @@ create table finance_transactions (
 create table cost_rates (
   aircraft_id        uuid primary key references aircraft(id),
   fuel_price_gal     numeric(14,2),   -- fallback when no purchases yet
-  pilot_rate_hr      numeric(14,2),   -- either this...
-  pilot_monthly      numeric(14,2),   -- ...or this (UI enforces one)
+  pilot_rate_hr      numeric(14,2),   -- CNA: 100.00 net per flight hour
+  pilot_monthly      numeric(14,2),   -- stays null (kept for other tenants; UI hides it)
   insurance_year     numeric(14,2),
   hangar_year        numeric(14,2),
   other_fixed_year   numeric(14,2),
@@ -92,11 +106,11 @@ create table cost_rates (
 );
 ```
 
-Business categories (Monies list minus personal ones): `flight_hours`, `air_tours`,
-`custom_flights`, `deposits`, `transfer`, `reversal` (income); `fuel`, `maintenance`,
-`labor`, `pilot_labor`, `equipment`, `admin`, `hangar`, `insurance`, `transport`,
-`misc_business`, `branding`, `taxes` (expense). Dropped: crypto, personal_expenses,
-personal_misc, gifts, education, membership, fitness.
+Business categories: income is just `flight_revenue` and `other_income`; expense is
+`fuel`, `maintenance`, `labor`, `pilot_labor`, `equipment`, `admin`, `hangar`,
+`insurance`, `transport`, `misc_business`, `branding`, `taxes`; plus `transfer` as a
+neutral account-to-account movement. Dropped from Monies: crypto, personal_expenses,
+personal_misc, gifts, education, membership, fitness, and the granular income split.
 
 P&L view `v_finance_pnl_month`: month, revenue net, expenses by group (fuel,
 maintenance, fixed, other), IVA collected and recoverable, hours flown (join on
@@ -112,11 +126,10 @@ policies as commented blocks (`is_management` read, management-only write).
 No Supabase, no React, no Date.now() (period boundaries are passed in).
 
 ```js
-netOf(amount, includesIva)                 // gross -> net via /1.13; net passes through
-ivaOf(amountGross)                         // gross * 13/113
+splitEntry(amountGross_or_net, includesIva) // AT ENTRY only: returns { amount_net, iva_amount }; stored once, never recomputed
 fuelRatePerHour({ purchases, flights, fallbackPriceGal })
                                            // weighted avg $/gal from purchases (or fallback) * fleet burn (gal/hr from logged fuel & hours)
-pilotRatePerHour({ rate_hr, monthly, monthlyHours })
+pilotRatePerHour({ rate_hr })              // hourly only (100.00 net for CNA); no monthly component
 reservePerHour(items)                      // sum(estimated_cost / interval): hours items use hours_interval, calendar items use expected hours in the interval (interval months * trailing utilization)
 variablePerHour({ fuelRate, pilotRate, reserveRate })
 fixedPerHour({ annualFixed, trailingHours })
@@ -125,7 +138,8 @@ fullyLoadedPerHour(...)
 costOfFlight({ airTimeHours, variableRate, fixedRate })
 marginOfFlight({ priceNet, cost })         // commercial only
 breakevenHoursMonth({ fixedMonthly, targetRateNet, variableRate })
-ivaOwed({ transactions })                  // income after the last is_iva_payment, summed * 13/113
+ivaOwed({ transactions })                  // sum of iva_amount on income after the last is_iva_payment
+ivaRecoverable({ transactions })           // sum of iva_amount on expenses with iva_recoverable true
 reserveVsActual({ item, complianceLogs })  // accrued reserve since last compliance vs actual_cost at the work order
 monthPnl({ flights, transactions, rates, month })
 ```
@@ -179,11 +193,15 @@ when commercial and a price exists.
 
 ### Phase 1: cost capture (no math)
 Migration 1 (columns on `maintenance_items`, `snags`, `tank_fillups`,
-`maintenance_compliance_log` + extended `log_compliance()` + `aircraft.finance_mode`).
-Drawer edits: ComplianceDrawer, Snag resolve, TankFillupDrawer (IVA toggles), item
-editor (estimated_cost). Size: S-M (1 migration, 4 drawer edits). Depends on: nothing.
-Risk: `log_compliance()` signature change (mitigated: new args default null; the
-function is replaced atomically).
+`maintenance_compliance_log`, `flights.price` + extended `log_compliance()` +
+`aircraft.finance_mode`). Sequenced: migration first, owner runs it and replies with
+the result, drawers only after. Drawer edits: ComplianceDrawer, Snag resolve,
+TankFillupDrawer (IVA toggles), item editor (estimated_cost), FlightDrawer (price,
+management + commercial only). Size: M (1 migration, 5 drawer edits). Depends on:
+nothing. Risk: `log_compliance()` gains arguments, which in Postgres means a new
+overload; the migration drops the old signature first so PostgREST never sees an
+ambiguous pair (the deployed app keeps working because the new defaults cover the
+old call shape).
 
 ### Phase 2: Costs tab + calc engine
 Migration 2 (`cost_rates`). `financeCalc.js` + vitest + tests. `Finance.jsx` shell
@@ -200,32 +218,28 @@ dashboard is unchanged for pilots and mechanics.
 ### Phase 4: Ledger (the Monies port)
 Migration 3 (`finance_accounts`, `finance_transactions`, storage bucket for
 receipts). Hooks, TransactionDrawer, receipt scan Edge Function (deploy via CLI),
-IVA card, link-to-source picker, share target. `flights.price` lands here too
-(FlightDrawer field + optional quote prefill). Size: L (the biggest phase). Depends
-on: Phases 1-2. Risks: Edge Function secret setup (`ANTHROPIC_API_KEY` in function
-secrets, owner sets it in the dashboard); share-target manifest change means
-Android reinstall of the PWA to pick it up; receipt storage bucket policies.
+IVA card (owed + recoverable), link-to-source picker. Photo picker is the only
+capture path; the WhatsApp share target is BACKLOG, not in this phase. Size: L (the
+biggest phase). Depends on: Phases 1-2. Risks: Edge Function secret setup
+(`ANTHROPIC_API_KEY` in function secrets, owner sets it in the dashboard); receipt
+storage bucket policies.
 
 ### Phase 5: P&L + PDF
 Migration 4 (`v_finance_pnl_month`, after all columns exist). P&L tab, month PDF
 export. Size: M. Depends on: Phase 4 transactions. Risk: PDF fidelity on mobile
 (print stylesheet first, jsPDF only if needed).
 
-## 7. Open questions
+## 7. Open questions: ANSWERED (review of 2026-09-15)
 
-1. `flights.price`: entered manually when logging (management only), with a later
-   nicety of prefilling from a quote? Proposed: yes, manual first.
-2. Pilot cost for CNA today: per hour or per month? The table supports both, the UI
-   should show one.
-3. Should `target_rate_hr` simply read `quote_profiles.rate_hr` (one source of truth
-   with the quote tool) or be independent? Proposed: read quote profile, allow
-   override in cost_rates.
-4. Historical `tank_fillups` rows predate the IVA flags: default them to
-   `includes_iva = true, iva_recoverable = true`? (Fuel invoices in El Salvador
-   normally include IVA.)
-5. Mechanic labor: assumed to arrive as actuals (work order cost or a `labor`
-   transaction), never as a per-hour rate. Confirm.
-6. Reserve seeding: you will fill `estimated_cost` item by item in the app, or do
-   you want a one-time seed migration from a shop price list when you have one?
-7. Receipts storage: new private bucket `receipts` in the same Supabase project,
-   management-only signed URLs post-lockdown. Confirm.
+1. `flights.price`: manual entry when logging, management only. Quote prefill is a
+   later nicety. (In Phase 1 per review.)
+2. Pilot cost: hourly, 100.00 USD net per flight hour. No salaried component;
+   `pilot_monthly` stays null and the UI shows the hourly field only.
+3. `target_rate_hr` reads `quote_profiles.rate_hr`, with an override in `cost_rates`.
+4. Historical `tank_fillups` rows default `includes_iva = true, iva_recoverable = true`.
+5. Mechanic labor arrives as actuals only (work order cost or a `labor` transaction).
+6. Reserves are filled in-app, item by item. No seed migration.
+7. Receipts live in a new private bucket `receipts`, management-only signed URLs
+   post-lockdown.
+
+Backlog (out of all phases): WhatsApp Web Share Target (Android/Chrome only).
