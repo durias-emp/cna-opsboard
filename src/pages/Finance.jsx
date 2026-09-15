@@ -74,7 +74,7 @@ export default function Finance() {
   const commercial = (selectedAircraft?.finance_mode ?? 'commercial') === 'commercial'
 
   return (
-    <div className="flex-1 overflow-y-auto nav-clearance">
+    <div className="flex-1 overflow-y-auto nav-clearance page-ambience">
       <CrestHeader />
       <PageHeader title="Finance" sub={`${selectedAircraft?.tail_number} · net USD`} />
 
