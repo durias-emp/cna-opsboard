@@ -90,6 +90,16 @@ export function useFinanceSummary(aircraftId) {
   const inMonth  = entries.filter(e => monthKey(e.date) === nowMonth)
   const sum = (list, f) => Math.round(list.reduce((s, e) => s + (f(e) ?? 0), 0) * 100) / 100
 
+  // Spend breakdown by source, biggest first (the dashboard donut)
+  const spendKinds = {}
+  for (const e of inMonth) {
+    if ((e.net ?? 0) >= 0) continue
+    spendKinds[e.kind] = (spendKinds[e.kind] ?? 0) + Math.abs(e.net)
+  }
+  const spendByKind = Object.entries(spendKinds)
+    .map(([kind, net]) => ({ kind, net: Math.round(net * 100) / 100 }))
+    .sort((a, b) => b.net - a.net)
+
   return {
     entries, loading, refresh: load,
     month: {
@@ -97,6 +107,7 @@ export function useFinanceSummary(aircraftId) {
       spendNet:   Math.abs(sum(inMonth, e => (e.net ?? 0) < 0 ? e.net : 0)),
       netTotal:   sum(inMonth, e => e.net),
       hours:      Math.round(sum(inMonth, e => e.hours) * 10) / 10,
+      spendByKind,
     },
   }
 }

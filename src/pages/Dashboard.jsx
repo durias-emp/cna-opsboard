@@ -120,6 +120,32 @@ function cloudDeck(CW, CH, coverage, scaleXY, alphaMax, seed) {
 // Finance entry card: management only, renders nothing for everyone else so
 // the dashboard is unchanged for pilots and mechanics. All figures NET USD,
 // derived from what the app already captures (Finance Phase: entry point).
+// Monies-style monochrome donut: grayscale slices, biggest first, drawn as
+// stroke arcs on one circle. Purely presentational.
+const DONUT_GRAYS = ['#f0f0f0', '#a8a8a8', '#787878', '#585858', '#404040']
+function SpendDonut({ slices, size = 52 }) {
+  const total = slices.reduce((s, x) => s + x.net, 0)
+  const C = 2 * Math.PI * 15.5
+  let offset = 0
+  return (
+    <svg viewBox="0 0 40 40" style={{ width: size, height: size }}>
+      <circle cx="20" cy="20" r="15.5" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+      {total > 0 && slices.map((s, i) => {
+        const frac = s.net / total
+        const el = (
+          <circle key={s.kind} cx="20" cy="20" r="15.5" fill="none"
+            stroke={DONUT_GRAYS[i % DONUT_GRAYS.length]} strokeWidth="6"
+            strokeDasharray={`${Math.max(frac * C - 1.2, 0.4)} ${C}`}
+            strokeDashoffset={-offset * C}
+            transform="rotate(-90 20 20)" />
+        )
+        offset += frac
+        return el
+      })}
+    </svg>
+  )
+}
+
 function FinanceCard() {
   const navigate = useNavigate()
   const isManagement = useIsManagement()
@@ -134,20 +160,39 @@ function FinanceCard() {
     <div className="trow-group glass-card">
       <div className="p-3">
         <button className="vital-tile w-full items-center py-5" onClick={() => navigate('/finance')}>
-          <p className="vital-label">Finance</p>
-          <p className={`vital-value tracking-tight ${fin.month.netTotal < 0 ? 'text-red-400' : ''}`}
-            style={{ fontSize: 42 }}>
+          {/* Monies hero: eyebrow, huge figure, three labelled columns */}
+          <p className="vital-label" style={{ letterSpacing: '0.18em' }}>Finance · This Month</p>
+          <p className={`vital-value tracking-tight tabular-nums ${fin.month.netTotal < 0 ? 'text-red-400' : ''}`}
+            style={{ fontSize: 44 }}>
             {fin.month.netTotal < 0 ? '−' : ''}{usd(net)}
-            <span className="vital-unit" style={{ fontSize: 18 }}> this month</span>
           </p>
-          <p className="vital-sub">
-            {commercial && (
-              <>
-                <span className="text-green-400 font-semibold">{usd(fin.month.revenueNet)}</span> revenue ·{' '}
-              </>
-            )}
-            {usd(fin.month.spendNet)} spent · {fin.month.hours.toFixed(1)} h flown
-          </p>
+
+          <div className="w-full grid grid-cols-3 items-end gap-2 mt-5">
+            {/* Income */}
+            <div className="text-center">
+              <p className="text-[12px] text-white/40 mb-1">Income</p>
+              <p className={`text-[15px] font-bold font-mono tabular-nums ${commercial && fin.month.revenueNet > 0 ? 'text-green-400' : 'text-white/40'}`}>
+                {usd(fin.month.revenueNet)}
+              </p>
+            </div>
+
+            {/* Expenses — the Monies donut: spend breakdown by source */}
+            <div className="flex flex-col items-center">
+              <SpendDonut slices={fin.month.spendByKind} />
+              <p className="text-[12px] text-white/40 mt-1.5 mb-1">Expenses</p>
+              <p className="text-[15px] font-bold font-mono tabular-nums text-red-400">
+                {usd(fin.month.spendNet)}
+              </p>
+            </div>
+
+            {/* Net */}
+            <div className="text-center">
+              <p className="text-[12px] text-white/40 mb-1">Net</p>
+              <p className={`text-[15px] font-bold font-mono tabular-nums ${fin.month.netTotal >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {fin.month.netTotal < 0 ? '−' : ''}{usd(fin.month.netTotal)}
+              </p>
+            </div>
+          </div>
         </button>
       </div>
     </div>
