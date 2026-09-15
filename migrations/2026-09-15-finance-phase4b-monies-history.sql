@@ -1,4 +1,4 @@
--- v4: dollar signs stripped everywhere; the SQL editor pairs them as dollar quotes and mangles the paste
+-- v5: description reworded so the editor linter stops seeing a phantom table named ours
 -- ============================================================
 -- Finance Phase 4b: the Monies history, moved in.
 -- 66 USD transactions (2026-03-04 to 2026-05-06) generated straight
@@ -37,7 +37,7 @@ select
   false,                   -- historical expenses: IVA not credited by default
   s.description
 from (values
-  ('b01', 'BANK', '2026-03-04', 'Fidel Rivas', 7840.00, 1019.20, 'flight_revenue', true, '8 hours purchased at USD 980 + VAT. Amount initially sent to Jaime, then transferred into ours.'),
+  ('b01', 'BANK', '2026-03-04', 'Fidel Rivas', 7840.00, 1019.20, 'flight_revenue', true, '8 hours purchased at USD 980 + VAT. Amount initially sent to Jaime, then moved to our account.'),
   ('b02', 'BANK', '2026-03-04', 'Carlos Gutierrez', -472.00, 0.00, 'hangar', false, 'C550 hangar'),
   ('b03', 'BANK', '2026-03-12', 'FlyInSivar', 2035.40, 264.60, 'flight_revenue', true, '2.0 flight time'),
   ('b04', 'BANK', '2026-03-13', 'FlyInSivar', 508.85, 66.15, 'flight_revenue', true, 'Air tour'),
