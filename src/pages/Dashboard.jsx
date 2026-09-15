@@ -125,36 +125,32 @@ function FinanceCard() {
   const isManagement = useIsManagement()
   const { selectedAircraft } = useAircraft()
   const fin = useFinanceSummary(isManagement ? selectedAircraft?.id : null)
+  const animNet = useAnimatedNumber(isManagement ? fin.month.netTotal : null)
   if (!isManagement) return null
   const commercial = (selectedAircraft?.finance_mode ?? 'commercial') === 'commercial'
   const usd = n => '$' + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const net = animNet ?? 0
   return (
-    <button className="vital-tile w-full !flex-row items-center justify-between gap-3 px-4"
-      onClick={() => navigate('/finance')}>
-      <div className="text-left">
-        <p className="vital-label">Finance</p>
-        <p className={`text-xl font-bold tabular-nums mt-1 ${fin.month.netTotal < 0 ? 'text-red-400' : 'text-white'}`}>
-          {fin.month.netTotal < 0 ? '−' : ''}{usd(fin.month.netTotal)}
-          <span className="text-[10px] font-normal text-white/30 ml-1.5">this month</span>
-        </p>
+    <div className="trow-group glass-card">
+      <div className="p-3">
+        <button className="vital-tile w-full items-center py-5" onClick={() => navigate('/finance')}>
+          <p className="vital-label">Finance</p>
+          <p className={`vital-value tracking-tight ${fin.month.netTotal < 0 ? 'text-red-400' : ''}`}
+            style={{ fontSize: 42 }}>
+            {fin.month.netTotal < 0 ? '−' : ''}{usd(net)}
+            <span className="vital-unit" style={{ fontSize: 18 }}> this month</span>
+          </p>
+          <p className="vital-sub">
+            {commercial && (
+              <>
+                <span className="text-green-400 font-semibold">{usd(fin.month.revenueNet)}</span> revenue ·{' '}
+              </>
+            )}
+            {usd(fin.month.spendNet)} spent · {fin.month.hours.toFixed(1)} h flown
+          </p>
+        </button>
       </div>
-      <div className="flex items-center gap-4 text-right">
-        {commercial && (
-          <div>
-            <p className="text-sm font-bold text-emerald-400 tabular-nums">{usd(fin.month.revenueNet)}</p>
-            <p className="text-[9px] text-white/30 uppercase tracking-wide">Revenue</p>
-          </div>
-        )}
-        <div>
-          <p className="text-sm font-bold text-white/80 tabular-nums">{usd(fin.month.spendNet)}</p>
-          <p className="text-[9px] text-white/30 uppercase tracking-wide">Spent</p>
-        </div>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
-          strokeLinecap="round" className="w-4 h-4 text-white/25">
-          <path d="M9 18l6-6-6-6" />
-        </svg>
-      </div>
-    </button>
+    </div>
   )
 }
 
@@ -438,10 +434,6 @@ export default function Dashboard() {
               </button>
             </div>
 
-            {/* Finance — management only; the door into the money side.
-                Same weight as its sibling tiles, full width. */}
-            <FinanceCard />
-
             {/* Minimap — a tile like its siblings; the ops shortcuts float
                 over the chart itself (tapping the chart opens the map) */}
             <div className="no-press relative block w-full overflow-hidden select-none rounded-[14px] cursor-pointer"
@@ -477,6 +469,10 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* ── Finance: its own card below the vitals, hero layout like Hobbs.
+               Management only; renders nothing for everyone else. ── */}
+        <FinanceCard />
 
         {/* Recent flights — finance-style tiles */}
         <div>
