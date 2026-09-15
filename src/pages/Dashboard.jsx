@@ -45,46 +45,74 @@ function FuelArc({ gal }) {
   )
 }
 
-// MFS-style cumulus for the minimap, tuned live against the real chart:
-// clusters of small additive puffs (composite 'lighter' builds bright solid
-// cores instead of grey mush) over a faint offset ground shadow. Painted at
-// the card's native pixel size so nothing stretches into smudges, fresh with
-// Math.random() every mount so no two loads share a sky, and every puff is
-// drawn at x−w, x and x+w so the drift loop wraps without a visible cut.
-function cloudTexture(W, H, clusters, scale, alpha) {
-  const w = W * 2, h = H
-  const cv = document.createElement('canvas')
-  cv.width = w; cv.height = h
-  const ctx = cv.getContext('2d')
-  const puffs = []
-  for (let c = 0; c < clusters; c++) {
-    const cx = Math.random() * w, cy = h * (0.08 + 0.84 * Math.random())
-    const spread = (20 + Math.random() * 38) * scale
-    const n = 30 + Math.floor(Math.random() * 26)
-    for (let i = 0; i < n; i++) {
-      const a = Math.random() * Math.PI * 2
-      const d = Math.pow(Math.random(), 0.6) * spread
-      const edge = d / spread          // 0 core → 1 rim: rims smaller
-      puffs.push({
-        x: cx + Math.cos(a) * d * 1.9, y: cy + Math.sin(a) * d * 0.6,
-        r: (6 + Math.random() * 11) * scale * (1.1 - 0.45 * edge),
-        o: 0.55 + 0.4 * Math.random(),
-      })
+// Real-looking cumulus for the minimap, tuned live against the chart:
+// domain-warped fBm value noise (the standard procedural-cloud technique)
+// sampled on a cylinder so the drift loop is seamless in x, clumped by a
+// low-frequency mask, lit from the top-left with a soft ground shadow.
+// A fresh seed every mount means no two loads share a sky. Rendered at
+// half resolution and upscaled — clouds are soft, and it keeps the pixel
+// loop ~1/4 the cost.
+function cloudDeck(CW, CH, coverage, scaleXY, alphaMax, seed) {
+  const W2 = CW, H2 = Math.max(1, Math.round(CH / 2))
+  const R = W2 / (Math.PI * 2)
+  function hash(x, y, z) {
+    let n = (x * 374761393 + y * 668265263 + z * 1440662683 + seed * 97531) | 0
+    n = Math.imul(n ^ (n >>> 13), 1274126177)
+    return ((n ^ (n >>> 16)) >>> 0) / 4294967295
+  }
+  const sm = t => t * t * (3 - 2 * t)
+  function noise3(x, y, z) {
+    const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z)
+    const u = sm(x - xi), v = sm(y - yi), q = sm(z - zi)
+    let acc = 0
+    for (let dz = 0; dz < 2; dz++) for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++)
+      acc += hash(xi + dx, yi + dy, zi + dz) * (dx ? u : 1 - u) * (dy ? v : 1 - v) * (dz ? q : 1 - q)
+    return acc
+  }
+  function fbm(x, y, z, oct) {
+    let a = 0.5, f = 1, s = 0
+    for (let o = 0; o < oct; o++) { s += a * noise3(x * f, y * f, z * f); a *= 0.5; f *= 2 }
+    return s
+  }
+  // density field on the cylinder (x wraps perfectly)
+  const den = new Float32Array(W2 * H2)
+  for (let y = 0; y < H2; y++) {
+    for (let x = 0; x < W2; x++) {
+      const th = (x / W2) * Math.PI * 2
+      const px = Math.cos(th) * R * scaleXY, pz = Math.sin(th) * R * scaleXY, py = y * scaleXY * 3.0
+      const q1 = fbm(px + 13.7, py, pz, 4), q2 = fbm(px, py + 91.3, pz, 4)
+      const n = fbm(px + 3.5 * q1, py + 3.5 * q2, pz + 1.7 * q1, 6)
+      const clump = fbm(px * 0.22 + 51, py * 0.22, pz * 0.22, 3)
+      const base = (n * 1.15) * sm(Math.min(1, Math.max(0, (clump - 0.38) / 0.34)))
+      den[y * W2 + x] = sm(Math.min(1, Math.max(0, (base - coverage) / 0.16)))
     }
   }
-  const blob = (b, dx, dy, col, oM, rM) => {
-    const g = ctx.createRadialGradient(b.x + dx, b.y + dy, 0, b.x + dx, b.y + dy, b.r * rM)
-    g.addColorStop(0, col + (b.o * oM) + ')')
-    g.addColorStop(0.6, col + (b.o * oM * 0.5) + ')')
-    g.addColorStop(1, col + '0)')
-    ctx.fillStyle = g
-    ctx.fillRect(b.x + dx - b.r * rM, b.y + dy - b.r * rM, b.r * 2 * rM, b.r * 2 * rM)
+  // shade: light from the top-left, alpha from density
+  const cv = document.createElement('canvas'); cv.width = W2; cv.height = H2
+  const ctx = cv.getContext('2d'); const img = ctx.createImageData(W2, H2)
+  for (let y = 0; y < H2; y++) for (let x = 0; x < W2; x++) {
+    const i = y * W2 + x, d = den[i]
+    if (d <= 0.003) { img.data[i * 4 + 3] = 0; continue }
+    const gx = den[y * W2 + ((x + 1) % W2)] - den[y * W2 + ((x - 1 + W2) % W2)]
+    const gy = den[Math.min(H2 - 1, y + 1) * W2 + x] - den[Math.max(0, y - 1) * W2 + x]
+    const light = Math.min(1.12, Math.max(0.55, 0.9 + (-gx * 0.7 - gy * 1.0) * 2.2))
+    const c = Math.min(255, Math.round(243 * light))
+    img.data[i * 4] = c; img.data[i * 4 + 1] = c; img.data[i * 4 + 2] = Math.min(255, c + 4)
+    img.data[i * 4 + 3] = Math.round(255 * Math.min(1, d * 1.6) * alphaMax)
   }
-  ctx.globalCompositeOperation = 'source-over'
-  for (const off of [-w, 0, w]) for (const p of puffs) blob(p, off + 4, 6, 'rgba(15,20,26,', 0.14 * alpha, 1.5)
-  ctx.globalCompositeOperation = 'lighter'
-  for (const off of [-w, 0, w]) for (const p of puffs) blob(p, off, 0, 'rgba(252,253,255,', 0.68 * alpha, 1)
-  return cv.toDataURL('image/png')
+  ctx.putImageData(img, 0, 0)
+  // compose at full card size: blurred dark copy first (ground shadow), then the cloud
+  const out = document.createElement('canvas'); out.width = CW * 2; out.height = CH
+  const o = out.getContext('2d'); o.imageSmoothingQuality = 'high'
+  const tint = document.createElement('canvas'); tint.width = W2; tint.height = H2
+  const t = tint.getContext('2d'); t.drawImage(cv, 0, 0)
+  t.globalCompositeOperation = 'source-in'; t.fillStyle = '#0a0f14'; t.fillRect(0, 0, W2, H2)
+  for (const off of [0, CW]) {
+    o.save(); o.filter = 'blur(4px)'; o.globalAlpha = 0.33
+    o.drawImage(tint, 0, 0, W2, H2, off + 6, 8, CW, CH); o.restore()
+  }
+  for (const off of [0, CW]) o.drawImage(cv, 0, 0, W2, H2, off, 0, CW, CH)
+  return out.toDataURL('image/png')
 }
 
 // Live minimap preview: the real chart (same MapLibre engine and shared
@@ -97,16 +125,21 @@ function MiniMap({ height = 150 }) {
   const { waypoints } = useWaypoints()
   const notams = useNotams()
   // two parallax cloud decks at the card's real pixel size, regenerated on
-  // every mount (never the same sky) — measured after layout, so state
+  // every mount (never the same sky). Deferred past first paint — the fBm
+  // pixel loop takes ~0.5-1.5 s and the map should appear first; the decks
+  // then fade in via the CSS animation on .minimap-clouds.
   const [cloudLayers, setCloudLayers] = useState(null)
   useEffect(() => {
     const el = boxRef.current
     if (!el?.clientWidth || !el?.clientHeight) return
     const W = el.clientWidth, H = el.clientHeight
-    setCloudLayers([
-      cloudTexture(W, H, 11, 1.2, 1),
-      cloudTexture(W, H, 7, 0.7, 0.8),
-    ])
+    const id = setTimeout(() => {
+      setCloudLayers([
+        cloudDeck(W, H, 0.42, 0.030, 1,    Math.floor(Math.random() * 1e6)),
+        cloudDeck(W, H, 0.50, 0.055, 0.75, Math.floor(Math.random() * 1e6)),
+      ])
+    }, 400)
+    return () => clearTimeout(id)
   }, [])
 
   useEffect(() => {

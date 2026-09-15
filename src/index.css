@@ -536,7 +536,9 @@
 .minimap-clouds {
   position: absolute; inset: 0;
   overflow: hidden; pointer-events: none;
+  animation: minimap-cloud-fade 1.6s ease forwards;
 }
+@keyframes minimap-cloud-fade { from { opacity: 0; } to { opacity: 1; } }
 .minimap-cloud-layer {
   position: absolute; top: 0; bottom: 0; left: 0; width: 200%;
   background-repeat: repeat-x;
