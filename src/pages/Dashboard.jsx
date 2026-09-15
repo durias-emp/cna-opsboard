@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMotionValue, animate } from 'framer-motion'
 import * as maplibregl from 'maplibre-gl'
@@ -45,6 +45,44 @@ function FuelArc({ gal }) {
   )
 }
 
+// MFS-style cumulus for the minimap: clusters of soft radial puffs with a
+// faint ground shadow, drawn fresh with Math.random() on every mount so no
+// two loads look alike. Every puff is painted at x−w, x and x+w, so the
+// horizontal drift loop wraps with no visible seam.
+function cloudTexture(clusters, puffScale, alpha) {
+  const w = 1200, h = 300
+  const cv = document.createElement('canvas')
+  cv.width = w; cv.height = h
+  const ctx = cv.getContext('2d')
+  const blobs = []
+  for (let c = 0; c < clusters; c++) {
+    const cx = Math.random() * w, cy = h * (0.15 + 0.7 * Math.random())
+    const spread = (0.6 + Math.random()) * 55 * puffScale
+    const n = 45 + Math.floor(Math.random() * 35)
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2
+      const d = Math.pow(Math.random(), 0.55) * spread
+      const edge = d / spread          // 0 core → 1 rim: rims get smaller, fainter
+      blobs.push({
+        x: cx + Math.cos(a) * d * 1.8, y: cy + Math.sin(a) * d * 0.6,
+        r: (14 + Math.random() * 22) * puffScale * (1.15 - 0.5 * edge),
+        o: (0.5 + Math.random() * 0.4) * (1 - 0.35 * edge),
+      })
+    }
+  }
+  const draw = (b, dx, dy, col, oM, rM) => {
+    const g = ctx.createRadialGradient(b.x + dx, b.y + dy, 0, b.x + dx, b.y + dy, b.r * rM)
+    g.addColorStop(0, col + (b.o * oM) + ')')
+    g.addColorStop(0.55, col + (b.o * oM * 0.55) + ')')
+    g.addColorStop(1, col + '0)')
+    ctx.fillStyle = g
+    ctx.fillRect(b.x + dx - b.r * rM, b.y + dy - b.r * rM, b.r * 2 * rM, b.r * 2 * rM)
+  }
+  for (const off of [-w, 0, w]) for (const b of blobs) draw(b, off + 8, 11, 'rgba(18,24,30,', 0.22 * alpha, 1.3)
+  for (const off of [-w, 0, w]) for (const b of blobs) draw(b, off, 0, 'rgba(255,255,255,', alpha, 1)
+  return cv.toDataURL('image/png')
+}
+
 // Live minimap preview: the real chart (same MapLibre engine and shared
 // OpenFreeMap style as the Map screen) with the waypoint dots, non-interactive.
 // Tapping it opens the full map.
@@ -54,6 +92,11 @@ function MiniMap({ height = 150 }) {
   const [ready, setReady] = useState(false)
   const { waypoints } = useWaypoints()
   const notams = useNotams()
+  // two parallax cloud decks, regenerated on every mount (never the same sky)
+  const cloudLayers = useMemo(() => [
+    cloudTexture(6, 1.2, 0.95),
+    cloudTexture(4, 0.7, 0.65),
+  ], [])
 
   useEffect(() => {
     let map, cancelled = false
@@ -131,8 +174,11 @@ function MiniMap({ height = 150 }) {
       {/* position/inset inline — maplibre-gl.css sets position:relative on
           this node at init and would collapse a Tailwind-classed box */}
       <div ref={boxRef} style={{ position: 'absolute', inset: 0, background: '#EAE6DE' }} />
-      {/* decorative drifting clouds — two parallax layers, purely cosmetic */}
-      <div className="minimap-clouds" aria-hidden="true" />
+      {/* decorative drifting clouds — two parallax decks, purely cosmetic */}
+      <div className="minimap-clouds" aria-hidden="true">
+        <div className="minimap-cloud-layer" style={{ backgroundImage: `url(${cloudLayers[0]})`, animationDuration: '95s' }} />
+        <div className="minimap-cloud-layer" style={{ backgroundImage: `url(${cloudLayers[1]})`, animationDuration: '160s' }} />
+      </div>
     </div>
   )
 }
