@@ -387,7 +387,10 @@ export default function MapPage() {
         addEsriToMapLibre(map, {
           key: import.meta.env.VITE_ARCGIS_KEY || null,
           labels: true,
-          beforeId: 'route-halo',
+          // Under the lowest of our own overlays — anchoring at route-halo
+          // left the NOTAM layers below the imagery, so turning satellite on
+          // hid every NOTAM circle
+          beforeId: 'notam-fill',
         })
 
         // AVIARA layers: apply saved visibility (aerodromes hidden by default)
