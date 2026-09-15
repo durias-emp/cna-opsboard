@@ -367,8 +367,8 @@ function notifyRelevantNotams_() {
 function notamEmailRecipients_(c, H) {
   try {
     var rows = JSON.parse(UrlFetchApp.fetch(
-      c.url + '/rest/v1/team_profiles?email=not.is.null' +
-      '&or=(group.eq.pilot,management.is.true)&select=email',
+      c.url + '/rest/v1/team_profiles?email=not.is.null&is_active=is.true' +
+      '&or=(team_group.eq.pilot,is_management.is.true)&select=email',
       { headers: H, muteHttpExceptions: true }).getContentText());
     if (!rows.map) return [];
     return rows.map(function (r) { return r.email; }).filter(Boolean);

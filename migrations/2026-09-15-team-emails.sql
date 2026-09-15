@@ -1,18 +1,19 @@
 -- 2026-09-15 · Correo por persona en team_profiles.
 -- Es la pieza que hace "inteligente" el enrutado de notificaciones: una tarea
 -- asignada le escribe SOLO al asignado; un NOTAM le escribe a pilotos y
--- gerencia. Los correos que el sistema ya conocía quedan sembrados; los demás
--- se llenan en el Table Editor (team_profiles → columna email).
+-- gerencia (team_group = 'pilot' o is_management). Los correos conocidos
+-- quedan sembrados; los demás se llenan en el Table Editor.
 
 alter table team_profiles add column if not exists email text;
 
-update team_profiles set email = 'james@cielonorteaviacion.com'  where name = 'James McBride'   and email is null;
-update team_profiles set email = 'javier@cielonorteaviacion.com' where name = 'Javier Ascencio'  and email is null;
-update team_profiles set email = 'alonia@cielonorteaviacion.com' where name = 'Alonia Ascencio'  and email is null;
-update team_profiles set email = 'cielonorteaviacion@gmail.com'  where name = 'Diego Urias'      and email is null;
+update team_profiles set email = 'james@cielonorteaviacion.com'  where name = 'James McBride';
+update team_profiles set email = 'javier@cielonorteaviacion.com' where name = 'Javier Ascencio';
+update team_profiles set email = 'alonia@cielonorteaviacion.com' where name = 'Alonia Ascencio';
+update team_profiles set email = 'diego@cielonorteaviacion.com'  where name = 'Diego Urias';
+update team_profiles set email = 'kelly@empoderarsv.com'         where name = 'Kelly Moreno';
 
 -- verificación: quién ya tiene correo y quién falta
-select name, "group", management, email from team_profiles order by name;
+select name, team_group, is_management, email from team_profiles order by name;
 
 -- ── Paso manual en el dashboard (no es SQL) ──────────────────────────────────
 -- Database → Webhooks → Create: tabla `todos`, eventos INSERT y UPDATE,
