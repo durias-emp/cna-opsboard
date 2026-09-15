@@ -334,7 +334,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, skipped: 'assignee has no email' })
     }
     try {
-      await sendEmail(`Task Assigned — ${body.record.title ?? ''}`, buildTaskEmail(data), [email])
+      await sendEmail('Task Assigned', buildTaskEmail(data), [email])
       console.log(`[notify] Task email sent to ${data.assigned_to}`)
       return res.status(200).json({ ok: true })
     } catch (err) {
@@ -344,9 +344,7 @@ export default async function handler(req, res) {
   }
 
   const isItinerary = type === 'itinerary'
-  const subject = isItinerary
-    ? `Flight Itinerary — ${data.pilot_in_command ?? ''} · ${data.date ?? ''}`
-    : `Flight Log — ${data.pilot ?? ''} · ${data.date ?? ''}`
+  const subject = isItinerary ? 'Flight Itinerary' : 'Flight Log'
 
   const html = isItinerary ? buildItineraryEmail(data) : buildFlightEmail(data)
   const recipients = isItinerary ? RECIPIENTS_ITINERARY : RECIPIENTS_FLIGHT_LOG

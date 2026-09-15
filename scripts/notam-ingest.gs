@@ -343,7 +343,7 @@ function notifyRelevantNotams_() {
       try {
         MailApp.sendEmail({
           to: recipients.join(','),
-          subject: '⚠️ NOTAM ' + n.notam_id + ' — aviso de espacio aéreo',
+          subject: '⚠️ NOTAM ' + n.notam_id,
           body: notamEmailBody_(n),
         });
         emailed = true;
