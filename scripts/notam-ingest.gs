@@ -344,7 +344,8 @@ function notifyRelevantNotams_() {
         MailApp.sendEmail({
           to: recipients.join(','),
           subject: '⚠️ NOTAM ' + n.notam_id,
-          body: notamEmailBody_(n),
+          body: notamEmailBody_(n),          // texto plano (anti-spam)
+          htmlBody: notamEmailHtml_(n),      // misma plantilla que los demás correos
         });
         emailed = true;
         Logger.log('Email NOTAM ' + n.notam_id + ' → ' + recipients.length + ' destinatario(s)');
@@ -378,16 +379,64 @@ function notamEmailRecipients_(c, H) {
   }
 }
 
-function notamEmailBody_(n) {
-  var vig = n.is_permanent ? 'PERMANENTE'
+function notamVigencia_(n) {
+  return n.is_permanent ? 'PERMANENTE'
     : ((n.effective_from ? n.effective_from.slice(0, 16).replace('T', ' ') + 'Z' : '?') +
        ' → ' + (n.effective_to ? n.effective_to.slice(0, 16).replace('T', ' ') + 'Z' : '?'));
+}
+
+function notamEmailBody_(n) {
   return 'NOTAM ' + n.notam_id + '\n' +
-    'Vigencia: ' + vig + '\n' +
+    'Vigencia: ' + notamVigencia_(n) + '\n' +
     (n.lower_limit || n.upper_limit
       ? 'Límites: ' + (n.lower_limit || '?') + ' a ' + (n.upper_limit || '?') + '\n' : '') +
     (n.relevance_rule ? 'Motivo del aviso: ' + n.relevance_rule + '\n' : '') +
     '\n' + (n.body || '') + '\n\n' +
     'Ver en el mapa: https://cna-opsboard.vercel.app/map\n' +
     '— CNA OpsBoard (aviso automático)';
+}
+
+/* HTML con la MISMA plantilla de los correos de la app (vuelos/tareas):
+ * cabecera negra con el logo, tarjeta blanca, filas gris/negro, botón. */
+function esc_(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function notamRow_(label, value) {
+  if (!value) return '';
+  return '<tr>' +
+    '<td style="padding:7px 0;color:#999;font-size:12px;width:150px;vertical-align:top;white-space:nowrap">' + label + '</td>' +
+    '<td style="padding:7px 0;color:#111;font-size:12px;font-weight:600;vertical-align:top">' + value + '</td></tr>';
+}
+
+function notamEmailHtml_(n) {
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>' +
+'<body style="margin:0;padding:0;background:#f2f2f2;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Helvetica,sans-serif">' +
+'<table width="100%" cellpadding="0" cellspacing="0" style="background:#f2f2f2;padding:40px 16px">' +
+'<tr><td align="center"><table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%">' +
+'<tr><td style="background:#0a0a0a;border-radius:12px 12px 0 0;padding:28px 32px 24px;text-align:center">' +
+  '<img src="https://cna-opsboard.vercel.app/cna-logo.png" alt="CNA" width="160" style="display:inline-block;background:#fff;padding:8px 12px;border-radius:6px;margin-bottom:16px" />' +
+  '<p style="margin:0;color:#555;font-size:11px;letter-spacing:2.5px;text-transform:uppercase">NOTAM &nbsp;&middot;&nbsp; Airspace Notice</p>' +
+'</td></tr>' +
+'<tr><td style="background:#fff;padding:32px;border-radius:0 0 12px 12px">' +
+  '<div style="background:#F9E9E7;border-radius:10px;padding:18px 20px;margin-bottom:26px">' +
+    '<p style="margin:0;color:#B3261E;font-size:10px;letter-spacing:2.5px;text-transform:uppercase">&#9888; NOTAM ' + esc_(n.notam_id) + '</p>' +
+    '<p style="margin:8px 0 0;color:#111;font-size:14px;font-weight:600;line-height:1.55">' + esc_(n.body) + '</p>' +
+  '</div>' +
+  '<table width="100%" cellpadding="0" cellspacing="0">' +
+    notamRow_('Vigencia', esc_(notamVigencia_(n))) +
+    notamRow_('L&iacute;mites', (n.lower_limit || n.upper_limit)
+      ? esc_((n.lower_limit || '?') + ' a ' + (n.upper_limit || '?')) : null) +
+    notamRow_('Motivo del aviso', esc_(n.relevance_rule)) +
+  '</table>' +
+  '<div style="margin-top:26px;text-align:center">' +
+    '<a href="https://cna-opsboard.vercel.app/map" style="display:inline-block;background:#0a0a0a;color:#fff;font-size:13px;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none">Ver en el mapa</a>' +
+  '</div>' +
+'</td></tr>' +
+'<tr><td style="padding:22px 8px;text-align:center">' +
+  '<p style="margin:0;color:#bbb;font-size:10px">CNA OpsBoard &middot; aviso autom&aacute;tico &middot; Cielo Norte Aviaci&oacute;n</p>' +
+'</td></tr>' +
+'</table></td></tr></table></body></html>';
 }
