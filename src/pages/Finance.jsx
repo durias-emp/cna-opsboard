@@ -127,9 +127,28 @@ export default function Finance() {
               appear here as they are logged.
             </p>
           ) : (
-            <div className="card !p-0 divide-y divide-white/[0.05]">
-              {fin.entries.slice(0, 60).map(e => <LedgerRow key={e.id} e={e} />)}
-            </div>
+            // Month sections so the Monies history (Mar-May) is findable
+            // below the recent activity instead of hiding under a row cap
+            (() => {
+              const groups = []
+              for (const e of fin.entries) {
+                const m = (e.date ?? '').slice(0, 7)
+                if (!groups.length || groups[groups.length - 1].m !== m) groups.push({ m, rows: [] })
+                groups[groups.length - 1].rows.push(e)
+              }
+              const label = m => new Date(m + '-15T12:00:00')
+                .toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+              return groups.map(g => (
+                <div key={g.m} className="mb-3">
+                  <p className="text-[11px] font-semibold text-white/30 uppercase tracking-widest px-1 mb-1.5">
+                    {label(g.m)}
+                  </p>
+                  <div className="card !p-0 divide-y divide-white/[0.05]">
+                    {g.rows.map(e => <LedgerRow key={e.id} e={e} />)}
+                  </div>
+                </div>
+              ))
+            })()
           )}
           <p className="text-[10px] text-white/20 text-center mt-3 leading-relaxed">
             Derived from flights, fuel and maintenance records. Gross figures shown net of IVA (13/113).
