@@ -7,6 +7,8 @@ import { loadStyle, SALVADOR_CENTER, AVIARA_URL } from '../lib/mapStyle'
 import { addEsriToMapLibre } from '../lib/esriSatellite'
 import { useWaypoints } from '../hooks/useWaypoints'
 import { useNotams, notamCircle } from '../hooks/useNotams'
+import { useIsManagement } from '../context/TeamContext'
+import { useFinanceSummary } from '../hooks/useFinanceSummary'
 import { toHobbs, formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
 import { useFlights } from '../hooks/useFlights'
@@ -113,6 +115,47 @@ function cloudDeck(CW, CH, coverage, scaleXY, alphaMax, seed) {
   }
   for (const off of [0, CW]) o.drawImage(cv, 0, 0, W2, H2, off, 0, CW, CH)
   return out.toDataURL('image/png')
+}
+
+// Finance entry card: management only, renders nothing for everyone else so
+// the dashboard is unchanged for pilots and mechanics. All figures NET USD,
+// derived from what the app already captures (Finance Phase: entry point).
+function FinanceCard() {
+  const navigate = useNavigate()
+  const isManagement = useIsManagement()
+  const { selectedAircraft } = useAircraft()
+  const fin = useFinanceSummary(isManagement ? selectedAircraft?.id : null)
+  if (!isManagement) return null
+  const commercial = (selectedAircraft?.finance_mode ?? 'commercial') === 'commercial'
+  const usd = n => '$' + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return (
+    <button className="vital-tile w-full !flex-row items-center justify-between gap-3 px-4"
+      onClick={() => navigate('/finance')}>
+      <div className="text-left">
+        <p className="vital-label">Finance</p>
+        <p className={`text-xl font-bold tabular-nums mt-1 ${fin.month.netTotal < 0 ? 'text-red-400' : 'text-white'}`}>
+          {fin.month.netTotal < 0 ? '−' : ''}{usd(fin.month.netTotal)}
+          <span className="text-[10px] font-normal text-white/30 ml-1.5">this month</span>
+        </p>
+      </div>
+      <div className="flex items-center gap-4 text-right">
+        {commercial && (
+          <div>
+            <p className="text-sm font-bold text-emerald-400 tabular-nums">{usd(fin.month.revenueNet)}</p>
+            <p className="text-[9px] text-white/30 uppercase tracking-wide">Revenue</p>
+          </div>
+        )}
+        <div>
+          <p className="text-sm font-bold text-white/80 tabular-nums">{usd(fin.month.spendNet)}</p>
+          <p className="text-[9px] text-white/30 uppercase tracking-wide">Spent</p>
+        </div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+          strokeLinecap="round" className="w-4 h-4 text-white/25">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+      </div>
+    </button>
+  )
 }
 
 // Live minimap preview: the real chart (same MapLibre engine and shared
@@ -394,6 +437,10 @@ export default function Dashboard() {
                 <p className="vital-foot">{stats.monthCount ? `${stats.monthCount} flight${stats.monthCount === 1 ? '' : 's'}` : 'no flights'}</p>
               </button>
             </div>
+
+            {/* Finance — management only; the door into the money side.
+                Same weight as its sibling tiles, full width. */}
+            <FinanceCard />
 
             {/* Minimap — a tile like its siblings; the ops shortcuts float
                 over the chart itself (tapping the chart opens the map) */}

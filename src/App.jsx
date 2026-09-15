@@ -11,6 +11,7 @@ const Maintenance = lazy(() => import('./pages/Maintenance'))
 const Fuel        = lazy(() => import('./pages/Fuel'))
 const Employees   = lazy(() => import('./pages/Employees'))
 const MapPage     = lazy(() => import('./pages/MapPage'))
+const Finance     = lazy(() => import('./pages/Finance'))
 import IdentityScreen from './components/IdentityScreen'
 import ConnectionError from './components/ConnectionError'
 import LoginScreen from './components/LoginScreen'
@@ -31,6 +32,7 @@ const SCREENS = [
   ['/fuel',        Fuel],
   ['/employees',   Employees],
   ['/map',         MapPage],
+  ['/finance',     Finance],
 ]
 
 // Keep-alive tab navigator (native-app behavior): each screen mounts on first

@@ -1,0 +1,102 @@
+import { useCallback, useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
+
+// Finance summary derived ENTIRELY from what the app already captures:
+// flight prices (income), fuel purchases, maintenance actuals (scheduled via
+// the compliance log, unscheduled via snags). No finance tables yet; this is
+// the read-only ledger the Phase 4 transactions table will supersede.
+// All totals are NET: gross figures (includes_iva) are converted at 13/113.
+
+const IVA = 13 / 113
+export const toNet = (amount, includesIva) =>
+  includesIva === false ? amount : Math.round(amount * (1 - IVA) * 100) / 100
+
+function monthKey(dateStr) { return (dateStr ?? '').slice(0, 7) }
+
+export function useFinanceSummary(aircraftId) {
+  const [entries, setEntries] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    if (!aircraftId) { setEntries([]); setLoading(false); return }
+    setLoading(true)
+
+    // flights.deleted_at arrives with migration phase 1b; select degrades
+    // gracefully until it has run
+    let flights = await supabase.from('flights')
+      .select('id, date, pilot, price, total_minutes, deleted_at')
+      .eq('aircraft_id', aircraftId).order('date', { ascending: false }).limit(400)
+    if (flights.error) {
+      flights = await supabase.from('flights')
+        .select('id, date, pilot, price, total_minutes')
+        .eq('aircraft_id', aircraftId).order('date', { ascending: false }).limit(400)
+    }
+
+    const [fuel, snags, compliance] = await Promise.all([
+      supabase.from('tank_fillups')
+        .select('id, date, supplier, total_cost, gallons_added, includes_iva')
+        .gt('total_cost', 0).order('date', { ascending: false }).limit(200),
+      supabase.from('snags')
+        .select('id, resolved_date, description, actual_cost, includes_iva, invoice_ref')
+        .eq('aircraft_id', aircraftId).not('actual_cost', 'is', null).limit(200),
+      supabase.from('maintenance_compliance_log')
+        .select('id, complied_date, work_order_number, actual_cost, includes_iva, invoice_ref')
+        .eq('aircraft_id', aircraftId).not('actual_cost', 'is', null).limit(200),
+    ])
+
+    const out = []
+    for (const f of flights.data ?? []) {
+      if (f.deleted_at) continue
+      out.push({
+        kind: 'flight', id: `f-${f.id}`, date: f.date,
+        label: `Flight · ${f.pilot ?? ''}`.trim(),
+        detail: `${((f.total_minutes ?? 0) / 60).toFixed(1)} h air time`,
+        hours: (f.total_minutes ?? 0) / 60,
+        net: f.price != null ? Number(f.price) : null,   // prices are entered net
+      })
+    }
+    for (const t of fuel.data ?? []) {
+      out.push({
+        kind: 'fuel', id: `t-${t.id}`, date: t.date,
+        label: `Fuel · ${t.supplier ?? ''}`.trim(),
+        detail: `${Number(t.gallons_added ?? 0).toFixed(1)} gal`,
+        net: -toNet(Number(t.total_cost), t.includes_iva),
+      })
+    }
+    for (const s of snags.data ?? []) {
+      out.push({
+        kind: 'maintenance', id: `s-${s.id}`, date: s.resolved_date,
+        label: 'Snag fix', detail: (s.description ?? '').slice(0, 60),
+        invoice: s.invoice_ref,
+        net: -toNet(Number(s.actual_cost), s.includes_iva),
+      })
+    }
+    for (const w of compliance.data ?? []) {
+      out.push({
+        kind: 'maintenance', id: `w-${w.id}`, date: w.complied_date,
+        label: `Work order ${w.work_order_number ?? ''}`.trim(),
+        detail: 'Scheduled maintenance', invoice: w.invoice_ref,
+        net: -toNet(Number(w.actual_cost), w.includes_iva),
+      })
+    }
+    out.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
+    setEntries(out)
+    setLoading(false)
+  }, [aircraftId])
+
+  useEffect(() => { load() }, [load])
+
+  const nowMonth = monthKey(new Date().toISOString())
+  const inMonth  = entries.filter(e => monthKey(e.date) === nowMonth)
+  const sum = (list, f) => Math.round(list.reduce((s, e) => s + (f(e) ?? 0), 0) * 100) / 100
+
+  return {
+    entries, loading, refresh: load,
+    month: {
+      revenueNet: sum(inMonth, e => (e.net ?? 0) > 0 ? e.net : 0),
+      spendNet:   Math.abs(sum(inMonth, e => (e.net ?? 0) < 0 ? e.net : 0)),
+      netTotal:   sum(inMonth, e => e.net),
+      hours:      Math.round(sum(inMonth, e => e.hours) * 10) / 10,
+    },
+  }
+}

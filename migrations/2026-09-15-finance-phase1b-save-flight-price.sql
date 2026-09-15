@@ -3,6 +3,14 @@
 -- new price column (added in phase 1) would be silently dropped without this.
 -- Same body as 2026-08-22-flight-hours-atomic-soft-delete.sql plus price.
 -- Idempotent (create or replace, same signature).
+--
+-- DISCOVERED 2026-09-15: production has save_flight but NOT flights.deleted_at
+-- (the 2026-08-22 file was applied partially, or an earlier variant of the
+-- function was pasted). This body references deleted_at, so the column is
+-- created here first. Nullable add: existing rows and the running app are
+-- untouched.
+
+alter table flights add column if not exists deleted_at timestamptz;
 
 create or replace function save_flight(p_flight jsonb)
 returns flights
