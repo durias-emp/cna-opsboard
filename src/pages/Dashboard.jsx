@@ -4,6 +4,7 @@ import { useMotionValue, animate } from 'framer-motion'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { loadStyle, SALVADOR_CENTER, AVIARA_URL } from '../lib/mapStyle'
+import { addEsriToMapLibre } from '../lib/esriSatellite'
 import { useWaypoints } from '../hooks/useWaypoints'
 import { toHobbs, formatDate } from '../lib/utils'
 import { useAircraft } from '../context/AircraftContext'
@@ -66,6 +67,9 @@ function MiniMap({ height = 150 }) {
       })
       mapRef.current = map
       map.on('load', () => {
+        // Satellite ground (same shared Esri module as the big map and the
+        // route minimaps) — added first so the waypoint dots paint on top
+        addEsriToMapLibre(map, { key: import.meta.env.VITE_ARCGIS_KEY || null, labels: true })
         map.addSource('wp', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
         map.addLayer({
           id: 'wp-dots', type: 'circle', source: 'wp',
