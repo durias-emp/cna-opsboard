@@ -5,6 +5,7 @@ import { toHobbs, formatDate } from '../lib/utils'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 import { useWaypoints } from '../hooks/useWaypoints'
 import { loadStyle, SALVADOR_CENTER } from '../lib/mapStyle'
+import { addEsriToMapLibre } from '../lib/esriSatellite'
 import { HELICOPTER_ICON } from '../assets/navIcons'
 
 // Static minimap of the route flown — same teal line the live map uses.
@@ -41,6 +42,9 @@ export function RouteMiniMap({ coords, onPick, onExpand, fill }) {
           ...coords.map(c => (
             { type: 'Feature', geometry: { type: 'Point', coordinates: c }, properties: {} })),
         ] } })
+        // Satellite ground under the route (same Esri module as the big map).
+        // Added first so trip-line/trip-pts paint on top of the imagery.
+        addEsriToMapLibre(map, { key: import.meta.env.VITE_ARCGIS_KEY || null, labels: true })
         map.addLayer({
           id: 'trip-line', type: 'line', source: 'trip',
           filter: ['==', ['geometry-type'], 'LineString'],
