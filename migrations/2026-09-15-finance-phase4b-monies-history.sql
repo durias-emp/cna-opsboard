@@ -1,4 +1,4 @@
--- v3: b26 quote fixed, dollar sign removed from b01 (Supabase editor chokes on $ inside strings)
+-- v4: dollar signs stripped everywhere; the SQL editor pairs them as dollar quotes and mangles the paste
 -- ============================================================
 -- Finance Phase 4b: the Monies history, moved in.
 -- 66 USD transactions (2026-03-04 to 2026-05-06) generated straight
@@ -44,7 +44,7 @@ from (values
   ('b05', 'BANK', '2026-03-13', 'AVIASA', -1000.00, 0.00, 'fuel', false, 'Pre-purchase fuel'),
   ('b06', 'BANK', '2026-03-18', 'Edwin Deras', -120.00, 0.00, 'maintenance', false, 'Fabric work'),
   ('b08', 'BANK', '2026-03-19', 'James McBride', -3026.65, 0.00, 'labor', false, 'Expense #1'),
-  ('b09', 'BANK', '2026-03-20', 'Edwin Deras', -25.00, 0.00, 'labor', false, '$50 was sent, $25 tip covered by James'),
+  ('b09', 'BANK', '2026-03-20', 'Edwin Deras', -25.00, 0.00, 'labor', false, 'USD 50 was sent, USD 25 tip covered by James'),
   ('b10', 'BANK', '2026-03-20', 'AVIASA', -1000.00, 0.00, 'fuel', false, 'Pre-purchase fuel'),
   ('b11', 'BANK', '2026-03-21', 'Edwin Deras', -50.00, 0.00, 'equipment', false, 'Helicopter sunshade'),
   ('b12', 'BANK', '2026-03-23', 'Diego Closa', 442.48, 57.52, 'flight_revenue', true, 'Influencer air tour'),
@@ -66,7 +66,7 @@ from (values
   ('b28', 'BANK', '2026-04-05', 'Cesar Espinoza', -62.58, 0.00, 'equipment', false, 'Step ladder for helicopter'),
   ('b29', 'BANK', '2026-04-06', 'Luis Soriano', -40.00, 0.00, 'labor', false, 'Helicopter work — the first payment on April 4th did not go through'),
   ('b30', 'BANK', '2026-04-06', 'Cesar Espinoza', -50.00, 0.00, 'labor', false, 'Day rate'),
-  ('b31', 'BANK', '2026-04-06', 'Fidel Rivas', 2944.07, 382.73, 'flight_revenue', true, '4.1 hours purchased at $1,060 no tax, minus the tax returned on initial payment ($1,019.20)'),
+  ('b31', 'BANK', '2026-04-06', 'Fidel Rivas', 2944.07, 382.73, 'flight_revenue', true, '4.1 hours purchased at USD 1,060 no tax, minus the tax returned on initial payment (USD 1,019.20)'),
   ('b32', 'BANK', '2026-04-07', 'UNO', -942.65, 0.00, 'fuel', false, 'Portable fuel tank refuelled'),
   ('b33', 'BANK', '2026-04-07', 'Cesar Espinoza', -50.00, 0.00, 'labor', false, 'Day rate'),
   ('b34', 'BANK', '2026-04-07', 'Cesar Espinoza', -21.95, 0.00, 'equipment', false, 'Air pump for tires'),
@@ -79,7 +79,7 @@ from (values
   ('b41', 'BANK', '2026-04-25', 'Luis Soriano', -50.00, 0.00, 'labor', false, 'Day rate'),
   ('b42', 'BANK', '2026-04-28', 'Luis Soriano', -50.00, 0.00, 'labor', false, 'Day rate'),
   ('b43', 'BANK', '2026-04-28', 'UNO', -628.81, 0.00, 'fuel', false, 'Fuel tank'),
-  ('b44', 'BANK', '2026-04-28', 'Fidel Rivas', 3752.21, 487.79, 'flight_revenue', true, '4.0 hrs at $1,060 per hr, no tax'),
+  ('b44', 'BANK', '2026-04-28', 'Fidel Rivas', 3752.21, 487.79, 'flight_revenue', true, '4.0 hrs at USD 1,060 per hr, no tax'),
   ('b45', 'BANK', '2026-04-29', 'James McBride', -413.25, 0.00, 'labor', false, 'Expense #3'),
   ('b46', 'BANK', '2026-04-30', 'Cesar Espinoza', -50.00, 0.00, 'labor', false, null),
   ('b47', 'BANK', '2026-05-01', 'Vidri', -139.70, 0.00, 'equipment', false, '5 Yellow Jerry cans'),
@@ -98,7 +98,7 @@ from (values
   ('c02', 'CASH', '2026-03-13', 'Luis Cruz', 508.85, 66.15, 'flight_revenue', true, 'Air tour'),
   ('c03', 'CASH', '2026-03-19', 'Saul Beltran', 508.85, 66.15, 'flight_revenue', true, 'Air tour'),
   ('c04', 'CASH', '2026-03-29', 'Peter Canales', 601.77, 78.23, 'flight_revenue', true, 'City Tour'),
-  ('c05', 'CASH', '2026-04-04', 'Lukas Plath', 796.46, 103.54, 'flight_revenue', true, 'Custom tour 0.9 ($900 cash, $320.40 BTC)'),
+  ('c05', 'CASH', '2026-04-04', 'Lukas Plath', 796.46, 103.54, 'flight_revenue', true, 'Custom tour 0.9 (USD 900 cash, USD 320.40 BTC)'),
   ('c06', 'CASH', '2026-04-24', 'Victor Torres', 300.88, 39.12, 'flight_revenue', true, 'Remaining 50% for the air tour'),
   ('c07', 'CASH', '2026-04-24', 'Glenda', 353.98, 46.02, 'flight_revenue', true, '20 min air tour'),
   ('c08', 'CASH', '2026-04-07', 'Jorge Zavaleta', 1017.70, 132.30, 'flight_revenue', true, 'SALA-SANTA ANA-COAST-SALA'),
