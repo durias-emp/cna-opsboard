@@ -9,6 +9,8 @@ import { useCostEngine } from '../hooks/useCostEngine'
 import { reserveVsActual } from '../lib/financeCalc'
 import RatesDrawer from '../components/RatesDrawer'
 import { formatDate } from '../lib/utils'
+import { HELICOPTER_ICON } from '../assets/navIcons'
+import TransactionDetailSheet from '../components/TransactionDetailSheet'
 
 // Finance: the money of running the aircraft, computed from what the app
 // already logs. Ledger shows every captured money event (flight prices, fuel
@@ -17,37 +19,51 @@ import { formatDate } from '../lib/utils'
 
 const usd = n => '$' + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-const KIND = {
-  flight: { chip: 'Flight', chipBg: 'bg-accent/15 text-accent' },
-  fuel:   { chip: 'Fuel',   chipBg: 'bg-white/[0.08] text-white/60' },
-  income: { chip: 'Income', chipBg: 'bg-emerald-400/15 text-emerald-400' },
+// Category icons: same stroke language as the rest of the app's icon set
+const I = path => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7}
+    strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">{path}</svg>
+)
+const CATEGORY_ICON = {
+  income:       I(<><circle cx="12" cy="12" r="9" /><path d="M12 6v12M15 9.2c-.6-.8-1.7-1.2-3-1.2-1.7 0-2.8.8-2.8 2 0 2.7 6 1.3 6 4 0 1.3-1.2 2-3 2-1.5 0-2.7-.5-3.3-1.4" /></>),
+  fuel:         I(<><path d="M4 21V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v15" /><path d="M2 21h14" /><path d="M14 10h2a2 2 0 0 1 2 2v4a1.5 1.5 0 0 0 3 0V9l-3-3" /><path d="M6 8h6" /></>),
+  maintenance:  I(<path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />),
+  labor:        I(<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>),
+  pilot_labor:  I(<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>),
+  equipment:    I(<><path d="M21 8l-9-5-9 5 9 5 9-5z" /><path d="M3 8v8l9 5 9-5V8" /><path d="M12 13v8" /></>),
+  hangar:       I(<><path d="M3 21V10l9-6 9 6v11" /><path d="M9 21v-6h6v6" /><path d="M3 21h18" /></>),
+  transport:    I(<><path d="M1 8h14v8H1z" /><path d="M15 11h4l3 3v2h-7" /><circle cx="6" cy="18" r="1.6" /><circle cx="18" cy="18" r="1.6" /></>),
+  insurance:    I(<path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10z" />),
+  admin:        I(<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M8 13h8M8 17h5" /></>),
+  taxes:        I(<><path d="M3 21h18" /><path d="M4 10h16" /><path d="M12 3L4 10h16L12 3z" /><path d="M6 10v11M10 10v11M14 10v11M18 10v11" /></>),
+  misc_business: I(<><path d="M20 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" /></>),
+  branding:     I(<><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><circle cx="7" cy="7" r="1.2" /></>),
+  transfer:     I(<><path d="M17 3l4 4-4 4" /><path d="M21 7H9" /><path d="M7 21l-4-4 4-4" /><path d="M3 17h12" /></>),
+  reversal:     I(<><path d="M3 12a9 9 0 1 0 9-9" /><path d="M3 4v8h8" /></>),
 }
+const FlightIcon = () => (
+  <img src={HELICOPTER_ICON} alt="" className="w-7 h-5 object-contain opacity-70" draggable="false" />
+)
 
-function LedgerRow({ e }) {
-  const k = KIND[e.kind] ?? { chip: e.chip ?? e.kind, chipBg: 'bg-white/[0.08] text-white/60' }
+function LedgerRow({ e, onOpen }) {
   const isIncome = (e.net ?? 0) > 0
+  const icon = e.kind === 'flight' ? <FlightIcon />
+    : (CATEGORY_ICON[e.kind] ?? CATEGORY_ICON.misc_business)
   return (
-    <div className="flex items-center gap-3 px-4 py-3">
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <p className="text-sm font-semibold text-white truncate">{e.label}</p>
-          <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wide flex-shrink-0 ${k.chipBg}`}>
-            {e.chip ?? k.chip}
-          </span>
-          {e.pending && (
-            <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wide flex-shrink-0 bg-amber-400/15 text-amber-300">
-              pending
-            </span>
-          )}
+    <div className="tile" onClick={() => onOpen(e)}>
+      <div className="tile-icon">{icon}</div>
+      <div className="tile-body">
+        <div className="min-w-0">
+          <p className="tile-title truncate">{e.label}</p>
+          <p className="tile-sub">
+            {formatDate(e.date)}{e.detail ? ` \u00b7 ${e.detail}` : ''}
+          </p>
         </div>
-        <p className="text-[11px] text-white/35 mt-0.5 truncate">
-          {formatDate(e.date)}{e.detail ? ` · ${e.detail}` : ''}{e.invoice ? ` · #${e.invoice}` : ''}
+        <p className={`tile-value tabular-nums
+          ${e.net == null ? '!text-white/25' : isIncome ? '!text-emerald-400' : ''}`}>
+          {e.net == null ? 'no price' : `${isIncome ? '+' : '\u2212'}${usd(e.net)}`}
         </p>
       </div>
-      <p className={`text-sm font-bold tabular-nums flex-shrink-0
-        ${e.net == null ? 'text-white/20' : isIncome ? 'text-emerald-400' : 'text-white/80'}`}>
-        {e.net == null ? 'no price' : `${isIncome ? '+' : '−'}${usd(e.net)}`}
-      </p>
     </div>
   )
 }
@@ -62,6 +78,7 @@ export default function Finance() {
   const [tab, setTab] = useState('ledger')
   const [ratesOpen, setRatesOpen] = useState(false)
   const [period, setPeriod] = useState('all')   // pills above the hero
+  const [selTx, setSelTx] = useState(null)      // tapped ledger entry
 
   if (!isManagement) {
     return (
@@ -166,8 +183,8 @@ export default function Finance() {
                   <p className="text-[11px] font-semibold text-white/30 uppercase tracking-widest px-1 mb-1.5">
                     {label(g.m)}
                   </p>
-                  <div className="card !p-0 divide-y divide-white/[0.05]">
-                    {g.rows.map(e => <LedgerRow key={e.id} e={e} />)}
+                  <div className="tile-group glass-card">
+                    {g.rows.map(e => <LedgerRow key={e.id} e={e} onOpen={setSelTx} />)}
                   </div>
                 </div>
               ))
@@ -307,6 +324,8 @@ export default function Finance() {
           </div>
         </div>
       )}
+
+      <TransactionDetailSheet entry={selTx} open={!!selTx} onClose={() => setSelTx(null)} />
 
       <RatesDrawer open={ratesOpen} onClose={() => setRatesOpen(false)}
         rates={engine.rates} onSave={engine.saveRates}
