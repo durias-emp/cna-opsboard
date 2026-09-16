@@ -59,7 +59,10 @@ const CATEGORY_ICON = {
 }
 
 function LedgerRow({ e, onOpen }) {
-  const isIncome = (e.net ?? 0) > 0
+  // The row shows the TRANSACTION amount: what actually moved through the
+  // account (gross). The net / IVA split lives inside the detail sheet.
+  const amount = e.cash ?? e.net
+  const isIncome = (amount ?? 0) > 0
   const icon = e.kind === 'flight' ? <FlightIcon />
     : (CATEGORY_ICON[e.kind] ?? CATEGORY_ICON.misc_business)
   return (
@@ -73,8 +76,10 @@ function LedgerRow({ e, onOpen }) {
           </p>
         </div>
         <p className={`tile-value tabular-nums
-          ${e.net == null ? '!text-white/25' : isIncome ? '!text-emerald-400' : ''}`}>
-          {e.net == null ? 'no price' : `${isIncome ? '+' : '\u2212'}${usd(e.net)}`}
+          ${amount == null ? '!text-white/25' : isIncome ? '!text-emerald-400' : ''}`}>
+          {amount == null ? 'no price'
+            : amount === 0 ? usd(0)
+            : `${isIncome ? '+' : '\u2212'}${usd(amount)}`}
         </p>
       </div>
     </div>
