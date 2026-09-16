@@ -9,7 +9,7 @@ import { useCostEngine } from '../hooks/useCostEngine'
 import { reserveVsActual } from '../lib/financeCalc'
 import RatesDrawer from '../components/RatesDrawer'
 import { formatDate } from '../lib/utils'
-import { HELICOPTER_ICON } from '../assets/navIcons'
+import { HELICOPTER_ICON, FUEL_PUMP_ICON } from '../assets/navIcons'
 import TransactionDetailSheet from '../components/TransactionDetailSheet'
 
 // Finance: the money of running the aircraft, computed from what the app
@@ -24,12 +24,28 @@ const I = path => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7}
     strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">{path}</svg>
 )
+// The bottom nav's own artwork and treatment, so a ledger row and the tab
+// bar show the identical mark: white silhouette, 5x5, contained.
+// Exactly what .nav-btn img does in index.css: a wide 2.3rem x 1.65rem box
+// with object-contain, so the helicopter keeps its natural proportions
+// instead of being squeezed into a square, painted white like the tab bar.
+const NavImg = ({ src, wide = true }) => (
+  <img src={src} alt="" draggable="false"
+    style={{
+      width: wide ? '2.3rem' : '1.4rem',
+      height: '1.65rem',
+      objectFit: 'contain',
+      filter: 'brightness(0) invert(1)',
+      opacity: 0.7,
+    }} />
+)
+const FlightIcon = () => <NavImg src={HELICOPTER_ICON} />
 const CATEGORY_ICON = {
   income:       I(<><circle cx="12" cy="12" r="9" /><path d="M12 6v12M15 9.2c-.6-.8-1.7-1.2-3-1.2-1.7 0-2.8.8-2.8 2 0 2.7 6 1.3 6 4 0 1.3-1.2 2-3 2-1.5 0-2.7-.5-3.3-1.4" /></>),
-  fuel:         I(<><path d="M4 21V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v15" /><path d="M2 21h14" /><path d="M14 10h2a2 2 0 0 1 2 2v4a1.5 1.5 0 0 0 3 0V9l-3-3" /><path d="M6 8h6" /></>),
-  maintenance:  I(<path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />),
-  labor:        I(<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>),
-  pilot_labor:  I(<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>),
+  fuel:         <NavImg src={FUEL_PUMP_ICON} wide={false} />,
+  maintenance:  I(<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />),
+  labor:        I(<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>),
+  pilot_labor:  I(<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>),
   equipment:    I(<><path d="M21 8l-9-5-9 5 9 5 9-5z" /><path d="M3 8v8l9 5 9-5V8" /><path d="M12 13v8" /></>),
   hangar:       I(<><path d="M3 21V10l9-6 9 6v11" /><path d="M9 21v-6h6v6" /><path d="M3 21h18" /></>),
   transport:    I(<><path d="M1 8h14v8H1z" /><path d="M15 11h4l3 3v2h-7" /><circle cx="6" cy="18" r="1.6" /><circle cx="18" cy="18" r="1.6" /></>),
@@ -41,9 +57,6 @@ const CATEGORY_ICON = {
   transfer:     I(<><path d="M17 3l4 4-4 4" /><path d="M21 7H9" /><path d="M7 21l-4-4 4-4" /><path d="M3 17h12" /></>),
   reversal:     I(<><path d="M3 12a9 9 0 1 0 9-9" /><path d="M3 4v8h8" /></>),
 }
-const FlightIcon = () => (
-  <img src={HELICOPTER_ICON} alt="" className="w-7 h-5 object-contain opacity-70" draggable="false" />
-)
 
 function LedgerRow({ e, onOpen }) {
   const isIncome = (e.net ?? 0) > 0
