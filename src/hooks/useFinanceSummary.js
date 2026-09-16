@@ -48,6 +48,7 @@ export function filterByPeriod(entries, key) {
 
 export function useFinanceSummary(aircraftId) {
   const [entries, setEntries] = useState([])
+  const [flights, setFlights] = useState([])
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
@@ -57,7 +58,7 @@ export function useFinanceSummary(aircraftId) {
     // Real ledger rows (phase 4a tables). Absent until the migration runs;
     // the select degrades to an empty list without complaining.
     let txs = await supabase.from('finance_transactions')
-      .select('id, date, party, amount_net, iva_amount, category, description, is_pending, deleted_at')
+      .select('id, date, party, amount_net, iva_amount, category, description, is_pending, flight_id, deleted_at')
       .eq('aircraft_id', aircraftId).is('deleted_at', null)
       .order('date', { ascending: false }).limit(500)
     if (txs.error) txs = { data: [] }
@@ -85,6 +86,7 @@ export function useFinanceSummary(aircraftId) {
         .eq('aircraft_id', aircraftId).not('actual_cost', 'is', null).limit(200),
     ])
 
+    const flightRows = (flights.data ?? []).filter(f => !f.deleted_at)
     const out = []
     const INCOME_CATS = new Set(['flight_revenue', 'other_income'])
     // A transaction is the authority: a derived fuel entry on a date that
@@ -103,6 +105,8 @@ export function useFinanceSummary(aircraftId) {
         // cash: what actually moved through the account (gross), the Monies view
         cash: net >= 0 ? net + iva : net - iva,
         pending: x.is_pending,
+        txId: x.id,
+        flightId: x.flight_id,
       })
     }
     for (const f of flights.data ?? []) {
@@ -152,10 +156,21 @@ export function useFinanceSummary(aircraftId) {
     }
     out.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
     setEntries(out)
+    setFlights(flightRows)
     setLoading(false)
   }, [aircraftId])
 
   useEffect(() => { load() }, [load])
+
+  // Attach a payment to the flight it paid for (many payments can point at
+  // the same flight: deposits, split parties, add-ons).
+  const linkToFlight = useCallback(async (txId, flightId) => {
+    const { error } = await supabase.from('finance_transactions')
+      .update({ flight_id: flightId }).eq('id', txId)
+    if (error) return error.message
+    await load()
+    return null
+  }, [load])
 
   const nowMonth = monthKey(new Date().toISOString())
   const inMonth  = entries.filter(e => monthKey(e.date) === nowMonth)
@@ -178,7 +193,7 @@ export function useFinanceSummary(aircraftId) {
   allTime.spendByKind = spendSlices(entries)
 
   return {
-    entries, loading, refresh: load, allTime,
+    entries, flights, loading, refresh: load, linkToFlight, allTime,
     month: {
       revenueNet: sum(inMonth, e => (e.net ?? 0) > 0 ? e.net : 0),
       spendNet:   Math.abs(sum(inMonth, e => (e.net ?? 0) < 0 ? e.net : 0)),

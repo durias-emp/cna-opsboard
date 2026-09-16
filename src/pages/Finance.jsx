@@ -447,7 +447,13 @@ export default function Finance() {
           return err
         }} />
 
-      <TransactionDetailSheet entry={selTx} open={!!selTx} onClose={() => setSelTx(null)} />
+      <TransactionDetailSheet entry={selTx} open={!!selTx} onClose={() => setSelTx(null)}
+        flights={fin.flights}
+        onLinkFlight={async (txId, flightId) => {
+          const err = await fin.linkToFlight(txId, flightId)
+          if (!err) setSelTx(t => (t ? { ...t, flightId } : t))
+          return err
+        }} />
 
       <RatesDrawer open={ratesOpen} onClose={() => setRatesOpen(false)}
         rates={engine.rates} onSave={engine.saveRates}

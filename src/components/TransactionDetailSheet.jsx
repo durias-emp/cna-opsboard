@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 import { formatDate } from '../lib/utils'
 
@@ -17,13 +18,20 @@ function Row({ label, children }) {
   )
 }
 
-export default function TransactionDetailSheet({ entry, open, onClose }) {
+export default function TransactionDetailSheet({ entry, open, onClose, flights = [], onLinkFlight }) {
+  const [picking, setPicking] = useState(false)
+  const [busy, setBusy] = useState(false)
   const { handleProps, panelProps, panelStyle } = useDrawerSwipe(onClose)
   if (!entry) return null
   const e = entry
   const gross = e.cash ?? e.net
   const amount = gross
   const isIncome = (amount ?? 0) > 0
+  const dayGap = (a, b) => Math.abs((new Date(a + 'T12:00:00') - new Date(b + 'T12:00:00')) / 86400000)
+  const nearbyFlights = flights
+    .filter(f => f.date && e.date && dayGap(f.date, e.date) <= 31)
+    .sort((a, b) => dayGap(a.date, e.date) - dayGap(b.date, e.date))
+    .slice(0, 12)
 
   return (
     <>
@@ -83,6 +91,75 @@ export default function TransactionDetailSheet({ entry, open, onClose }) {
           {e.detail && (
             <div className="bg-white/[0.04] rounded-2xl p-4">
               <p className="text-xs text-white/90 leading-relaxed whitespace-pre-wrap">{e.detail}</p>
+            </div>
+          )}
+
+          {/* Which flight did this pay for? A flight can have several
+              payments: a deposit, the balance, a second party on the same
+              trip. Linking is what turns cash into a flight's revenue. */}
+          {e.txId && onLinkFlight && (
+            <div>
+              <p className="label mb-2">Flight</p>
+              {e.flightId && !picking ? (
+                (() => {
+                  const f = flights.find(x => x.id === e.flightId)
+                  return (
+                    <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-white/[0.04]">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">
+                          {f ? `${f.pilot ?? 'Flight'} \u00b7 ${((f.total_minutes ?? 0) / 60).toFixed(1)} h` : 'Linked flight'}
+                        </p>
+                        <p className="text-[11px] text-white/35 mt-0.5">{f ? formatDate(f.date) : ''}</p>
+                      </div>
+                      <button onClick={() => setPicking(true)}
+                        className="text-[12px] font-semibold text-accent active:opacity-70 flex-shrink-0">
+                        Change
+                      </button>
+                    </div>
+                  )
+                })()
+              ) : picking ? (
+                <div className="space-y-2">
+                  <div className="card !p-0 divide-y divide-white/[0.05] max-h-64 overflow-y-auto">
+                    {nearbyFlights.length === 0 && (
+                      <p className="text-xs text-white/30 px-4 py-4">No flights within a month of this date.</p>
+                    )}
+                    {nearbyFlights.map(f => (
+                      <button key={f.id} disabled={busy}
+                        onClick={async () => {
+                          setBusy(true); await onLinkFlight(e.txId, f.id); setBusy(false); setPicking(false)
+                        }}
+                        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left active:bg-white/[0.06]">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-white truncate">{f.pilot ?? 'Flight'}</p>
+                          <p className="text-[11px] text-white/35 mt-0.5">{formatDate(f.date)}</p>
+                        </div>
+                        <p className="text-[12px] font-mono tabular-nums text-white/50 flex-shrink-0">
+                          {((f.total_minutes ?? 0) / 60).toFixed(1)} h
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => setPicking(false)}
+                      className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/60 text-xs font-semibold active:bg-white/5">
+                      Cancel
+                    </button>
+                    {e.flightId && (
+                      <button disabled={busy}
+                        onClick={async () => { setBusy(true); await onLinkFlight(e.txId, null); setBusy(false); setPicking(false) }}
+                        className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/60 text-xs font-semibold active:bg-white/5">
+                        Unlink
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setPicking(true)}
+                  className="w-full py-3 rounded-2xl bg-white/[0.07] text-sm font-semibold text-white/80 active:bg-white/[0.12]">
+                  Link to a flight
+                </button>
+              )}
             </div>
           )}
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { toHobbs, formatDate } from '../lib/utils'
@@ -11,6 +11,7 @@ import { useIsManagement } from '../context/TeamContext'
 import { useAircraft } from '../context/AircraftContext'
 import { useCostEngine } from '../hooks/useCostEngine'
 import { costOfFlight, marginOfFlight } from '../lib/financeCalc'
+import { supabase } from '../lib/supabase'
 
 // Static minimap of the route flown — same teal line the live map uses.
 // With onPick it becomes a picker: pan/zoom enabled, a tap hands back the
@@ -110,6 +111,20 @@ function FlightCostStamp({ flight }) {
   const isManagement = useIsManagement()
   const { selectedAircraft } = useAircraft()
   const engine = useCostEngine(isManagement ? selectedAircraft?.id : null)
+  const [paidNet, setPaidNet] = useState(null)
+  const [payers,  setPayers]  = useState([])
+  useEffect(() => {
+    let dead = false
+    if (!isManagement || !flight?.id) { setPaidNet(null); setPayers([]); return }
+    supabase.from('finance_transactions')
+      .select('party, amount_net').eq('flight_id', flight.id).is('deleted_at', null)
+      .then(({ data, error }) => {
+        if (dead || error || !data?.length) return
+        setPaidNet(Math.round(data.reduce((s, r) => s + Number(r.amount_net), 0) * 100) / 100)
+        setPayers(data.map(r => r.party))
+      })
+    return () => { dead = true }
+  }, [isManagement, flight?.id])
   if (!isManagement) return null
   const airHours = (flight?.total_minutes ?? 0) / 60
   if (!(airHours > 0) || engine.variableRate == null) return null
@@ -118,19 +133,23 @@ function FlightCostStamp({ flight }) {
     variableRate: engine.variableRate,
     fixedRate: engine.fixedRate ?? 0,
   })
-  const margin = marginOfFlight({
-    priceNet: flight?.price != null ? Number(flight.price) : null,
-    cost,
-  })
+  // Revenue is the flight's own price, or the payments linked to it (a trip
+  // can be paid in a deposit plus a balance, or by two parties at once).
+  const revenue = flight?.price != null ? Number(flight.price)
+    : paidNet != null ? paidNet : null
+  const margin = marginOfFlight({ priceNet: revenue, cost })
   const usd = n => '$' + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   return (
     <div className="flex flex-wrap gap-2">
       <span className="px-2.5 py-1.5 rounded-full bg-white/[0.06] text-[11px] font-semibold text-white/60">
         Cost {usd(cost)}
       </span>
-      {flight?.price != null && (
+      {revenue != null && (
         <span className="px-2.5 py-1.5 rounded-full bg-white/[0.06] text-[11px] font-semibold text-white/60">
-          Price {usd(Number(flight.price))}
+          {flight?.price != null ? 'Price' : 'Paid'} {usd(revenue)}
+          {payers.length > 0 && flight?.price == null && (
+            <span className="text-white/35"> · {payers.join(', ')}</span>
+          )}
         </span>
       )}
       {margin != null && (
