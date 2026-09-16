@@ -135,3 +135,57 @@ export function reserveVsActual({ item, currentHours = null, actualCost = null }
     delta: accrued != null && actualCost != null ? r2(accrued - actualCost) : null,
   }
 }
+
+// ── Block hour accounts ────────────────────────────────────────────────────
+// A client's block is recharged like a card; each recharge carries its own
+// net rate. Hours are drawn FIFO, so a flight is valued at the rate actually
+// paid for the hours it consumes, and a flight that straddles two recharges
+// is valued pro rata.
+// recharges: [{ date, hours, rate_hr }]  (any order; sorted here)
+// draws:     [{ date, hours }]           (flight time deducted)
+
+export function blockBalance({ recharges = [], draws = [], openingHoursUsed = 0 }) {
+  const bought = recharges.reduce((s, r) => s + Number(r.hours ?? 0), 0)
+  const flown  = draws.reduce((s, d) => s + Number(d.hours ?? 0), 0) + Number(openingHoursUsed ?? 0)
+  const remaining = Math.round((bought - flown) * 100) / 100
+  const value = recharges.reduce((s, r) => s + Number(r.hours ?? 0) * Number(r.rate_hr ?? 0), 0)
+  // What the remaining hours are worth: the rate of the hours still unused (FIFO)
+  const order = [...recharges].sort((a, b) => String(a.date).localeCompare(String(b.date)))
+  let used = flown, owedValue = 0
+  for (const r of order) {
+    const h = Number(r.hours ?? 0)
+    const consumed = Math.min(used, h)
+    used -= consumed
+    const left = h - consumed
+    if (left > 0) owedValue += left * Number(r.rate_hr ?? 0)
+  }
+  return {
+    boughtHours: Math.round(bought * 100) / 100,
+    flownHours:  Math.round(flown * 100) / 100,
+    remainingHours: remaining,
+    purchasedValue: Math.round(value * 100) / 100,
+    // Unflown hours are a liability: money taken for work not yet done
+    owedValue: Math.round(Math.max(owedValue, 0) * 100) / 100,
+    overdrawn: remaining < 0,
+  }
+}
+
+// Net revenue recognised for one draw, at the FIFO rate of the hours it eats.
+// hoursBefore = hours already drawn from the block before this flight.
+export function blockDrawValue({ recharges = [], hoursBefore = 0, hours = 0 }) {
+  const order = [...recharges].sort((a, b) => String(a.date).localeCompare(String(b.date)))
+  let skip = Number(hoursBefore ?? 0), need = Number(hours ?? 0), value = 0, lastRate = null
+  for (const r of order) {
+    let avail = Number(r.hours ?? 0)
+    lastRate = Number(r.rate_hr ?? 0)
+    if (skip >= avail) { skip -= avail; continue }
+    avail -= skip; skip = 0
+    const take = Math.min(avail, need)
+    value += take * Number(r.rate_hr ?? 0)
+    need -= take
+    if (need <= 0.0001) break
+  }
+  // Overdrawn hours keep billing at the most recent rate
+  if (need > 0.0001 && lastRate != null) value += need * lastRate
+  return Math.round(value * 100) / 100
+}

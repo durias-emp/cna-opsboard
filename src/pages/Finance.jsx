@@ -8,6 +8,8 @@ import { useMaintenanceItems } from '../hooks/useMaintenanceItems'
 import { useCostEngine } from '../hooks/useCostEngine'
 import { reserveVsActual } from '../lib/financeCalc'
 import RatesDrawer from '../components/RatesDrawer'
+import BlockDrawer from '../components/BlockDrawer'
+import { useHourBlocks } from '../hooks/useHourBlocks'
 import { formatDate } from '../lib/utils'
 import { HELICOPTER_ICON, FUEL_PUMP_ICON } from '../assets/navIcons'
 import TransactionDetailSheet from '../components/TransactionDetailSheet'
@@ -99,6 +101,10 @@ export default function Finance() {
   const [ratesOpen, setRatesOpen] = useState(false)
   const [period, setPeriod] = useState('all')   // pills above the hero
   const [selTx, setSelTx] = useState(null)      // tapped ledger entry
+  const hourBlocks = useHourBlocks(selectedAircraft?.id)
+  const [selBlock, setSelBlock] = useState(null)
+  const [newBlockOpen, setNewBlockOpen] = useState(false)
+  const [newBlockName, setNewBlockName] = useState('')
 
   if (!isManagement) {
     return (
@@ -167,7 +173,7 @@ export default function Finance() {
 
       {/* Tabs */}
       <div className="px-4 mt-4 flex gap-1.5">
-        {[['ledger', 'Ledger'], ['costs', 'Costs'], ['pnl', 'P&L']].map(([id, label]) => (
+        {[['ledger', 'Ledger'], ['blocks', 'Blocks'], ['costs', 'Costs'], ['pnl', 'P&L']].map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)}
             className={`px-4 py-2 rounded-full text-xs font-semibold transition-colors
               ${tab === id ? 'bg-white text-black' : 'bg-white/[0.06] text-white/50'}`}>
@@ -213,6 +219,93 @@ export default function Finance() {
           <p className="text-[10px] text-white/20 text-center mt-3 leading-relaxed">
             Derived from flights, fuel and maintenance records. Gross figures shown net of IVA (13/113).
           </p>
+        </div>
+      )}
+
+      {/* Blocks: prepaid hour accounts, one per client, recharged like a card */}
+      {tab === 'blocks' && (
+        <div className="px-4 mt-3 pb-6 space-y-3">
+          {hourBlocks.missing ? (
+            <div className="card border border-amber-400/20">
+              <p className="text-xs text-amber-300 leading-relaxed">
+                Block accounts are not migrated yet. Run
+                2026-09-16-finance-hour-blocks.sql.
+              </p>
+            </div>
+          ) : (
+            <>
+              {hourBlocks.blocks.length === 0 && (
+                <p className="text-xs text-white/30 text-center py-8 leading-relaxed">
+                  No block accounts yet. Add one for a client who buys hours up front.
+                </p>
+              )}
+
+              {hourBlocks.blocks.map(b => {
+                const low = b.remainingHours <= 1 && !b.overdrawn
+                return (
+                  <button key={b.id} onClick={() => setSelBlock(b)}
+                    className="card w-full text-left active:bg-white/[0.06] transition-colors">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">{b.client}</p>
+                        <p className="text-[11px] text-white/35 mt-0.5">
+                          {b.boughtHours.toFixed(1)} h bought · {b.flownHours.toFixed(1)} h flown
+                          {b.currentRate ? ` · ${usd(b.currentRate)}/h` : ''}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className={`text-lg font-bold font-mono tabular-nums
+                          ${b.overdrawn ? 'text-red-400' : low ? 'text-amber-300' : 'text-white'}`}>
+                          {b.remainingHours.toFixed(1)}<span className="text-[11px] font-normal text-white/30"> h left</span>
+                        </p>
+                        {b.owedValue > 0 && (
+                          <p className="text-[11px] text-white/35 font-mono tabular-nums">{usd(b.owedValue)} owed</p>
+                        )}
+                      </div>
+                    </div>
+                    {/* consumption bar */}
+                    <div className="mt-3 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                      <div className={`h-full rounded-full ${b.overdrawn ? 'bg-red-400' : low ? 'bg-amber-300' : 'bg-accent'}`}
+                        style={{ width: `${Math.min(100, Math.max(0, (b.flownHours / Math.max(b.boughtHours, 0.01)) * 100))}%` }} />
+                    </div>
+                  </button>
+                )
+              })}
+
+              {newBlockOpen ? (
+                <div className="card space-y-3">
+                  <p className="label">New block account</p>
+                  <input autoFocus value={newBlockName} onChange={e => setNewBlockName(e.target.value)}
+                    placeholder="Client name" className="input-field w-full" />
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button onClick={() => { setNewBlockOpen(false); setNewBlockName('') }}
+                      className="py-3 rounded-2xl border border-white/10 text-white/60 text-sm font-semibold active:bg-white/5">
+                      Cancel
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!newBlockName.trim()) return
+                        await hourBlocks.createBlock(newBlockName)
+                        setNewBlockName(''); setNewBlockOpen(false)
+                      }}
+                      className="py-3 rounded-2xl bg-white text-black text-sm font-bold active:scale-[0.98]">
+                      Create
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setNewBlockOpen(true)}
+                  className="w-full py-3 rounded-2xl bg-white/[0.07] text-sm font-semibold text-white/80 active:bg-white/[0.12]">
+                  + New block account
+                </button>
+              )}
+
+              <p className="text-[10px] text-white/20 text-center leading-relaxed">
+                Flight time is deducted from the block. Hours never expire and are drawn
+                oldest first, so each flight is valued at the rate actually paid for it.
+              </p>
+            </>
+          )}
         </div>
       )}
 
@@ -344,6 +437,13 @@ export default function Finance() {
           </div>
         </div>
       )}
+
+      <BlockDrawer block={selBlock} open={!!selBlock} onClose={() => setSelBlock(null)}
+        onRecharge={async (args) => {
+          const err = await hourBlocks.recharge(args)
+          if (!err) { await fin.refresh(); setSelBlock(null) }
+          return err
+        }} />
 
       <TransactionDetailSheet entry={selTx} open={!!selTx} onClose={() => setSelTx(null)} />
 

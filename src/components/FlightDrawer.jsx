@@ -10,6 +10,8 @@ import DatePicker from './DatePicker'
 import { useDrawerSwipe } from '../hooks/useDrawerSwipe'
 import { useWaypoints } from '../hooks/useWaypoints'
 import { RouteMiniMap } from './FlightDetailSheet'
+import { useHourBlocks } from '../hooks/useHourBlocks'
+import { blockDrawValue } from '../lib/financeCalc'
 import { HELICOPTER_ICON } from '../assets/navIcons'
 
 const ROUND = (n, decimals = 2) => Math.round(n * 10 ** decimals) / 10 ** decimals
@@ -292,7 +294,9 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
   // Finance: NET price of the flight. Field renders only for management on a
   // commercial tenant; everyone else never sees money here.
   const [price,         setPrice]         = useState('')
+  const [blockId,       setBlockId]       = useState(null)   // bill to a client's block
   const isManagement = useIsManagement()
+  const hourBlocks = useHourBlocks(selectedAircraft?.id)
   const showPrice = isManagement && (selectedAircraft?.finance_mode ?? 'commercial') === 'commercial'
   const parsePrice = v => {
     const n = parseFloat(String(v).replace(/[^0-9.]/g, ''))
@@ -365,6 +369,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       setFuelEnd(editFlight.fuel_end_gal     != null ? String(editFlight.fuel_end_gal)   : '')
       setNotes(editFlight.notes ?? '')
       setPrice(editFlight.price != null ? String(editFlight.price) : '')
+      setBlockId(editFlight.block_id ?? null)
       setPreflightDone(true)
       setTachMode(false); setTachNew(''); setTachModal(false)
       setFtMins(editFlight.flight_time_minutes ?? null)
@@ -383,6 +388,7 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       setFuelEnd('')
       setNotes('')
       setPrice('')
+      setBlockId(null)
       setPreflightDone(false)
       setPaxDropdown(null)
       setFtMethod(null); setFtMins(null); setFtModal(null); setFtHobbsNew('')
@@ -472,6 +478,11 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
       // Finance: NET price of the flight (commercial tenants, management only).
       // Preserved untouched when the editor can't see the field.
       ...(showPrice ? { price: parsePrice(price) } : {}),
+      // Block hour accounts: flight time is what gets deducted
+      ...(showPrice ? {
+        block_id: blockId,
+        billed_hours: blockId ? Math.round(((ftMins ?? 0) / 60) * 100) / 100 : null,
+      } : {}),
     }
 
     // ── Preferred path: one atomic server call (flight + aircraft hours together) ──
@@ -1099,6 +1110,60 @@ export default function FlightDrawer({ open, onClose, onSaved, editFlight }) {
               Pre-flight inspection completed
             </p>
           </button>
+
+          {/* Finance: bill this flight to a client's block account. Picking one
+              deducts flight time and prices it at the rate they paid. */}
+          {showPrice && hourBlocks.blocks.length > 0 && (
+            <div>
+              <label className="label block mb-1.5">Bill to</label>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => setBlockId(null)}
+                  className={`px-4 py-2 rounded-full text-[13px] font-semibold border transition-colors
+                    ${blockId == null
+                      ? 'bg-white/[0.10] border-white/25 text-white'
+                      : 'bg-white/[0.03] border-white/[0.08] text-white/45'}`}>
+                  Direct
+                </button>
+                {hourBlocks.blocks.map(b => (
+                  <button key={b.id} type="button"
+                    onClick={() => {
+                      setBlockId(b.id)
+                      const hrs = Math.round(((ftMins ?? 0) / 60) * 100) / 100
+                      if (hrs > 0) {
+                        const v = blockDrawValue({
+                          recharges: b.recharges,
+                          hoursBefore: b.flownHours,
+                          hours: hrs,
+                        })
+                        setPrice(String(v))
+                      }
+                    }}
+                    className={`px-4 py-2 rounded-full text-[13px] font-semibold border transition-colors
+                      ${blockId === b.id
+                        ? 'bg-white/[0.10] border-white/25 text-white'
+                        : 'bg-white/[0.03] border-white/[0.08] text-white/45'}`}>
+                    {b.client}
+                    <span className={`ml-1.5 font-mono ${b.remainingHours <= 1 ? 'text-amber-300' : 'text-white/35'}`}>
+                      {b.remainingHours.toFixed(1)}h
+                    </span>
+                  </button>
+                ))}
+              </div>
+              {blockId && (() => {
+                const b = hourBlocks.blocks.find(x => x.id === blockId)
+                const hrs = Math.round(((ftMins ?? 0) / 60) * 100) / 100
+                if (!b) return null
+                const after = Math.round((b.remainingHours - hrs) * 100) / 100
+                return (
+                  <p className={`text-[11px] mt-2 ${after < 0 ? 'text-red-400' : 'text-white/35'}`}>
+                    {hrs > 0
+                      ? `Deducts ${hrs.toFixed(1)} h of flight time, leaving ${after.toFixed(1)} h`
+                      : 'Enter the flight time to deduct the hours'}
+                  </p>
+                )
+              })()}
+            </div>
+          )}
 
           {/* Finance: price of the flight (management + commercial only) */}
           {showPrice && (

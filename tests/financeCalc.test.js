@@ -3,7 +3,7 @@ import {
   splitEntry, fuelRatePerHour, pilotRatePerHour, reservePerHour,
   variablePerHour, trailingAnnualHours, fixedPerHour, fullyLoadedPerHour,
   costOfFlight, marginOfFlight, breakevenHoursMonth, ivaOwed, ivaRecoverable,
-  reserveVsActual,
+  reserveVsActual, blockBalance, blockDrawValue,
 } from '../src/lib/financeCalc.js'
 
 describe('splitEntry (13/113 at entry, once)', () => {
@@ -130,5 +130,56 @@ describe('reserveVsActual', () => {
   })
   it('null without a costed hours interval', () => {
     expect(reserveVsActual({ item: { estimated_cost: null }, currentHours: 1 })).toBe(null)
+  })
+})
+
+describe('block hour accounts', () => {
+  // Fidel Rivas, straight from the history: 8 h at 980, then 4.1 and 4.0 at 1,060
+  const recharges = [
+    { date: '2026-03-04', hours: 8.0, rate_hr: 980 },
+    { date: '2026-04-06', hours: 4.1, rate_hr: 1060 },
+    { date: '2026-04-28', hours: 4.0, rate_hr: 1060 },
+  ]
+
+  it('balance counts every recharge and every draw', () => {
+    const b = blockBalance({ recharges, draws: [{ hours: 2.5 }, { hours: 1.5 }] })
+    expect(b.boughtHours).toBe(16.1)
+    expect(b.flownHours).toBe(4)
+    expect(b.remainingHours).toBe(12.1)
+    expect(b.purchasedValue).toBe(16426)      // matches the money they paid
+  })
+
+  it('opening hours (flown before the app) reduce the balance', () => {
+    const b = blockBalance({ recharges, draws: [], openingHoursUsed: 14 })
+    expect(b.remainingHours).toBe(2.1)
+  })
+
+  it('unflown hours are valued at the rate actually paid for them (FIFO)', () => {
+    // 12 h flown eats all 8 at 980 and 4 of the 4.1 at 1,060;
+    // what is left is 0.1 at 1,060 plus 4.0 at 1,060
+    const b = blockBalance({ recharges, draws: [{ hours: 12 }] })
+    expect(b.remainingHours).toBe(4.1)
+    expect(b.owedValue).toBe(4346)            // 4.1 * 1060
+  })
+
+  it('flags an overdrawn block', () => {
+    const b = blockBalance({ recharges, draws: [{ hours: 17 }] })
+    expect(b.overdrawn).toBe(true)
+    expect(b.remainingHours).toBe(-0.9)
+  })
+
+  it('values a draw at the rate of the hours it consumes', () => {
+    expect(blockDrawValue({ recharges, hoursBefore: 0, hours: 1 })).toBe(980)
+    expect(blockDrawValue({ recharges, hoursBefore: 10, hours: 1 })).toBe(1060)
+  })
+
+  it('splits a draw that straddles two recharges, pro rata', () => {
+    // 7.5 h already flown: 0.5 h left at 980, so a 1.5 h flight is
+    // 0.5 at 980 plus 1.0 at 1,060
+    expect(blockDrawValue({ recharges, hoursBefore: 7.5, hours: 1.5 })).toBe(1550)
+  })
+
+  it('keeps billing at the latest rate once the block is empty', () => {
+    expect(blockDrawValue({ recharges, hoursBefore: 16.1, hours: 1 })).toBe(1060)
   })
 })
