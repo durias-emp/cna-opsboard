@@ -112,7 +112,11 @@ export function useFinanceSummary(aircraftId) {
         label: `Flight · ${f.pilot ?? ''}`.trim(),
         detail: `${((f.total_minutes ?? 0) / 60).toFixed(1)} h air time`,
         hours: (f.total_minutes ?? 0) / 60,
-        net: f.price != null ? Number(f.price) : null,   // prices are entered net
+        // Prices are stored NET. The customer paid net + IVA, so the ledger
+        // can show both: net for the P&L, gross for the cash position.
+        net: f.price != null ? Number(f.price) : null,
+        iva: f.price != null ? Math.round(Number(f.price) * 0.13 * 100) / 100 : null,
+        cash: f.price != null ? Math.round(Number(f.price) * 1.13 * 100) / 100 : null,
       })
     }
     for (const t of fuel.data ?? []) {
