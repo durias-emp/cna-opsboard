@@ -198,7 +198,8 @@ function FinanceCard() {
           <button className="vital-tile items-center text-center" onClick={() => navigate('/finance')}>
             <p className="vital-label">Income</p>
             <div className="vital-zone">
-              <p className={`vital-value-sm font-mono tabular-nums ${commercial && at.incomeCash > 0 ? 'text-green-400' : ''}`}>
+              <p className={`text-[13px] font-bold font-mono tabular-nums leading-none
+                ${commercial && at.incomeCash > 0 ? 'text-green-400' : 'text-white'}`}>
                 {usd(at.incomeCash)}
               </p>
             </div>
@@ -208,17 +209,17 @@ function FinanceCard() {
           <button className="vital-tile items-center text-center" onClick={() => navigate('/finance')}>
             <p className="vital-label">Expenses</p>
             <div className="vital-zone">
-              <SpendDonut slices={at.spendByKind} size={44} />
+              <p className="text-[13px] font-bold font-mono tabular-nums leading-none text-red-400">
+                {usd(at.expenseCash)}
+              </p>
             </div>
-            <p className="vital-foot text-red-400 font-mono tabular-nums">{usd(at.expenseCash)}</p>
+            <p className="vital-foot">all time</p>
           </button>
 
           <button className="vital-tile items-center text-center" onClick={() => navigate('/finance')}>
-            <p className="vital-label">Net</p>
+            <p className="vital-label">Breakdown</p>
             <div className="vital-zone">
-              <p className={`vital-value-sm font-mono tabular-nums ${at.position >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {at.position < 0 ? '\u2212' : ''}{usd(at.position)}
-              </p>
+              <SpendDonut slices={at.spendByKind} size={56} />
             </div>
             <p className="vital-foot">{spendFoot}</p>
           </button>
