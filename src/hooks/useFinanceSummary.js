@@ -74,6 +74,10 @@ export function useFinanceSummary(aircraftId) {
         .eq('aircraft_id', aircraftId).order('date', { ascending: false }).limit(400)
     }
 
+    const blocksRes = await supabase.from('hour_blocks').select('id, client')
+    const blockClient = {}
+    for (const b of blocksRes.data ?? []) blockClient[b.id] = b.client
+
     const [fuel, snags, compliance] = await Promise.all([
       supabase.from('tank_fillups')
         .select('id, date, supplier, total_cost, gallons_added, includes_iva')
@@ -87,6 +91,16 @@ export function useFinanceSummary(aircraftId) {
     ])
 
     const flightRows = (flights.data ?? []).filter(f => !f.deleted_at)
+    const payersByFlight = {}, paidByFlight = {}
+    for (const x of txs.data ?? []) {
+      if (!x.flight_id) continue
+      ;(payersByFlight[x.flight_id] ??= new Set()).add(x.party)
+      paidByFlight[x.flight_id] =
+        (paidByFlight[x.flight_id] ?? 0) + Number(x.amount_net) + Number(x.iva_amount)
+    }
+    const flightClient = f =>
+      (f.block_id && blockClient[f.block_id])
+      || (payersByFlight[f.id] ? [...payersByFlight[f.id]].join(', ') : null)
     const out = []
     const INCOME_CATS = new Set(['flight_revenue', 'other_income'])
     // A transaction is the authority: a derived fuel entry on a date that
@@ -113,8 +127,11 @@ export function useFinanceSummary(aircraftId) {
       if (f.deleted_at) continue
       out.push({
         kind: 'flight', id: `f-${f.id}`, date: f.date,
-        label: `Flight · ${f.pilot ?? ''}`.trim(),
-        detail: `${((f.total_minutes ?? 0) / 60).toFixed(1)} h air time`,
+        // Whose flight it was: the block's client, else whoever paid for it.
+        // The customer is the headline; the pilot moves to the second line.
+        label: flightClient(f) ?? 'Flight',
+        client: flightClient(f),
+        detail: `${((f.total_minutes ?? 0) / 60).toFixed(1)} h air time${f.pilot ? ` \u00b7 ${f.pilot}` : ''}`,
         hours: (f.total_minutes ?? 0) / 60,
         // Prices are stored NET. The customer paid net + IVA, so the ledger
         // can show both: net for the P&L, gross for the cash position.
@@ -126,6 +143,10 @@ export function useFinanceSummary(aircraftId) {
         cash: f.block_id ? 0
           : f.price != null ? Math.round(Number(f.price) * 1.13 * 100) / 100 : null,
         fromBlock: !!f.block_id,
+        // Paid by linked transactions: the cash is already on those rows, so
+        // this figure is shown for reference only, never added again.
+        paidElsewhere: f.price == null && paidByFlight[f.id] != null
+          ? Math.round(paidByFlight[f.id] * 100) / 100 : null,
       })
     }
     for (const t of fuel.data ?? []) {

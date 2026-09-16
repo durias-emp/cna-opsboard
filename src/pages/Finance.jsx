@@ -72,17 +72,27 @@ function LedgerRow({ e, onOpen }) {
       <div className="tile-icon">{icon}</div>
       <div className="tile-body">
         <div className="min-w-0">
-          <p className="tile-title truncate">{e.label}</p>
+          <div className="flex items-center gap-2 min-w-0">
+            <p className="tile-title truncate">{e.label}</p>
+            {e.fromBlock && (
+              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wide
+                               bg-accent/15 text-accent flex-shrink-0">
+                block
+              </span>
+            )}
+          </div>
           <p className="tile-sub">
             {formatDate(e.date)}{e.detail ? ` \u00b7 ${e.detail}` : ''}
           </p>
         </div>
         <p className={`tile-value font-mono tabular-nums
           ${e.fromBlock ? '!text-accent'
+            : e.paidElsewhere != null ? '!text-white/45'
             : amount == null ? '!text-white/25'
             : amount === 0 ? '!text-white/40'
             : isIncome ? '!text-emerald-400' : '!text-red-400'}`}>
           {e.fromBlock ? 'from block'
+            : e.paidElsewhere != null ? `paid ${usd(e.paidElsewhere)}`
             : amount == null ? 'no price'
             : amount === 0 ? usd(0)
             : `${isIncome ? '+' : '\u2212'}${usd(amount)}`}

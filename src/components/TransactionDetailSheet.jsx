@@ -71,6 +71,11 @@ export default function TransactionDetailSheet({ entry, open, onClose, flights =
             <span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide bg-white/[0.08] text-white/60">
               {e.chip ?? e.kind}
             </span>
+            {e.fromBlock && (
+              <span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide bg-accent/15 text-accent">
+                block hours
+              </span>
+            )}
             {e.pending && (
               <span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide bg-amber-400/15 text-amber-300">
                 pending
@@ -84,6 +89,7 @@ export default function TransactionDetailSheet({ entry, open, onClose, flights =
             {gross != null && e.iva != null && e.iva !== 0 && (
               <Row label={isIncome ? 'Received (gross)' : 'Paid (gross)'}>{usd(gross)}</Row>
             )}
+            {e.client && <Row label={e.fromBlock ? 'Block client' : 'Client'}>{e.client}</Row>}
             {e.hours != null && e.hours > 0 && <Row label="Air time">{e.hours.toFixed(1)} h</Row>}
             {e.invoice && <Row label="Invoice">#{e.invoice}</Row>}
           </div>
