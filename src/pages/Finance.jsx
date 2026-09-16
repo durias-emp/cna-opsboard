@@ -75,8 +75,10 @@ function LedgerRow({ e, onOpen }) {
             {formatDate(e.date)}{e.detail ? ` \u00b7 ${e.detail}` : ''}
           </p>
         </div>
-        <p className={`tile-value tabular-nums
-          ${amount == null ? '!text-white/25' : isIncome ? '!text-emerald-400' : ''}`}>
+        <p className={`tile-value font-mono tabular-nums
+          ${amount == null ? '!text-white/25'
+            : amount === 0 ? '!text-white/40'
+            : isIncome ? '!text-emerald-400' : '!text-red-400'}`}>
           {amount == null ? 'no price'
             : amount === 0 ? usd(0)
             : `${isIncome ? '+' : '\u2212'}${usd(amount)}`}
@@ -138,7 +140,7 @@ export default function Finance() {
           <div className="px-4 mt-3">
             <div className="card !p-5">
               <p className="text-[11px] font-semibold text-white/35 uppercase tracking-[0.18em] text-center">{eyebrow}</p>
-              <p className={`text-4xl font-bold text-center mt-2 tabular-nums
+              <p className={`text-4xl font-bold font-mono text-center mt-2 tabular-nums
                 ${s.position >= 0 ? 'text-white' : 'text-red-400'}`}>
                 {s.position < 0 ? '−' : ''}{usd(s.position)}
               </p>

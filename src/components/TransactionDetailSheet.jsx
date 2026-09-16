@@ -12,7 +12,7 @@ function Row({ label, children }) {
   return (
     <div>
       <p className="text-white/35 mb-0.5 text-xs">{label}</p>
-      <p className="text-white font-medium text-sm">{children}</p>
+      <p className="text-white font-medium text-sm font-mono tabular-nums">{children}</p>
     </div>
   )
 }
@@ -21,8 +21,9 @@ export default function TransactionDetailSheet({ entry, open, onClose }) {
   const { handleProps, panelProps, panelStyle } = useDrawerSwipe(onClose)
   if (!entry) return null
   const e = entry
-  const isIncome = (e.net ?? 0) > 0
   const gross = e.cash ?? e.net
+  const amount = gross
+  const isIncome = (amount ?? 0) > 0
 
   return (
     <>
@@ -39,9 +40,13 @@ export default function TransactionDetailSheet({ entry, open, onClose }) {
             <p className="text-[11px] text-white/35 mt-0.5">{formatDate(e.date)}</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span className={`text-base font-bold tabular-nums
-              ${e.net == null ? 'text-white/25' : isIncome ? 'text-emerald-400' : 'text-white/85'}`}>
-              {e.net == null ? 'no price' : `${isIncome ? '+' : '−'}${usd(e.net)}`}
+            <span className={`text-base font-bold font-mono tabular-nums
+              ${amount == null ? 'text-white/25'
+                : amount === 0 ? 'text-white/40'
+                : isIncome ? 'text-emerald-400' : 'text-red-400'}`}>
+              {amount == null ? 'no price'
+                : amount === 0 ? usd(0)
+                : `${isIncome ? '+' : '−'}${usd(amount)}`}
             </span>
             <button onClick={onClose}
               className="w-8 h-8 rounded-full bg-white/[0.07] flex items-center justify-center text-white/50">
