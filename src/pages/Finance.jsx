@@ -78,10 +78,12 @@ function LedgerRow({ e, onOpen }) {
           </p>
         </div>
         <p className={`tile-value font-mono tabular-nums
-          ${amount == null ? '!text-white/25'
+          ${e.fromBlock ? '!text-accent'
+            : amount == null ? '!text-white/25'
             : amount === 0 ? '!text-white/40'
             : isIncome ? '!text-emerald-400' : '!text-red-400'}`}>
-          {amount == null ? 'no price'
+          {e.fromBlock ? 'from block'
+            : amount == null ? 'no price'
             : amount === 0 ? usd(0)
             : `${isIncome ? '+' : '\u2212'}${usd(amount)}`}
         </p>

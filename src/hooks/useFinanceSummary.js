@@ -65,11 +65,11 @@ export function useFinanceSummary(aircraftId) {
     // flights.deleted_at arrives with migration phase 1b; select degrades
     // gracefully until it has run
     let flights = await supabase.from('flights')
-      .select('id, date, pilot, price, total_minutes, deleted_at')
+      .select('id, date, pilot, price, total_minutes, block_id, deleted_at')
       .eq('aircraft_id', aircraftId).order('date', { ascending: false }).limit(400)
     if (flights.error) {
       flights = await supabase.from('flights')
-        .select('id, date, pilot, price, total_minutes')
+        .select('id, date, pilot, price, total_minutes, block_id')
         .eq('aircraft_id', aircraftId).order('date', { ascending: false }).limit(400)
     }
 
@@ -114,9 +114,14 @@ export function useFinanceSummary(aircraftId) {
         hours: (f.total_minutes ?? 0) / 60,
         // Prices are stored NET. The customer paid net + IVA, so the ledger
         // can show both: net for the P&L, gross for the cash position.
+        // A flight billed to a block moves NO cash: the money came in when
+        // the client recharged, so counting it again would double the
+        // revenue. It still recognises net revenue for the P&L.
         net: f.price != null ? Number(f.price) : null,
-        iva: f.price != null ? Math.round(Number(f.price) * 0.13 * 100) / 100 : null,
-        cash: f.price != null ? Math.round(Number(f.price) * 1.13 * 100) / 100 : null,
+        iva: f.price != null && !f.block_id ? Math.round(Number(f.price) * 0.13 * 100) / 100 : null,
+        cash: f.block_id ? 0
+          : f.price != null ? Math.round(Number(f.price) * 1.13 * 100) / 100 : null,
+        fromBlock: !!f.block_id,
       })
     }
     for (const t of fuel.data ?? []) {
